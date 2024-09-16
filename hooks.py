@@ -75,7 +75,8 @@ before_install = "yarsa.install.create_salary_component"
 # Uninstallation
 # ------------
 
-# before_uninstall = "yarsa.uninstall.before_uninstall"
+# before_uninstall = "yarsa.uninstall.before_uninstall"]
+before_uninstall = "yarsa.uninstaall.delete_salary_component"
 # after_uninstall = "yarsa.uninstall.after_uninstall"
 
 # Integration Setup
