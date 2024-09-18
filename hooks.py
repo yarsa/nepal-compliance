@@ -69,7 +69,7 @@ app_license = "mit"
 # ------------
 
 # before_install = "yarsa.install.before_install"
-before_install = "yarsa.install.create_salary_component"
+before_install = "yarsa.install.install"
 # after_install = "yarsa.install.after_install"
 
 # Uninstallation
