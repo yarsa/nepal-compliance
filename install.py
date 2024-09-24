@@ -284,6 +284,23 @@ def create_salary_component():
     })
     doc.condition = ""
     doc.amount_based_on_formula = 1
+    employees = frappe.get_all("Employee", fields=["name", "ctc"])
+    # Check if we have any employee records
+    if not employees:
+        frappe.throw("No employee records found or CTC is not set for any employee.")
+
+    # Iterate through each employee record
+    for emp in employees:
+        employee_doc = frappe.get_doc("Employee", emp.name)  # Get the employee document
+        ctc = emp.ctc
+    tax = ""
+    if ctc*12 > 0:
+        # tax = "((((ctc*12) * 0.2) * 0.15) + (500000 * 0.01) + (200000 * 0.1) + (300000 * 0.2) + (1000000 * 0.3) + (3000000 * 0.36) + (((ctc*12) - 5000000) * 0.39)) / 12"
+        tax = "((((custom_taxable_salary) * 12) * 0.01)/12) if ((custom_taxable_salary) * 12) <=500000 else (((500000 * 0.01) + (((custom_taxable_salary) * 12) - 500000) * 0.1)/12) if ((custom_taxable_salary) * 12) <= 700000 else (((500000*0.01) + (200000*0.1) + (((custom_taxable_salary)*12) - 700000) * 0.2)/12) if ((custom_taxable_salary)*12) <= 1000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + ((custom_taxable_salary)*12 - 1000000) *0.3)/12) if ((custom_taxable_salary)*12)<=2000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + ((custom_taxable_salary)*12 - 2000000)*0.36)/12) if ((custom_taxable_salary)*12)<=5000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + (3000000*0.36) + ((custom_taxable_salary)*12 - 5000000)*0.39)/12) if ((custom_taxable_salary)*12)>5000000 else -1"
+    else:
+        tax = 0 
+    # Set the formula as a string
+    doc.formula = tax 
     doc.fromula = "((((Tax Salary) * 12) * 0.01)/12) if ((Tax Salary) * 12) <=500000 else (((500000 * 0.01) + (((Tax Salary) * 12) - 500000) * 0.1)/12) if ((Tax Salary) * 12) <= 700000 else (((500000*0.01) + (200000*0.1) + (((Tax Salary)*12) - 700000) * 0.2)/12) if ((Tax Salary)*12) <= 1000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + ((Tax Salary)*12 - 1000000) *0.3)/12) if ((Tax Salary)*12)<=2000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + ((Tax Salary)*12 - 2000000)*0.36)/12) if ((Tax Salary)*12)<=5000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + (3000000*0.36) + ((Tax Salary)*12 - 5000000)*0.39)/12) if ((Tax Salary)*12)>5000000 else -1"
     doc.s_flexible_benefits = 0
     salary_component_names.append(doc.salary_component)  # Add to list
