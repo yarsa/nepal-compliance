@@ -10,13 +10,12 @@ def create_custom_fields():
         #     {"fieldname": "customer_code", "label": "Customer Code", "fieldtype": "Data", "insert_after": "health_insurance_no", "reqd": 0},
         # ], ............
         "Salary Slip": [
-            {"fieldname": "nepali start date", "lable": "Nepali Start Date", "fieldtype": "Currency", "insert_after": "start_date", "reqd": 0},
-            {"fieldname": "nepali end date", "label": "Nepali End Date", "fieldtype": "Currency", "insert_after": "end_date"}
+            {"fieldname": "nepali start date", "lable": "Nepali Start Date", "fieldtype": "Data", "insert_after": "start_date", "reqd": 0},
+            {"fieldname": "nepali end date", "label": "Nepali End Date", "fieldtype": "Data", "insert_after": "end_date"}
         ]
     }
 
-    created_fields = []  
-
+    created_fields = []
     for doctype_name, fields in custom_fields.items():
         for field in fields:
             if not frappe.db.exists("Custom Field", {"dt": doctype_name, "fieldname": field["fieldname"]}):
