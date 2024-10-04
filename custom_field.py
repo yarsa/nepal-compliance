@@ -14,6 +14,10 @@ def create_custom_fields():
         "Fiscal Year": [
             {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_start_date"}
             {"fieldname": "nepali_year_end_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_end_date"}
+        ],
+        "Holiday List":[
+            {"fieldname": "nepali_from_date", "label": "Nepali From Date", "fieldtype": "Data", "insert_after": "total_holidays"},
+            {"fieldname": "nepali_to_date", "label": "Nepali To Date", "fieldtype": "Data", "insert_after": "nepali_from_date"}
         ]
     }
 
