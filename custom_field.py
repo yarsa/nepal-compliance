@@ -12,8 +12,8 @@ def create_custom_fields():
             {"fieldname": "nepali end date", "label": "Nepali End Date", "fieldtype": "Data", "insert_after": "end_date"}
         ],
         "Fiscal Year": [
-            {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Date", "insert_after": "year_start_date"}
-            {"fieldname": "nepali_year_end_date", "label": "Nepali Year Start Date", "fieldtype": "Date", "insert_after": "year_end_date"}
+            {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_start_date"}
+            {"fieldname": "nepali_year_end_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_end_date"}
         ]
     }
 
