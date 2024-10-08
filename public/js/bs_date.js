@@ -4,10 +4,10 @@ frappe.ui.form.on('Fiscal Year',{
         bs_datepicker(frm, "nepali_year_end_date", "year_end_date")
     },
     year_start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_start_date", NepaliFunctions.AD2BS(frm.doc.year_start_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_start_date", BsFunctions.AD2BS(frm.doc.year_start_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));
     },
     year_end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_end_date", NepaliFunctions.AD2BS(frm.doc.year_end_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));       
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_end_date", BsFunctions.AD2BS(frm.doc.year_end_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));       
     }
 });
 
@@ -17,10 +17,10 @@ frappe.ui.form.on('Holiday List', {
         add_nepali_date_picker(frm, "nepali_to_date", "to_date")
     },
     from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_from_date", NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_from_date", BsFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
     },
     to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_to_date", NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_to_date", BsFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
     },
     nepali_from_date: function (frm) {
 		if (frm.doc.nepali_from_date && !frm.doc.nepali_to_date) {
@@ -31,16 +31,24 @@ frappe.ui.form.on('Holiday List', {
 
 });
 
+frappe.ui.frm.on("Holiday", "holiday_date", function(frm, cdt, cdn){
+    frappe.model.set_value(cdt, cdn, "neplai_date", BsFunctions.AD2BS(locals[cdt][cdn].holiday_date, "YYYY-MM-DD", "YYYY-MM-DD")); 
+})
+
+frappe.ui.frm.on("Holiday", "nepali_date", function(frm, cdt, cdn){
+    frappe.model.set_value(cdt, cdn, "holiday_date", BsFunctions.BS2AD(locals[cdt][cdn].nepali_date, "YYYY-MM-DD", "YYYY-MM-DD")); 
+})
+
 frappe.ui.form.on('Salary Slip', {
     refresh(frm){
         bs_datepicker(frm, "nepali_start_date", "start_date");
         bs_datepicker(frm, "nepali_end_date", "end_date")
     },
     start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date", NepaliFunctions.AD2BS(frm.doc.start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date", BsFunctions.AD2BS(frm.doc.start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
     },
     end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date", NepaliFunctions.AD2BS(frm.doc.end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date", BsFunctions.AD2BS(frm.doc.end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
     },
 });
 
