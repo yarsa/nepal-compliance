@@ -46,6 +46,25 @@ frappe.ui.form.on('Leave Allocation', {
     }
 });
 
+frappe.ui.form.on('Leave Applicattion',{
+    refresh(frm){
+        bs_datepicker(frm, "from_nepali_date_leave_application", "from_date")
+        bs_datepicker(frm, "to_nepali_date_leave_application", "to_date")
+    },
+    from_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date_leave_application", BsFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    },
+    to_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date_leave_application", BsFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    },
+    from_nepali_date_leave_application(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "from_date", BsFunctions.BS2AD(frm.doc.from_nepali_date_leave_application.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    },
+    to_nepali_date_leave_application(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "to_date", BsFunctions.BS2AD(frm.doc.to_nepali_date_leave_application.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    },
+})
+
 frappe.ui.form.on('Holiday List', {
     refresh(frm){
         bs_datepicker(frm, "nepali_from_date", "from_date")
