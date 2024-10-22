@@ -15,10 +15,17 @@ def create_custom_fields():
             {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_start_date"}
             {"fieldname": "nepali_year_end_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_end_date"}
         ],
+        "Attendance": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "field_type": "Data", "insert_after": "attendance_date"}
+        ],
         "Holiday List":[
             {"fieldname": "nepali_from_date", "label": "Nepali From Date", "fieldtype": "Data", "insert_after": "total_holidays"},
             {"fieldname": "nepali_to_date", "label": "Nepali To Date", "fieldtype": "Data", "insert_after": "nepali_from_date"}
-        ]
+        ],
+        "Leave Allocation":[
+            {"fieldname": "from_nepali_date_leave_allocation", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date"},
+            {"fieldname": "to_nepali_date_leave_allocation", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date"}
+        ],
     }
 
     created_fields = []

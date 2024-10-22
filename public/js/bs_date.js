@@ -11,10 +11,45 @@ frappe.ui.form.on('Fiscal Year',{
     }
 });
 
+frappe.ui.form.on('Salary Slip', {
+    refresh(frm){
+        bs_datepicker(frm, "nepali_start_date", "start_date");
+        bs_datepicker(frm, "nepali_end_date", "end_date")
+    },
+    start_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date", BsFunctions.AD2BS(frm.doc.start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+    },
+    end_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date", BsFunctions.AD2BS(frm.doc.end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+    },
+});
+
+frappe.ui.form.on('Attendance',{
+    refresh(frm){
+        bs_datepicker(frm, "nepali_date", "attendance_date")
+    },
+    attendance_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", BsFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+    }
+});
+
+frappe.ui.form.on('Leave Allocation', {
+    refresh(frm){
+        bs_datepicker(frm, "from_nepali_date_leave_allocation", "from_date")
+        bs_datepicker(frm, "to_nepali_date_leave_allocation", "to_date")
+    },
+    from_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date_leave_allocation", BsFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    },
+    to_date(frm){
+        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date_leave_allocation", BsFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+    }
+});
+
 frappe.ui.form.on('Holiday List', {
     refresh(frm){
-        add_nepali_date_picker(frm, "nepali_from_date", "from_date")
-        add_nepali_date_picker(frm, "nepali_to_date", "to_date")
+        bs_datepicker(frm, "nepali_from_date", "from_date")
+        bs_datepicker(frm, "nepali_to_date", "to_date")
     },
     from_date(frm){
         frappe.model.set_value(frm.doctype, frm.docname, "nepali_from_date", BsFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
@@ -39,16 +74,5 @@ frappe.ui.frm.on("Holiday", "nepali_date", function(frm, cdt, cdn){
     frappe.model.set_value(cdt, cdn, "holiday_date", BsFunctions.BS2AD(locals[cdt][cdn].nepali_date, "YYYY-MM-DD", "YYYY-MM-DD")); 
 })
 
-frappe.ui.form.on('Salary Slip', {
-    refresh(frm){
-        bs_datepicker(frm, "nepali_start_date", "start_date");
-        bs_datepicker(frm, "nepali_end_date", "end_date")
-    },
-    start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date", BsFunctions.AD2BS(frm.doc.start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date", BsFunctions.AD2BS(frm.doc.end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-});
+
 
