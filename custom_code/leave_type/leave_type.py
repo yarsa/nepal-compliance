@@ -21,7 +21,7 @@ def create_leave_type(leave_type_name, max_leaves_allowed, applicable_after, max
         doc.earning_component = earning_component
     doc.save()
 
-    leave_types = [
+leave_types = [
         {
             #Home Leave
             "leave_type_name": "Annual/Home Leave",
@@ -44,8 +44,8 @@ def create_leave_type(leave_type_name, max_leaves_allowed, applicable_after, max
         }
     ]
 
-    for leave_type in leave_types:
-        create_leave_type(**leave_type)
+for leave_type in leave_types:
+    create_leave_type(**leave_type)
 
 
 
