@@ -5,7 +5,7 @@ frappe.query_reports["Purchase Vat Register"] = {
     "filters": [
         {
             fieldname: 'company',
-            label: __('Comoany'),
+            label: __('Company'),
             fieldtype: 'Link',
             options: 'Company',
             default: frappe.default.get_user_default('company')
