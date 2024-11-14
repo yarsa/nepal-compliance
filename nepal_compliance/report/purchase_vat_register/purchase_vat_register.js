@@ -8,8 +8,13 @@ frappe.query_reports["Purchase Vat Register"] = {
             label: __('Company'),
             fieldtype: 'Link',
             options: 'Company',
-            default: frappe.default.get_user_default('company')
+            default: frappe.defaults.get_user_default('company')
         },
+        {
+            fieldname: 'nepali_date',
+            label: __('Company'),
+            fieldtype: 'Data'
+        }
         {
             fieldname: 'supplier',
             label: __('Supplier'),
@@ -31,11 +36,6 @@ frappe.query_reports["Purchase Vat Register"] = {
             fieldname: 'due_date',
             label: __('Invoice Due Date'),
             fieldtype: 'Data'
-        },
-        {
-            fieldname: 'is_vat_applicable',
-            label: __('Is Vat Applicable'),
-            fieldtype: 'Check'
         }
     ]
 };
