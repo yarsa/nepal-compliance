@@ -8,7 +8,7 @@ This app aims to customize the HR, Payroll and Accounting modules to make your i
 ### Basic Setup
 - [x] Nepali Date support for fiscal year
 - [x] Nepali Date support for input fields
-- [] Nepali Date support for lists, views, filters, sorting & searching
+- [ ] Nepali Date support for lists, views, filters, sorting & searching
 - [x] Nepali Date support for reports
 - [ ] Nepali Date support for print templates
 ### Accounting & Billing
