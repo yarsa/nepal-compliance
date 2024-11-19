@@ -17,7 +17,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] View or Print Report of Cancelled Invoices
 - [ ] Displays "Copy # of Original" on subsequent invoice prints
 - [ ] Audit trail records of user activities
-- [ ] Auto-incremented Invoice Numbers in chronological order
+- [x] Auto-incremented Invoice Numbers in chronological order
 - [ ] Sync with Central Billing Management System (CBMS) of the IRD
 - [ ] Sales and Sales Return VAT Register
 - [x] Purchase and Purchase Return VAT Register
