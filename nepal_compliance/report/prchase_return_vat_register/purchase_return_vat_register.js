@@ -1,7 +1,7 @@
 // Copyright (c) 2024, njsubedi, Mukesh and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Purchase Vat Register"] = {
+frappe.query_reports["Purchase Return Vat Register"] = {
     "filters": [
         {
             fieldname: 'company',
@@ -14,7 +14,7 @@ frappe.query_reports["Purchase Vat Register"] = {
             fieldname: 'nepali_date',
             label: __('Nepali Date'),
             fieldtype: 'Data'
-        }
+        },
         {
             fieldname: 'supplier',
             label: __('Supplier'),
@@ -30,7 +30,7 @@ frappe.query_reports["Purchase Vat Register"] = {
         {
             fieldname: 'bill_date',
             label: __('Supplier Invoice Date'),
-            fieldtype: 'Date'
+            fieldtype: 'Date',
         },
         {
             fieldname: 'due_date',
@@ -38,11 +38,14 @@ frappe.query_reports["Purchase Vat Register"] = {
             fieldtype: 'Data'
         },
         {
-            fieldtype: 'Break'
-        },
+            fieldname: 'item_name',
+            label: __('Item Name'),
+            fieldtype: 'Link',
+            options: 'Item'
+        }
         {
-            fieldname: 'expense_account',
-            label: __('Expense Account'),
+            fieldname: 'expesne_account',
+            label: __('Expesne Account'),
             fieldtype: 'Link',
             options: 'Account'
         },
@@ -51,7 +54,22 @@ frappe.query_reports["Purchase Vat Register"] = {
             label: __('Warehouse'),
             fieldtype: 'Link',
             options: 'Warehouse'
-        }
-
+        },
+        {
+            fieldname: 'return_invoice',
+            label: __('Returned Invoice'),
+            fieldtype: 'Link',
+            options: 'Purchase Invoice',
+            get_query: function() {
+                return {
+                    filters: {
+                        'status': 'Return',
+                        'return_against': ['is', 'set']
+                    }
+                };
+            }
+        }        
     ]
 };
+
+
