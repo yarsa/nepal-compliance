@@ -12,7 +12,7 @@ frappe.query_reports["Purchase Vat Register"] = {
         },
         {
             fieldname: 'nepali_date',
-            label: __('Company'),
+            label: __('Nepali Date'),
             fieldtype: 'Data'
         }
         {
@@ -30,12 +30,28 @@ frappe.query_reports["Purchase Vat Register"] = {
         {
             fieldname: 'bill_date',
             label: __('Supplier Invoice Date'),
-            fieldtype: 'Date',
+            fieldtype: 'Date'
         },
         {
             fieldname: 'due_date',
             label: __('Invoice Due Date'),
             fieldtype: 'Data'
+        },
+        {
+            fieldtype: 'Break'
+        },
+        {
+            fieldname: 'expense_account',
+            label: __('Expense Account'),
+            fieldtype: 'Link',
+            options: 'Account'
+        },
+        {
+            fieldname: 'warehouse',
+            label: __('Warehouse'),
+            fieldtype: 'Link',
+            options: 'Warehouse'
         }
+
     ]
 };

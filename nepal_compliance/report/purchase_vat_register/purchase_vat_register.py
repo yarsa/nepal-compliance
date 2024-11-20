@@ -31,6 +31,11 @@ def execute(filters=None):
             'label': _('Supplier Invoice No'),
             'fieldtype': 'Data'
         },
+    	{
+            'fieldtype': 'supplier_invoice_date',
+		    'label': _('Supplier Invoice Date'),
+		    'fieldtype': 'Date'
+	    },
         {
             'fieldname': 'vat_no',
             'label': _('Vat No'),
@@ -41,7 +46,13 @@ def execute(filters=None):
             'label': _('Item Code'),
             'fieldtype': 'Link',
             'options': 'Item'
-        }
+        },
+        {
+            'fieldname': 'item_name',
+            'label': _('Item Name'),
+            'fiedltype': 'Link',
+            'options': 'Item'
+        },
         {
             'fieldname': 'item_description',
             'label': _('Item Description'),
@@ -73,6 +84,17 @@ def execute(filters=None):
             'fieldtype': 'Data'
         },
         {
+            'fiedlname': 'expense_account',
+            'label': _('Expense Account'),
+            'fieldtype': 'Data'
+        },
+        {
+            'fiedlname': 'warehouse',
+            'label': _('Warehouse'),
+            'fiedltype': 'Link',
+            'options': 'warehouse'
+        },
+        {
             'fieldname': 'vat',
             'label': _('13% VAT'),
             'fieldtype': 'Data'
@@ -91,7 +113,7 @@ def execute(filters=None):
     if filters.get("supplier"):
         conditions["supplier"] = filters["supplier"]
     if filter.get("bill_no"):
-        bill_no_filter = f"%{filters["bill_no"]}%"
+        bill_no_filter = f"%{filters['bill_no']}%"
         conditions["bill_no"] = ["like", bill_no_filter]
     if filters.get("bill_date"):
         conditions["bill_date"] = filters["bill_date"]
@@ -100,8 +122,13 @@ def execute(filters=None):
     if filter.get("nepali_date"):
         nepali_date_filter = f"%{filter['nepali_date']}%"
         conditions["nepali_date"] = ["like", nepali_date_filter]
+	if filters.get("expense_account"):
+		account_filter = f"%{filters['expense_account']}%"
+		conditions["expense_account"] = ["like", account_filter]
+	if filters.get("warehouse"):
+		conditions["warehouse"] = filters["warehouse"]   
          
-    purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields)
+    purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields=['*'])
     for purchase in purchase_invoice:
         items = frappe.db.get_all("Purchase Invoice Item", filters={"parent":purchase.name}, fields=['*'])
         gross_amount = 0
@@ -111,5 +138,5 @@ def execute(filters=None):
             total += item.amount
             gross_amount += item.amount
             total_qty += item.qty
-            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, '', item.item_code, item.description, item.uom, item.qty, item.rat, gross_amount, purchase.grand_total, gross_amount * 13/100, total])
+            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.bill_date, '', item.item_code, item.item_name, item.description, item.uom, item.qty, item.rat, gross_amount, '', item.expense_account, item.warehouse, gross_amount * 13/100, total])
     return columns, data 
