@@ -64,7 +64,8 @@ frappe.query_reports["Purchase Return Vat Register"] = {
                 return {
                     filters: {
                         'status': 'Return',
-                        'return_against': ['is', 'set']
+                        // 'return_against': ['is', 'set']
+                        'is_return': 1
                     }
                 };
             }

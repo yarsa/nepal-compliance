@@ -46,13 +46,13 @@ def execute(filters=None):
             'label': _('Item Code'),
             'fieldtype': 'Link',
             'options': 'Item'
-        }
+        },
         {
             'fieldname': 'item_name',
             'label': _('Item Name'),
             'fieldtype': 'Link',
             'options': 'Item'
-        }
+        },
         {
             'fieldname': 'item_description',
             'label': _('Item Description'),
@@ -64,6 +64,12 @@ def execute(filters=None):
             'fieldtype': 'Data'
         },
         {
+            'fieldname': 'total',
+            'label': _(''),
+            'fieldtype': 'Data',
+            'width': 150
+        },
+        {
             'fieldname': 'qty',
             'label': _('Quantity'),
             'fieldtype': 'Data'
@@ -72,6 +78,11 @@ def execute(filters=None):
             'fieldname': 'rate',
             'label': _('Rate'),
             'fieldtype': 'Data'
+        },
+        {
+            'fieldname': 'amount',
+            'label': _('Amount'),
+            'fieltype': 'Data'
         },
         {
             'fieldname': 'gross_amount',
@@ -102,6 +113,17 @@ def execute(filters=None):
             'fieldname': 'invoice_total',
             'label': _('Invoice Total'),
             'fieldtype': 'Data'
+        },
+        {
+            'fieldname': 'tax_and_charges_added',
+            'label': _('Tax and Charges Added'),
+            'fieldtype': 'Data'
+        },
+        {
+          'fieldname': 'return_against',
+          'label': _('Return Against'),
+          'fieldtype': 'Link',
+          'options': 'Purchase Invoice'
         }
 
     ]
@@ -132,13 +154,22 @@ def execute(filters=None):
     purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields=['*'])
     for purchase in purchase_invoice:
         items = frappe.db.get_all("Purchase Invoice Item", filters={"parent":purchase.name}, fields=['*'])
-        gross_amount = 0
-        total_qty = 0
         total = 0
+        total_qty = 0
+        total_rate = 0
+        gross_amount = 0
+        sum_gross_amount = 0
+        vat = 0
+        sum_vat = 0
         for item in items:
             total += item.amount
             gross_amount += item.amount
+            sum_gross_amount += gross_amount
+            vat = gross_amount * 13/100
+            sum_vat += vat
+            total_rate += item.rate
             total_qty += item.qty
-            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.bill_date, '', item.item_code, item.item_name, item.description, item.uom, item.qty, item.rat, gross_amount,'', item.expense_account, item.warehouse, gross_amount * 13/100, total])
+            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, '', item.item_code, item.item_name, item.description, item.uom, '', item.qty, item.rate, item.amount,gross_amount, '', item.expense_account, item.warehouse,vat, '', '', purchase.return_against])
+        data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rate, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchase.total_taxes_and_charges, ''])
     return columns, data
 

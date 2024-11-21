@@ -22,7 +22,7 @@ frappe.query_reports["Purchase Vat Register"] = {
             options: 'Supplier'
         },
         {
-            fieldname: 'bill',
+            fieldname: 'bill_no',
             label: __('Supplier Invoice No'),
             fieldtype: 'Data',
             reqd: 0
@@ -51,6 +51,18 @@ frappe.query_reports["Purchase Vat Register"] = {
             label: __('Warehouse'),
             fieldtype: 'Link',
             options: 'Warehouse'
+        },
+        {
+            fieldname: 'document_number',
+            label: __('Invoice Number'),
+            fieldtype: 'Link',
+            options: 'Purchase Invoice',
+            get_query: function() {
+                filters: {
+                    'status': ["Not In", ['Return','Debit Note Issued']],
+                    'is_return': 0
+                }
+            }
         }
 
     ]
