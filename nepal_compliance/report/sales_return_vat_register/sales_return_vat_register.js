@@ -58,15 +58,15 @@ frappe.query_reports["Sales Vat Register"] = {
 			options: 'Project'
 		},
 		{
-			fieldname: 'name',
-			label: __('Invoice Number'),
+			fieldname: 'returned_invoice',
+			label: __('Returned Invoice'),
 			fieldtype: 'Link',
 			options: 'Sales Invoice',
 			get_query: function() {
 				return {
 					filters: {
-						'status': ["Not In", ['Return','Credit Note Issued']],
-						'is_return': 0
+						'status': ["In", ['Return','Credit Note Issued']],
+						'is_return': 1
 					}
 				}
 			}

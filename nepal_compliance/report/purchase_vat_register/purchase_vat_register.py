@@ -124,7 +124,7 @@ def execute(filters=None):
             'fieldname': 'total_tax_and_charges',
             'label': _('Total Tax and Charges'),
             'fieldtype': 'Data'
-        }
+        },
 
     ]
     data = []
@@ -154,6 +154,7 @@ def execute(filters=None):
     purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields=['*'])
     for purchase in purchase_invoice:
         items = frappe.db.get_all("Purchase Invoice Item", filters={"parent":purchase.name}, fields=['*'])
+        tax = frappe.db.get_all("Purchase Tax and Charges", filters={"parent":purchase.name}, fields=['*'])
         total = 0
         total_qty = 0
         total_rate = 0
@@ -165,7 +166,7 @@ def execute(filters=None):
             total += item.amount
             gross_amount += item.amount
             sum_gross_amount += gross_amount
-            vat = gross_amount * 13/100
+            vat = total * 13/100
             sum_vat += vat
             total_qty += item.qty
             total_rate += item.rate

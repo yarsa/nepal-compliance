@@ -134,12 +134,11 @@ def execute(filters=None):
 	]
 	
 	data = []
-	conditions = {"docstatus": 1, "is_return": 0}
+	conditions = {"docstatus": 1, "is_return": 1}
 	if filters.get("company"):
 		conditions["company"] = filters["company"]
 	if filters.get("from_date") and filters.get("to_date"):
-		conditions["posting_date"] = [">=", filters["from_date"]]
-		conditions["posting_date"].append(["<=", filters["to_date"]]) 
+		conditions["posting_date"] = ["between", [filters["from_date"], filters["to_date"]]]
 	elif filters.get("from_date"):
 		conditions["posting_date"] = [">=", filters["from_date"]]
 	elif filters.get("to_date"):
@@ -157,8 +156,8 @@ def execute(filters=None):
 		conditions["cost_center"] = filters["cost_center"]
 	if filters.get("project"):
 		conditions["project"] = filters["project"]
-	if filters.get("name"):
-		conditions["name"] = filters["name"]
+	if filters.get("returned_invoice"):
+		conditions["name"] = filters["returned_invoice"]
 
 
 	sales_invoice = frappe.db.get_list("Sales Invoice", filters = conditions, fields=['*'])
