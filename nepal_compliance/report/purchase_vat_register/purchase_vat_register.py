@@ -130,7 +130,7 @@ def execute(filters=None):
     data = []
     conditions = {"docstatus": 1, "is_return": 0}
     if filters.get("company"):
-        conditons["company"] = filters["company"]
+        conditions["company"] = filters["company"]
     if filters.get("supplier"):
         conditions["supplier"] = filters["supplier"]
     if filter.get("bill_no"):
