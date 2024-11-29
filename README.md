@@ -19,11 +19,11 @@ The accounting module is expected to comply with the most recent directives of N
 - [ ] Audit trail records of user activities
 - [x] Auto-incremented Invoice Numbers in chronological order
 - [ ] Sync with Central Billing Management System (CBMS) of the IRD
-- [ ] Sales and Sales Return VAT Register
+- [x] Sales and Sales Return VAT Register
 - [x] Purchase and Purchase Return VAT Register
 - [ ] Party-wise Sales and Purchase Register
 - [ ] Monthly  Sales and Purchase Register
-- [ ] Landing Cost Reports for Purchase
+- [x] Landing Cost Reports for Purchase
 - [ ] Materialized Reports
 - [ ] VAT Return Reports
 - [ ] Balance Confirmation
