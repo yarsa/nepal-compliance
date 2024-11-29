@@ -55,7 +55,7 @@ def execute(filters=None):
     result = frappe.db.sql(query, as_dict=True)
     overall_totals = {
         "qty": 0,
-        "rate": 0,  # Track the rate total for overall report
+        "rate": 0,  
         "amount": 0,
         "outstanding": 0,
         "taxes_and_charges_added": 0,
