@@ -21,7 +21,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [ ] Sync with Central Billing Management System (CBMS) of the IRD
 - [x] Sales and Sales Return VAT Register
 - [x] Purchase and Purchase Return VAT Register
-- [ ] Party-wise Sales and Purchase Register
+- [x] Party-wise Sales and Purchase Register
 - [ ] Monthly  Sales and Purchase Register
 - [x] Landing Cost Reports for Purchase
 - [ ] Materialized Reports
