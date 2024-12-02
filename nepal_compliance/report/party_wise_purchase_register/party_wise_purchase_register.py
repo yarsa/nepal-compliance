@@ -65,24 +65,23 @@ def execute(filters=None):
     """.format(conditions)
     
     result = frappe.db.sql(query, as_dict=True)
+    invoice_totals = {}
+    current_invoice = None
+
     overall_totals = {
         "qty": 0,
         "rate": 0,  
         "amount": 0,
         "outstanding": 0,
         "taxes_and_charges_added": 0,
-        "discount_amount": 0
+        "discount_amount": 0,
+        "total": 0,
+        "net_total": 0,
+        "grand_total": 0,
+        "total_advance": 0,
+        "outstanding": 0, 
     }
 
-    invoice_totals = {}
-    current_invoice = None
-
-    overall_totals = {
-        "qty": 0,
-        "rate": 0,
-        "amount": 0,
-        "outstanding": 0,
-    }
     for row in result:
         if current_invoice != row.invoice_number:
             if current_invoice:
@@ -93,16 +92,23 @@ def execute(filters=None):
                     invoice_totals[current_invoice]["amount"],
                     invoice_totals[current_invoice]["taxes_and_charges_added"],
                     invoice_totals[current_invoice] ["discount_amount"],
-                    "", "", "", "",
+                    invoice_totals[current_invoice]["total"],
+                    invoice_totals[current_invoice]["net_total"],
+                    invoice_totals[current_invoice]["grand_total"],
+                    invoice_totals[current_invoice]["total_advance"],
                     invoice_totals[current_invoice]["outstanding"],
                     ""
                 ])
                 overall_totals["qty"] += invoice_totals[current_invoice]["qty"]
                 overall_totals["amount"] += invoice_totals[current_invoice]["amount"]
-                overall_totals["outstanding"] += invoice_totals[current_invoice]["outstanding"]
                 overall_totals["rate"] += invoice_totals[current_invoice]["rate"] 
                 overall_totals["taxes_and_charges_added"] += invoice_totals[current_invoice]["taxes_and_charges_added"]
-                overall_totals["discount_amount"] += invoice_totals[current_invoice]["discount_amount"] 
+                overall_totals["discount_amount"] += invoice_totals[current_invoice]["discount_amount"]
+                overall_totals["total"] += invoice_totals[current_invoice]["total"]
+                overall_totals["net_total"] += invoice_totals[current_invoice]["net_total"]
+                overall_totals["grand_total"] += invoice_totals[current_invoice]["grand_total"]
+                overall_totals["total_advance"] += invoice_totals[current_invoice]["total_advance"]
+                overall_totals["outstanding"] += invoice_totals[current_invoice]["outstanding"]
 
             current_invoice = row.invoice_number
             invoice_totals[current_invoice] = {
@@ -112,6 +118,11 @@ def execute(filters=None):
                 "rate": 0, 
                 "taxes_and_charges_added": 0,
                 "discount_amount": 0
+                "total": 0,
+                "net_total": 0,
+                "grand_total": 0,
+                "total_advance": 0,
+                "outstanding": 0
             }
 
         data.append([
@@ -124,21 +135,20 @@ def execute(filters=None):
             row.qty,
             row.rate,
             row.amount,
-            "",
-            "",
-            row.total,
-            row.net_total,
-            row.grand_total,
-            row.total_advance,
-            "",
+            "","","","","","","",
             row.status
         ])
         invoice_totals[current_invoice]["qty"] += flt(row.qty)
         invoice_totals[current_invoice]["amount"] += flt(row.amount)
-        invoice_totals[current_invoice]["outstanding"] = flt(row.outstanding_amount)
         invoice_totals[current_invoice]["rate"] += flt(row.rate)  
         invoice_totals[current_invoice]["taxes_and_charges_added"] = flt(row.taxes_and_charges_added)
         invoice_totals[current_invoice]["discount_amount"] = flt(row.discount_amount)
+        invoice_totals[current_invoice]["total"] = flt(row.total)
+        invoice_totals[current_invoice]["net_total"] = flt(row.net_total)
+        invoice_totals[current_invoice]["grand_total"] = flt(row.grand_total)
+        invoice_totals[current_invoice]["total_advance"] = flt(row.total_advance)
+        invoice_totals[current_invoice]["outstanding"] = flt(row.outstanding_amount)
+
 
     if current_invoice:
         data.append([
@@ -148,7 +158,10 @@ def execute(filters=None):
             invoice_totals[current_invoice]["amount"],
             invoice_totals[current_invoice]["taxes_and_charges_added"],
             invoice_totals[current_invoice]["discount_amount"],
-            "", "", "","",
+            invoice_totals[current_invoice]["total"],
+            invoice_totals[current_invoice]["net_total"],
+            invoice_totals[current_invoice]["grand_total"],
+            invoice_totals[current_invoice]["total_advance"],
             invoice_totals[current_invoice]["outstanding"],
             ""
         ])
@@ -159,6 +172,10 @@ def execute(filters=None):
         overall_totals["rate"] += invoice_totals[current_invoice]["rate"]  
         overall_totals["taxes_and_charges_added"] += invoice_totals[current_invoice]["taxes_and_charges_added"]
         overall_totals["discount_amount"] += invoice_totals[current_invoice]["discount_amount"]
+        overall_totals["total"] += invoice_totals[current_invoice]["total"]
+        overall_totals["net_total"] += invoice_totals[current_invoice]["net_total"]
+        overall_totals["grand_total"] += invoice_totals[current_invoice]["grand_total"]
+        overall_totals["total_advance"] += invoice_totals[current_invoice]["total_advance"]
 
     data.append([
         "", "", "", "", "", "Overall Total", 
@@ -167,7 +184,10 @@ def execute(filters=None):
         overall_totals["amount"],
         overall_totals["taxes_and_charges_added"],
         overall_totals["discount_amount"],
-        "", "", "", "",
+        overall_totals["total"],
+        overall_totals["net_total"],
+        overall_totals["grand_total"],
+        overall_totals["total_advance"],
         overall_totals["outstanding"],
         ""
     ])
