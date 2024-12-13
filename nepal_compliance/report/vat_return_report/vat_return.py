@@ -13,9 +13,8 @@ def execute(filters=None):
         _("VAT Paid (Purchase)") + ":Currency:150",
         _("Net VAT Payable/Receivable") + ":Currency:250"
     ]
-
     data = []
-
+    
     total_sales_vat = 0
     total_purchase_vat = 0
     total_net_vat = 0
@@ -80,7 +79,7 @@ def execute(filters=None):
         if purchase:
             purchase_vat = purchase['purchase_vat'] if purchase['purchase_vat'] is not None else 0
             net_vat = sale['sales_vat'] - purchase_vat
-        
+            invoice_link = f'<a href="/app/sales-invoice/{sale["invoice_no"]}" target="_blank">{sale["invoice_no"]}</a>'
             data.append([
                 invoice_link, 
                 sale['posting_date'],
@@ -97,6 +96,7 @@ def execute(filters=None):
             total_net_vat += net_vat
         else:
             net_vat = sale['sales_vat']
+            invoice_link = f'<a href="/app/sales-invoice/{sale["invoice_no"]}" target="_blank">{sale["invoice_no"]}</a>'
             data.append([
                 invoice_link,
                 sale['posting_date'],
@@ -114,7 +114,7 @@ def execute(filters=None):
     for purchase in purchase_invoices:
         if not any(sale['invoice_no'] == purchase['invoice_no'] for sale in sales_invoices):
             purchase_vat = purchase['purchase_vat'] if purchase['purchase_vat'] is not None else 0
-
+            invoice_link = f'<a href="/app/purchase-invoice/{purchase["invoice_no"]}" target="_blank">{purchase["invoice_no"]}</a>'
             data.append([
                 invoice_link,
                 purchase['posting_date'],
