@@ -26,7 +26,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] Landing Cost Reports for Purchase
 - [ ] Materialized Reports
 - [x] VAT Return Reports
-- [ ] Balance Confirmation
+- [x] Balance Confirmation
 - [x] Sales Cancellation Register
 - [ ] Audit Trial Report
 - [ ] SQL Query Audit Logs
