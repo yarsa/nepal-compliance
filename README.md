@@ -15,7 +15,7 @@ This app aims to customize the HR, Payroll and Accounting modules to make your i
 The accounting module is expected to comply with the most recent directives of Nepal Rastra Bank (NRB) and the Inland Revenue Department (IRD).
 - [x] Invoice Cancellation (No Deletion)
 - [x] View or Print Report of Cancelled Invoices
-- [ ] Displays "Copy # of Original" on subsequent invoice prints
+- [x] Displays "Copy # of Original" on subsequent invoice prints
 - [ ] Audit trail records of user activities
 - [x] Auto-incremented Invoice Numbers in chronological order
 - [ ] Sync with Central Billing Management System (CBMS) of the IRD
