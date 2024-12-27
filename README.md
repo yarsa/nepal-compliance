@@ -24,7 +24,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] Party-wise Sales and Purchase Register
 - [x] Monthly  Sales and Purchase Register
 - [x] Landing Cost Reports for Purchase
-- [ ] Materialized Reports
+- [x] Materialized Reports
 - [x] VAT Return Reports
 - [x] Balance Confirmation
 - [x] Sales Cancellation Register
