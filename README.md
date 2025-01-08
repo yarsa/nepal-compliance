@@ -16,7 +16,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] Invoice Cancellation (No Deletion)
 - [x] View or Print Report of Cancelled Invoices
 - [x] Displays "Copy # of Original" on subsequent invoice prints
-- [ ] Audit trail records of user activities
+- [x] Audit trail records of user activities
 - [x] Auto-incremented Invoice Numbers in chronological order
 - [ ] Sync with Central Billing Management System (CBMS) of the IRD
 - [x] Sales and Sales Return VAT Register
@@ -28,7 +28,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] VAT Return Reports
 - [x] Balance Confirmation
 - [x] Sales Cancellation Register
-- [ ] Audit Trial Report
+- [x] Audit Trial Report
 - [ ] SQL Query Audit Logs
 
 ### HR & Payroll
