@@ -1,0 +1,95 @@
+.nepali-date-picker {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    display: none;
+    width: 250px;
+}
+ 
+.nepali-date-picker .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+ 
+.nepali-date-picker .month-year {
+    text-align: center;
+    font-weight: bold;
+}
+ 
+.nepali-date-picker .prev-month,
+.nepali-date-picker .next-month {
+    cursor: pointer;
+    padding: 5px;
+    user-select: none;
+}
+ 
+.nepali-date-picker table {
+    width: 100%;
+    border-collapse: collapse;
+}
+ 
+.nepali-date-picker th {
+    padding: 5px;
+    text-align: center;
+    background: #f5f5f5;
+}
+ 
+.nepali-date-picker td {
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+}
+ 
+.nepali-date-picker td:hover {
+    background: #e6e6e6;
+}
+ 
+.nepali-date-picker td.selected {
+    background: #007bff;
+    color: white;
+}
+ 
+.nepali-date-picker td.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+ 
+.nepali-date-picker td.today {
+    border: 1px solid #007bff;
+}
+ 
+/* Calendar icon styles */
+.nepali-calendar-icon {
+    display: inline-block;
+    margin-left: 5px;
+    cursor: pointer;
+}
+ 
+.nepali-calendar-icon i {
+    color: #666;
+}
+ 
+/* Input field when date picker is active */
+input.nepali-datepicker-active {
+    border-color: #007bff;
+}
+ 
+/* Responsive styles */
+@media screen and (max-width: 480px) {
+    .nepali-date-picker {
+        width: 280px;
+        font-size: 16px; /* Larger font size for mobile */
+    }
+    
+    .nepali-date-picker td,
+    .nepali-date-picker th {
+        padding: 8px; /* Larger touch targets for mobile */
+    }
+}
