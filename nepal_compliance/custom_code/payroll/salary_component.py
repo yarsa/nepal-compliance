@@ -1,3 +1,4 @@
+'''
 import frappe
 from typing import List, Dict, Any, Optional
 
@@ -203,3 +204,5 @@ def create_salary_component() -> List[str]:
     except Exception as e:
         frappe.log_error(f"Error creating salary components: {str(e)}")
         frappe.throw(f"Failed to create salary components: {str(e)}")
+        
+'''

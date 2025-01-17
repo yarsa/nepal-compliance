@@ -52,7 +52,7 @@ frappe.ui.form.on('Leave Allocation', {
     }
 });
 
-frappe.ui.form.on('Leave Applicattion',{
+frappe.ui.form.on('Leave Application',{
     refresh(frm){
         bs_datepicker(frm, "from_nepali_date_leave_application", "from_date")
         bs_datepicker(frm, "to_nepali_date_leave_application", "to_date")
