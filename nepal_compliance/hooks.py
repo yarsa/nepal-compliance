@@ -274,7 +274,8 @@ fixtures = [
         "filters": [
             ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
                             "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Grade Amount", "Income Tax married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction"]]
+                            "Grade Amount", "Income Tax married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
+                            "Provident Fund Employer Deduction", "Gratuity Deduction"]]
         ]
     },
     {

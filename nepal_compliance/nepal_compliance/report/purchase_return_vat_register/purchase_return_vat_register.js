@@ -1,7 +1,7 @@
 // Copyright (c) 2024, njsubedi, Mukesh and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Purchase Vat Register"] = {
+frappe.query_reports["Purchase Return Vat Register"] = {
     "filters": [
         {
             fieldname: 'company',
@@ -22,7 +22,7 @@ frappe.query_reports["Purchase Vat Register"] = {
             options: 'Supplier'
         },
         {
-            fieldname: 'bill_no',
+            fieldname: 'bill',
             label: __('Supplier Invoice No'),
             fieldtype: 'Data',
             reqd: 0
@@ -30,19 +30,22 @@ frappe.query_reports["Purchase Vat Register"] = {
         {
             fieldname: 'bill_date',
             label: __('Supplier Invoice Date'),
-            fieldtype: 'Date'
+            fieldtype: 'Date',
         },
         {
             fieldname: 'due_date',
             label: __('Invoice Due Date'),
-            fieldtype: 'Date'
+            fieldtype: 'Data'
         },
         {
-            fieldtype: 'Break'
+            fieldname: 'item_name',
+            label: __('Item Name'),
+            fieldtype: 'Link',
+            options: 'Item'
         },
         {
-            fieldname: 'expense_account',
-            label: __('Expense Account'),
+            fieldname: 'expesne_account',
+            label: __('Expesne Account'),
             fieldtype: 'Link',
             options: 'Account'
         },
@@ -53,19 +56,19 @@ frappe.query_reports["Purchase Vat Register"] = {
             options: 'Warehouse'
         },
         {
-            fieldname: 'document_number',
-            label: __('Invoice Number'),
+            fieldname: 'return_invoice',
+            label: __('Returned Invoice'),
             fieldtype: 'Link',
             options: 'Purchase Invoice',
             get_query: function() {
-                return{
+                return {
                     filters: {
-                        'status': ["Not In", ['Return','Debit Note Issued']],
-                        'is_return': 0
-                }
+                        'status': 'Return',
+                        'is_return': 1
+                    }
+                };
             }
-        }
-    },
+        }        
     ],
     onload: function(report) {
         DatePickerConfig.initializePickers(report);
@@ -81,3 +84,6 @@ $(document).ready(function() {
         }
     }, 1000);
 });
+
+
+

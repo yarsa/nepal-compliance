@@ -15,14 +15,14 @@ frappe.query_reports["Sales Cancellation Register"] = {
             "fieldname": "from_date",
             "label": __("From Date"),
             "fieldtype": "Date",
-            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+            // "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
             "reqd": 0
         },
         {
             "fieldname": "to_date",
             "label": __("To Date"),
             "fieldtype": "Date",
-            "default": frappe.datetime.get_today(),
+            // "default": frappe.datetime.get_today(),
             "reqd": 0
         },
         {
@@ -38,4 +38,17 @@ frappe.query_reports["Sales Cancellation Register"] = {
             "reqd": 0
         }
     ],
+    onload: function(report) {
+        DatePickerConfig.initializePickers(report);
+    },
 };
+$(document).ready(function() {
+    setTimeout(() => {
+        if (cur_list && cur_list.doctype) {
+            if (cur_list.filter_area) {
+                cur_list.filter_area.clear();
+            }
+            DatePickerConfig.initializePickers(cur_list);
+        }
+    }, 1000);
+});

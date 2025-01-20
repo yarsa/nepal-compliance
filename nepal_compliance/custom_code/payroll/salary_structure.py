@@ -62,12 +62,13 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
         if deduction_type == "unmarried":
             deduction_components = [
                 "Income Tax Unmarried",
-                "Provident_Fund_Employee",
+                "Provident Fund Employee",
                 "Insurance",
                 "Leave and Late Deduction",
                 "CIT", 
                 "Gratuity Deduction",
-                "Deduction Adjustment"
+                "Deduction Adjustment",
+                "Provident Fund Employer Deduction"
             ]
         elif deduction_type == "married":
             deduction_components = [
@@ -77,7 +78,8 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
                 "Leave and Late Deduction",
                 "CIT", 
                 "Gratuity Deduction",
-                "Deduction Adjustment"
+                "Deduction Adjustment",
+                "Provident Fund Employer Deduction"
             ]
 
     for salary_component in deduction_components:

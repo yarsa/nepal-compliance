@@ -92,7 +92,7 @@ def get_data(filters):
             `tabSales Invoice` si
         WHERE 
             si.docstatus = 2
-            AND si.is_return = 0
+            AND (si.is_return = 0 OR si.is_return = 1)
             AND {conditions}
         ORDER BY 
             si.creation DESC

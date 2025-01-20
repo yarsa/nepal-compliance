@@ -134,7 +134,7 @@ def execute(filters=None):
 	]
 	
 	data = []
-	conditions = {"docstatus": 1, "is_return": 1}
+	conditions = {"docstatus": 1, "is_return": 0}
 	if filters.get("company"):
 		conditions["company"] = filters["company"]
 	if filters.get("from_date") and filters.get("to_date"):

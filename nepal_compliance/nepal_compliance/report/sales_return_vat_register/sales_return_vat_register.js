@@ -1,7 +1,7 @@
 // Copyright (c) 2024, njsubedi, Mukesh and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Sales Vat Register"] = {
+frappe.query_reports["Sales Return Vat Register"] = {
 	"filters": [
 		{
 			fieldname: 'company',
@@ -19,13 +19,23 @@ frappe.query_reports["Sales Vat Register"] = {
 			fieldname: 'from_date',
 			label: __('From Date'),
 			fieldtype: 'Date',
-			default: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+			// default: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 		},
 		{
 			fieldname: 'to_date',
 			label: __('To Date'),
 			fieldtype: 'Date',
-			default: frappe.datetime.get_today(),
+			// default: frappe.datetime.get_today(),
+		},
+		{
+			fieldname: 'from_nepali_date',
+			label: __('From Nepali Date'),
+			fieldtype: 'Data',
+		},
+		{
+			fieldname: 'to_nepali_date',
+			label: __('To Nepali Date'),
+			fieldtype: 'Data',
 		},
 		{
 			fieldname: 'customer',
@@ -71,5 +81,18 @@ frappe.query_reports["Sales Vat Register"] = {
 				}
 			}
 		}
-	]
+	],
+    onload: function(report) {
+        DatePickerConfig.initializePickers(report);
+    },
 };
+$(document).ready(function() {
+    setTimeout(() => {
+        if (cur_list && cur_list.doctype) {
+            if (cur_list.filter_area) {
+                cur_list.filter_area.clear();
+            }
+            DatePickerConfig.initializePickers(cur_list);
+        }
+    }, 1000);
+});
