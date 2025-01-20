@@ -1,19 +1,19 @@
 // Copyright (c) 2024, njsubedi, Mukesh and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Monthly Sales Register"] = {
+frappe.query_reports["Monthly Purchase Register"] = {
 	"filters": [
         {
             "fieldname": "from_date",
             "label": __("From Date"),
             "fieldtype": "Date",
-            "default": frappe.datetime.add_days(frappe.datetime.nowdate(), -30)
+            "default": frappe.datetime.add_days(frappe.datetime.get_today(), -1)
         },
         {
             "fieldname": "to_date",
             "label": __("To Date"),
             "fieldtype": "Date",
-            "default": frappe.datetime.nowdate()
+            "default": frappe.datetime.get_today()
         },
 		{
             "fieldname": "from_nepali_date",
@@ -25,5 +25,8 @@ frappe.query_reports["Monthly Sales Register"] = {
             "label": __("To Nepali Date"),
             "fieldtype": "Data",
 		}
-	]
+	],
+    onload: function(report) {
+        DatePickerConfig.initializePickers(report);
+    },
 };

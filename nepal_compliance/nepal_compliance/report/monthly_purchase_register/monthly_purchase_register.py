@@ -22,7 +22,7 @@ def execute(filters=None):
     ]
     conditions = "pi.docstatus = 1"
     from_date, to_date, from_nepali_date, to_nepali_date, nepali_date = None, None, None, None, None
-
+    
     if filters.get("from_date") and filters.get("to_date"):
         from_date = filters["from_date"]
         to_date = filters["to_date"]

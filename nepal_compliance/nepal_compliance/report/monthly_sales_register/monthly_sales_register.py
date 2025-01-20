@@ -66,7 +66,7 @@ def execute(filters=None):
         data.append([
             row.posting_date,                         
             row.nepali_date,                          
-            row.supplier,                             
+            row.customer,                             
             row.invoice_number,                       
             row.total_qty,                           
             row.total_amount,                         

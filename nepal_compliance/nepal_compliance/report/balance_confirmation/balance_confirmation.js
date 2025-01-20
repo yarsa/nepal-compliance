@@ -15,7 +15,7 @@ frappe.query_reports["Balance Confirmation"] = {
             "fieldname": "from_date",
             "label": __("From Date"),
             "fieldtype": "Date",
-            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -12),
             "reqd": 1
         },
         {
@@ -51,11 +51,25 @@ frappe.query_reports["Balance Confirmation"] = {
             "options": "party_type"
         }
     ],
+
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         if (column.fieldtype == "Currency") {
             value = "<div style='text-align: right'>" + value + "</div>";
         }
         return value;
-    }
-}
+    },
+    onload: function(report) {
+        DatePickerConfig.initializePickers(report);
+    },
+};
+$(document).ready(function() {
+    setTimeout(() => {
+        if (cur_list && cur_list.doctype) {
+            if (cur_list.filter_area) {
+                cur_list.filter_area.clear();
+            }
+            DatePickerConfig.initializePickers(cur_list);
+        }
+    }, 1000);
+});

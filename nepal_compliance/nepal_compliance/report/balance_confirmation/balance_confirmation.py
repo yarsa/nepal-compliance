@@ -95,8 +95,6 @@ def get_conditions(filters):
         conditions.append("posting_date >= %(from_date)s")
     if filters.get("to_date"):
         conditions.append("posting_date <= %(to_date)s")
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s")
     elif filters.get("from_date") and filters.get("to_date"):
         conditions.append("posting_date BETWEEN %(from_date)s AND %(to_date)s")
     if filters.get("party_type"):
@@ -107,9 +105,9 @@ def get_conditions(filters):
     return " AND ".join(conditions)
 
 def get_gl_entries(conditions, filters):
-    date_field = "nepali_date" if filters.get("from_nepali_date") else "posting_date"
-    from_date = filters.get("from_nepali_date") if filters.get("from_nepali_date") else filters.get("from_date")
-    to_date = filters.get("to_nepali_date") if filters.get("to_nepali_date") else filters.get("to_date")
+    date_field = "posting_date"
+    from_date = filters.get("from_date")
+    to_date = filters.get("to_date")
     
     return frappe.db.sql("""
         WITH OpeningBalance AS (

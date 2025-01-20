@@ -31,6 +31,12 @@ def execute(filters=None):
 	if filters.get("nepali_date"):
 		nepali_date_filter = f"%{filters['nepali_date']}%"
 		conditions["nepali_date"] = ["like", nepali_date_filter]
+	if filters.get("from_date") and filters.get("to_date"):
+		conditions["posting_date"] = ["between", [filters["from_date"], filters["to_date"]]]
+	elif filters.get("from_date"):
+		conditions["posting_date"] = [">=", filters["from_date"]]
+	elif filters.get("to_date"):
+		conditions["posting_date"] = ["<=", filters["to_date"]]
 	if filters.get("distribute_charges_based_on"):
 		conditions["distribute_charges_based_on"] = filters["distribute_charges_based_on"]
 	if filters.get("expense_account"):
