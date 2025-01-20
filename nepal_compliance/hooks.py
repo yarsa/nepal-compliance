@@ -2,7 +2,7 @@ app_name = "nepal_compliance"
 app_title = "Nepal Compliance"
 app_publisher = "Yarsa Labs Pvt. Ltd."
 app_description = "ERPNext app to comply with Nepali laws and regulations"
-app_email = "support@gmail.com"
+app_email = "support@yarsalabs.com"
 app_license = "GNU General Public License (v3)"
 
 # Apps
@@ -100,6 +100,7 @@ doctype_js = {
 
 # before_install = "nepal_compliance.install.before_install"
 after_install = "nepal_compliance.install.install"
+after_sync = "nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures"
 # after_install = "nepal_compliance.install.after_install"
 
 # Uninstallation
@@ -264,7 +265,7 @@ fixtures = [
         "dt": "Custom Field",
         "filters": [
             [
-               "module", "in", ["Nepal Compliance", "Audit Trail"]
+               "module", "in", ["nepal_compliance", "Audit Trail"]
             ]
         ]
     },
@@ -273,7 +274,7 @@ fixtures = [
         "filters": [
             ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
                             "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Grade Amount", "Income Tax married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee"]]
+                            "Grade Amount", "Income Tax married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction"]]
         ]
     },
     {

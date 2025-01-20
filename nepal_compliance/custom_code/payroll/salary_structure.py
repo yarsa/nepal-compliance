@@ -8,7 +8,7 @@ def get_earnings(ssf_compliance=False):
         {"salary_component": "Overtime"},
         {"salary_component": "Gratuity"},
         {"salary_component": "Earning Adjustment"},
-        {"salary_component": "Provident_Fund_Employer"}
+        {"salary_component": "Provident Fund Employer"}
     ]
     if ssf_compliance:
         earnings_components = [
@@ -72,7 +72,7 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
         elif deduction_type == "married":
             deduction_components = [
                 "Income Tax Married",
-                "Provident_Fund_Employee",
+                "Provident Fund Employee",
                 "Insurance",
                 "Leave and Late Deduction",
                 "CIT", 
