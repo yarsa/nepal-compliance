@@ -44,5 +44,12 @@ The HR and payroll module from Frappe HR is expected to fully comply with the La
 - [x] Compliance for Employee's Provident Fund (EPF)
 - [x] Compliance for Social Security Fund (SSF)
 - [ ] Compatible with Biometric attendance systems
-- [ ] 
 
+## Contributing
+Nepal Compliance is an open source project that everyone is welcome to contribute to.
+
+If you're interested in contributing to the project:
+* Start by reading our [Contributing Guide](/CONTRIBUTING.md).
+
+### License
+Nepal Compliance is licensed under the GNU General Public License v3.0 (GPL-3.0). For more details, refer to the [LICENSE](/LICENSE) file.
