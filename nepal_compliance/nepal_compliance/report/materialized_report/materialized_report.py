@@ -10,25 +10,25 @@ from frappe.utils.data import (
 
 from nepal_compliance.nepal_compliance.report.materialized_report.utils import get_purchase_sales_doctype
 DOC = {
-    "supplier_name_field_doctypes": [
+    "supplier_name": [
         "Purchase Invoice",
         "Purchase Receipt",
     ],
-    "customer_name_field_doctypes": [
+    "customer_name": [
         "Sales Invoice",
     ],
-    "grand_total_field_doctypes": [
+    "grand_total": [
         "Purchase Invoice",
         "Sales Invoice",
     ],
-    "remarks_field_doctypes": [
+    "remark_field": [
         "Purchase Invoice",
         "Sales Invoice",
     ],
 }
 
 def execute(filters=None):
-    _class = GET_MAP[filters.pop("materialized_report")](filters)
+    _class = Materialized[filters.pop("materialized_report")](filters)
     return _class.get_columns(), _class.get_data()
 
 
@@ -185,18 +185,18 @@ class ColumnDetail(BaseAuditTrail):
             "docstatus"
         ]
 
-        if doctype in DOC["grand_total_field_doctypes"]:
+        if doctype in DOC["grand_total"]:
             fields.append("grand_total as amount")
 
-        if doctype in DOC["supplier_name_field_doctypes"]:
+        if doctype in DOC["supplier_name"]:
             fields.append("supplier_name as party_name")
             fields.append("")
 
-        elif doctype in DOC["customer_name_field_doctypes"]:
+        elif doctype in DOC["customer_name"]:
             fields.append("customer_name as party_name")
 
 
-        if doctype in DOC["remarks_field_doctypes"]:
+        if doctype in DOC["remark_field"]:
             fields.append("remarks")
         
         fields.append("nepali_date")
@@ -257,10 +257,10 @@ class ColumnDetail(BaseAuditTrail):
             row["vat"] = vat
             row["tds"] = tds
 
-            if doctype in DOC["supplier_name_field_doctypes"]:
+            if doctype in DOC["supplier_name"]:
                 row["party_type"] = "Supplier"
 
-            elif doctype in DOC["customer_name_field_doctypes"]:
+            elif doctype in DOC["customer_name"]:
                 row["party_type"] = "Customer"
 
             self.data.append(row)
@@ -270,6 +270,6 @@ def get_relavant_doctypes():
     doctypes = get_purchase_sales_doctype()
     return doctypes
 
-GET_MAP = {
+Materialized = {
     "Materialized View": ColumnDetail,
 }

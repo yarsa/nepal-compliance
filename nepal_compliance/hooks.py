@@ -285,3 +285,9 @@ fixtures = [
         ]
     }
 ]
+
+purchase_sales = ["Purchase Invoice", "Sales Invoice"]
+
+doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
+                 "Landed Cost Voucher","Payment Entry","Period Closing Voucher","Process Deferred Accounting","Purchase Invoice",
+                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation","Subcontracting Receipt",]
