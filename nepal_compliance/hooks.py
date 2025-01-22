@@ -30,7 +30,6 @@ app_include_css = ["/assets/nepal_compliance/css/calendar.css",
                    "/assets/nepal_compliance/css/doctype.css"]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
 app_include_js = [
-                 "/assets/nepal_compliance/js/bs_customcode.js",
                  "/assets/nepal_compliance/js/bs_module.js",
                  "/assets/nepal_compliance/js/report_filter.js",
                  ]
@@ -52,13 +51,20 @@ app_include_js = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
-    "Salary Slip" : ["public/js/bs_date.js"],
+    "Salary Slip" : ["public/js/bs_date.js", "public/js/salary_slip.js"],
+    "Expense Claim": "public/js/bs_date.js",
     "Leave Application": "public/js/bs_date.js",
     "Holiday List": ["public/js/bs_date.js","public/js/holiday_list.js"],
     "Holiday": "public/js/holiday_list.js",
-    "Leave Application": "public/js/bs_date.js",
+    "Leave Allocation": "public/js/bs_date.js",
+    "Attendance": "public/js/bs_date.js",
+    "Fiscal Year": "public/js/bs_date.js",
     "Purchase Invoice": "public/js/bs_date.js",
-    "Attendance": "public/js/bs_date.js"
+    "Purchase Order": "public/js/bs_date.js",
+    "Purchase Receipt": "public/js/bs_date.js",
+    "Sales Order": "public/js/bs_date.js",
+    "Delivery Note": "public/js/bs_date.js",
+    "Sales Invoice": "public/js/bs_date.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
