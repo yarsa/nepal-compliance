@@ -8,9 +8,9 @@ This app aims to customize the HR, Payroll and Accounting modules to make your i
 ### Basic Setup
 - [x] Nepali Date support for fiscal year
 - [x] Nepali Date support for input fields
-- [ ] Nepali Date support for lists, views, filters, sorting & searching
+- [x] Nepali Date support for lists, views, filters, sorting & searching
 - [x] Nepali Date support for reports
-- [ ] Nepali Date support for print templates
+- [x] Nepali Date support for print templates
 ### Accounting & Billing
 The accounting module is expected to comply with the most recent directives of Nepal Rastra Bank (NRB) and the Inland Revenue Department (IRD).
 - [x] Invoice Cancellation (No Deletion)

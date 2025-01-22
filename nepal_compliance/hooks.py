@@ -51,7 +51,7 @@ app_include_js = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
-    "Salary Slip" : ["public/js/bs_date.js", "public/js/salary_slip.js"],
+    "Salary Slip" : "public/js/salary_slip.js",
     "Expense Claim": "public/js/bs_date.js",
     "Leave Application": "public/js/bs_date.js",
     "Holiday List": ["public/js/bs_date.js","public/js/holiday_list.js"],
@@ -168,7 +168,9 @@ after_sync = "nepal_compliance.custom_code.payroll.salary_structure.create_salar
 # 		"on_trash": "method"
 # 	}
 # }
-
+doc_events = {
+    "Purchase Invoice" : {"on_trash": "nepal_compliance.utils.prevent_invoice_deletion"}
+}
 # Scheduled Tasks
 # ---------------
 
