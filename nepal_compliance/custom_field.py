@@ -15,9 +15,6 @@ def create_custom_fields():
         "Expense Claim": [
             {"fieldname": "nepali_date", "label": "Neplai Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
         ],
-        "Salary Structure Assignment": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},            
-        ],
         "Customer": [
             {"fieldname": "customer_code", "label": "Customer Code", "fieldtype": "Data", "insert_after": "customer_name", "reqd": 0},
         ],
@@ -159,6 +156,35 @@ def create_custom_fields():
         ],
         "Quick Stock Balance":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "date", "in_list_view": 1,}
+        ],
+        "Payroll Entry": [
+            {"fieldname": "nepali_start_date", "label": "Start Date BS", "fieldtype": "Data", "insert_after": "start_date", "in_list_view": 1,},
+            {"fieldname": "nepali_end_date", "label": "End Date BS", "fieldtype": "Data", "insert_after": "end_date", "in_list_view": 1,}
+        ],
+        "Income Tax Slab":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "effective_from", "in_list_view": 1,}
+        ],
+        "Payroll Period": [
+            {"fieldname": "nepali_start_date", "label": "Start Date BS", "fieldtype": "Data", "insert_after": "start_date", "in_list_view": 1,},
+            {"fieldname": "nepali_end_date", "label": "End Date BS", "fieldtype": "Data", "insert_after": "end_date", "in_list_view": 1,}
+        ],
+        "Salary Structure Assignment": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},            
+        ],
+        "Bulk Salary Structure Assignment": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_payable_account", "in_list_view": 1},            
+        ],
+        "Salary Withholding":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1}
+        ],
+        "Employee Incentive":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_date", "in_list_view": 1}
+        ],
+        "Retention Bonus":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "bonus_payment_date", "in_list_view": 1}
+        ],
+        "Employee Tax Exemption Declaration":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
         ],
     }
 

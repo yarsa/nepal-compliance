@@ -70,7 +70,8 @@ doctype_js = {
     "POS Opening Entry": "public/js/bs_date.js", "POS Closing Entry": "public/js/bs_date.js",
     "Loyalty Program": "public/js/bs_date.js", "Promotional Scheme": "public/js/bs_date.js", "Pricing Rule": "public/js/bs_date.js", "Coupon Code": "public/js/bs_date.js",
     "Serial No": "public/js/bs_date.js", "Batch": "public/js/bs_date.js",
-    "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js"
+    "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js",
+    "Payroll Entry": "public/js/payroll_bs_date.js", "Income Tax Slab": "public/js/payroll_bs_date.js", "Payroll Period": "public/js/payroll_bs_date.js", "Salary Structure Assignment": "public/js/payroll_bs_date.js", "Salary Withholding": "public/js/payroll_bs_date.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
