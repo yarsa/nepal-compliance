@@ -3,6 +3,7 @@ frappe.provide('frappe.listview_settings');
 const DatePickerConfig = {
     CALENDAR_FIELDS: ['nepali_date', 'from_nepali_date', 'to_nepali_date', 'nepali_start_date', 'nepali_end_date', 'nepali_year_start_date', 'nepali_year_end_date',
         'from_nepali_date_leave_allocation', 'to_nepali_date_leave_allocation', 'from_nepali_date_leave_application', 'to_nepali_date_leave_application', 'nepali_from_date', 'nepali_to_date',
+        'valid_from_bs', 'valid_to_bs', 'warranty_expiry_date_bs', 'amc_expiry_date_bs', 'expiry_date_bs', 'manufacturing_date_bs', 'inst_date_note', 'report_date_bs_quality_inspection'
     ],
     ENGLISH_DATE_FIELD: 'from_date',
     ENGLISH_TO_DATE_FIELD: 'to_date',

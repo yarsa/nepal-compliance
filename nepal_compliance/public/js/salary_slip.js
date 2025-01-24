@@ -347,8 +347,8 @@ function calculate_selected_earnings(frm) {
     
     const deduction_components = [
         "Provident Fund Employee", "Insurance", "Leave and Late Deduction", "CIT", "Previous Month Adjustment Deduction",
-        "Gratuity Deduction", "Income Tax Unmarried", "Employee's Contribution SSF", "Employer's Contribution SSF Deduction",
-        "Deduction Adjustment", "Income Tax Married", "Provident Fund Employer Deduction"
+        "Gratuity Deduction", "Employee's Contribution SSF", "Employer's Contribution SSF Deduction",
+        "Deduction Adjustment", "Provident Fund Employer Deduction"
     ];
     
     frm.doc.earnings.forEach(function(row) {

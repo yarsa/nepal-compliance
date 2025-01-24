@@ -59,12 +59,18 @@ doctype_js = {
     "Leave Allocation": "public/js/bs_date.js",
     "Attendance": "public/js/bs_date.js",
     "Fiscal Year": "public/js/bs_date.js",
-    "Purchase Invoice": "public/js/bs_date.js",
-    "Purchase Order": "public/js/bs_date.js",
-    "Purchase Receipt": "public/js/bs_date.js",
-    "Sales Order": "public/js/bs_date.js",
-    "Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": "public/js/bs_date.js"
+    "Purchase Invoice": "public/js/bs_date.js","Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
+    "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js","Sales Invoice": "public/js/bs_date.js",
+    "Payment Entry": "public/js/bs_date.js",
+    "Journal Entry": "public/js/bs_date.js",
+    "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
+    "Blanket Order": "public/js/bs_date.js",
+    "Landed Cost Voucher": "public/js/bs_date.js",
+    "Asset": "public/js/bs_date.js", "Asset Repair": "public/js/bs_date.js", "Asset Movement": "public/js/bs_date.js", "Asset Value Adjustment": "public/js/bs_date.js", "Asset Capitalization": "public/js/bs_date.js",
+    "POS Opening Entry": "public/js/bs_date.js", "POS Closing Entry": "public/js/bs_date.js",
+    "Loyalty Program": "public/js/bs_date.js", "Promotional Scheme": "public/js/bs_date.js", "Pricing Rule": "public/js/bs_date.js", "Coupon Code": "public/js/bs_date.js",
+    "Serial No": "public/js/bs_date.js", "Batch": "public/js/bs_date.js",
+    "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -282,7 +288,7 @@ fixtures = [
         "filters": [
             ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
                             "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Grade Amount", "Income Tax married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
+                            "Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
                             "Provident Fund Employer Deduction", "Gratuity Deduction"]]
         ]
     },
