@@ -177,6 +177,9 @@ def create_custom_fields():
         "Salary Withholding":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1}
         ],
+        "Additional Salary":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_date", "in_list_view": 1}
+        ],
         "Employee Incentive":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_date", "in_list_view": 1}
         ],
@@ -184,6 +187,15 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "bonus_payment_date", "in_list_view": 1}
         ],
         "Employee Tax Exemption Declaration":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
+        ],
+        "Employee Tax Exemption Proof Submission":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
+        ],
+        "Employee Benefit Application":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
+        ],
+        "Employee Benefit Claim":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
         ],
     }

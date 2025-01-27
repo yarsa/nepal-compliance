@@ -178,5 +178,5 @@ def execute(filters=None):
 		for tax in taxes:
 			vat = tax.rate if tax.rate == 13 else ''
 			tds = tax.rate if (tax.rate == 1.5 or tax.rate == 15) else ''
-			data.append([sale.posting_date, '', sale.name, sale.customer, sale.customer_group, sale.customer_address, sale.project, sale.cost_center, '', sale.owner, total_qty, total_rate, '',sale.discount_amount, net_total, tax.charge_type, tax.account_head, vat, tds, sale.total_taxes_and_charges, sale.grand_total, sale.rounded_total, sale.total_advance, sale.outstanding_amount, sale.return_against])
+			data.append([sale.posting_date, sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.customer_address, sale.project, sale.cost_center, '', sale.owner, total_qty, total_rate, '',sale.discount_amount, net_total, tax.charge_type, tax.account_head, vat, tds, sale.total_taxes_and_charges, sale.grand_total, sale.rounded_total, sale.total_advance, sale.outstanding_amount, sale.return_against])
 	return columns, data

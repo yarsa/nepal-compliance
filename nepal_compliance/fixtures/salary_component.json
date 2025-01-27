@@ -13,7 +13,7 @@
   "docstatus": 0,
   "doctype": "Salary Component",
   "exempted_from_income_tax": 0,
-  "formula": "revised_salary * 0.083",
+  "formula": "revised_salary * .6",
   "is_flexible_benefit": 0,
   "is_income_tax_component": 0,
   "is_tax_applicable": 0,
@@ -182,7 +182,7 @@
   "salary_component": "Deduction Adjustment",
   "salary_component_abbr": "deduction_adjustment",
   "statistical_component": 0,
-  "type": "Earning",
+  "type": "Deduction",
   "variable_based_on_taxable_salary": 0
  },
  {

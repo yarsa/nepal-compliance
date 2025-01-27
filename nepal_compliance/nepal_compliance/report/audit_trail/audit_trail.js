@@ -52,7 +52,7 @@ frappe.query_reports["Audit Trail"] = {
                 if (selected_value === "Nepali Date Filter") {
                     report_field.df.options = "Detail Report";  
                 } else {
-                    report_field.df.options = "Detail Report\nSummary by DocType\nSummary by User";  
+                    report_field.df.options = "Detail Report\nDocType Summary\nUser Summary";  
                 }
             
                 report_field.refresh();
