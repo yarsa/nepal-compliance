@@ -198,6 +198,61 @@ def create_custom_fields():
         "Employee Benefit Claim":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "in_list_view": 1}
         ],
+        "Compensatory Leave Request": [
+            {"fieldname": "work_from_date_bs", "label": "Work From Date BS", "fieldtype": "Data", "insert_after": "work_from_date", "in_list_view": 1},
+            {"fieldname": "work_end_date_bs", "label": "Work End Date BS", "fieldtype": "Data", "insert_after": "work_end_date", "in_list_view": 1}
+        ],
+        "Attendance Request": [
+            {"fieldname": "from_date_bs", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},
+            {"fieldname": "to_date_bs", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "in_list_view": 1}
+        ],
+        "Employee Advance": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1}
+        ],
+        "Shift Assignment": [
+            {"fieldname": "from_date_bs", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},
+            {"fieldname": "to_date_bs", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "in_list_view": 1}
+        ],
+        "Job Offer": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "offer_date", "in_list_view": 1}
+        ],
+        "Employee Referral": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "date", "in_list_view": 1}
+        ],
+        "Shift Assignment": [
+            {"fieldname": "start_date_bs", "label": "Start Date BS", "fieldtype": "Data", "insert_after": "start_date", "in_list_view": 1,},
+            {"fieldname": "end_date_bs", "label": "End Date BS", "fieldtype": "Data", "insert_after": "end_date", "in_list_view": 1,}
+        ],
+        "Shift Request": [
+            {"fieldname": "from_date_bs", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},
+            {"fieldname": "to_date_bs", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "in_list_view": 1}
+        ],
+        "Shift Assignment Tool": [
+            {"fieldname": "start_date_bs", "label": "Start Date BS", "fieldtype": "Data", "insert_after": "start_date", "in_list_view": 1,},
+            {"fieldname": "end_date_bs", "label": "End Date BS", "fieldtype": "Data", "insert_after": "end_date", "in_list_view": 1,}
+        ],
+        "Employee Attendance Tool":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "date", "in_list_view": 1}
+        ],
+        "Upload Attendance":[
+            {"fieldname": "att_fr_date_bs", "label": "Attendance From Date BS", "fieldtype": "Data", "insert_after": "att_fr_date", "in_list_view": 1},
+            {"fieldname": "column_break", "label": "", "fieldtype": "Column Break", "insert_after": "att_fr_date_bs"},
+            {"fieldname": "att_to_date_bs", "label": "Attendance To Date BS", "fieldtype": "Data", "insert_after": "att_to_date", "in_list_view": 1}
+        ],
+        "Leave Period": [
+            {"fieldname": "from_date_bs", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},
+            {"fieldname": "to_date_bs", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "in_list_view": 1}
+        ],
+        "Leave Policy Assignment":[
+            {"fieldname": "effective_from_bs", "label": "Effective From BS", "fieldtype": "Data", "insert_after": "effective_from", "in_list_view": 1,},
+            {"fieldname": "effective_to_bs", "label": "Effective To BS", "fieldtype": "Data", "insert_after": "effective_to", "in_list_view": 1,},
+        ],
+        "Leave Control Panel":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "leave_policy", "in_list_view": 1}
+        ],
+        "Leave Encashment":[
+            {"fieldname": "encashment_date_bs", "label": "Encashment Date BS", "fieldtype": "Data", "insert_after": "encashment_date", "in_list_view": 1}
+        ], 
     }
 
     created_fields = [] 
