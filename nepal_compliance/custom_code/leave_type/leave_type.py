@@ -54,7 +54,7 @@ def setup_default_leave_types():
             "maximum_carry_forwarded_leaves": "45",
             "allow_encashment": 1,
             "max_encashable_leaves": "45",
-            "earning_component": "Basic",
+            "earning_component": "Basic Salary",
             "allocate_on_day": "Last Day"
         }
     ]

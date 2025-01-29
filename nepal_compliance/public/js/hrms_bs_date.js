@@ -25,12 +25,12 @@ const dateFields = [
     { from: 'work_end_date', to: 'work_end_date_bs' },
     { from: 'start_date', to: 'start_date_bs' },
     { from: 'end_date', to: 'end_date_bs' },
-    {from: 'att_fr_date', to: 'att_fr_date_bs'},
-    {from: 'att_to_date', to: 'att_to_date_bs'},
-    {from: 'effective_from', to: 'effective_from_bs'},
-    {from: 'effective_to', to: 'effective_to_bs'},
-    {from: 'encashment_date', to: 'encashment_date_bs'},
-    { from: ['attendance_date', 'posting_date', 'claim_date', 'offer_date', 'date', 'from_date'], to: 'nepali_date' }
+    { from: 'att_fr_date', to: 'att_fr_date_bs' },
+    { from: 'att_to_date', to: 'att_to_date_bs' },
+    { from: 'effective_from', to: 'effective_from_bs' },
+    { from: 'effective_to', to: 'effective_to_bs' },
+    { from: 'encashment_date', to: 'encashment_date_bs' },
+    { from: ['attendance_date', 'posting_date', 'claim_date', 'offer_date', 'date'], to: 'nepali_date' }
 ];
 
 const doctypes = [
@@ -55,10 +55,6 @@ doctypes.forEach(function(doctype) {
     frappe.ui.form.on(doctype, {
         refresh: function(frm) {
             initializeDatePickers(frm);
-            if (frm.doctype === 'Shift Assignment Tool' || frm.doctype === 'Employee Attendance Tool') {
-                console.log('Explicitly initializing Date Pickers for', frm.doctype);  // Debugging
-                DatePickerConfig.initializePickers(frm);
-            }
             if (frm.doc.posting_date) {
                 frm.trigger('posting_date');
             }
@@ -67,6 +63,12 @@ doctypes.forEach(function(doctype) {
             }
             if (frm.doc.from_date) {
                 frm.trigger('from_date');
+            }
+            if (frm.doc.start_date){
+                frm.trigger('start_date')
+            }
+            if(frm.doc.end_date){
+                frm.trigger('end_date')
             }
         },
 
