@@ -50,7 +50,7 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
         ]
         elif deduction_type == "married":
             deduction_components = [
-                "Income Tax married",
+                "Income Tax Married",
                 "Employee's Contribution SSF",
                 "Employer's Contribution SSF Deduction",
                 "Insurance",

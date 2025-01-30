@@ -6,14 +6,12 @@ frappe.query_reports["Vat Return Report"] = {
 		{
 			"fieldname": "from_date",
 			"label": __("From Date"),
-			"fieldtype": "Date",
-			"default": frappe.datetime.add_days(frappe.datetime.nowdate(), -30)
+			"fieldtype": "Date"
 		},
 		{
 			"fieldname": "to_date",
 			"label": __("To Date"),
-			"fieldtype": "Date",
-			"default": frappe.datetime.nowdate()
+			"fieldtype": "Date"
 		},
 		{
 			"fieldname": "from_nepali_date",
@@ -25,5 +23,8 @@ frappe.query_reports["Vat Return Report"] = {
 			"label": __("To Nepali Date"),
 			"fieldtype": "Data",
 		}
-	]
+	],
+    onload: function(report) {
+        DatePickerConfig.initializePickers(report);
+    },
 };

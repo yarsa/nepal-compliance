@@ -80,7 +80,7 @@ def get_data(filters):
         SELECT
             si.posting_date, 
             si.modified as cancel_date,
-            si.nepali_date as nepali_cancel_date,
+            si.nepali_date as nepali_date,
             si.name as invoice_number,
             si.customer_name as customer,
             si.tax_id as pan_number,

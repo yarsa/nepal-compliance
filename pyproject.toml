@@ -1,0 +1,29 @@
+[project]
+name = "nepal_compliance"
+authors = [
+    { name = "Yarsa Labs Pvt. Ltd.", email = "support@yarsalabs.com" }
+]
+description = "ERPNext app to comply with Nepali laws and regulations"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    # "frappe~=15.0.0" # Installed and managed by bench.
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.isort]
+profile = "black"
+known_frappe = "frappe"
+known_erpnext = "erpnext"
+known_hrms = "hrms"  
+known_payment = "payments"
+no_lines_before = ["ERPNEXT"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FRAPPE", "ERPNEXT", "HRMS", "PAYMENTS", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.bench.dev-dependencies]
+# package_name = "~=1.1.0"
+parameterized = "~=0.8.1"
+time-machine = "~=2.10.0"

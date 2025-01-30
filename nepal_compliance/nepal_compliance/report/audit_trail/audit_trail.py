@@ -271,6 +271,9 @@ class ReportSummary(BaseAuditTrail):
         if self.field_exists(doctype, date_field):
             fields.append(date_field)
             
+        if doctype == "Purchase Invoice":
+            fields.append("grand_total as amount")
+            
         if doctype == "Payment Entry":
             fields.extend(
                 ["party_type", "party_name", "total_allocated_amount as amount"]

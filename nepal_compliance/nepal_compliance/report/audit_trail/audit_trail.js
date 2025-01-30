@@ -52,7 +52,7 @@ frappe.query_reports["Audit Trail"] = {
                 if (selected_value === "Nepali Date Filter") {
                     report_field.df.options = "Detail Report";  
                 } else {
-                    report_field.df.options = "Detail Report\nSummary by DocType\nSummary by User";  
+                    report_field.df.options = "Detail Report\nDocType Summary\nUser Summary";  
                 }
             
                 report_field.refresh();
@@ -104,7 +104,7 @@ frappe.query_reports["Audit Trail"] = {
             default: "",
             get_query: function () {
                 return {
-                    query: "nepal_compliance.nepal_compliance.audit_trail.report.audit_trail.audit_trail.get_relavant_doctypes",
+                    query: "nepal_compliance.nepal_compliance.report.audit_trail.audit_trail.get_relavant_doctypes",
                 };
             },
         },

@@ -91,9 +91,9 @@ def execute(filters=None):
                 purchase_vat,
                 net_vat
             ])
-            total_sales_vat += sale['sales_vat']
-            total_purchase_vat += purchase_vat
-            total_net_vat += net_vat
+            total_sales_vat += sale['sales_vat'] or 0
+            total_purchase_vat += purchase_vat 
+            total_net_vat += net_vat or 0
         else:
             net_vat = sale['sales_vat']
             invoice_link = f'<a href="/app/sales-invoice/{sale["invoice_no"]}" target="_blank">{sale["invoice_no"]}</a>'
@@ -108,8 +108,8 @@ def execute(filters=None):
                 0,
                 net_vat
             ])
-            total_sales_vat += sale['sales_vat']
-            total_net_vat += net_vat
+            total_sales_vat += sale['sales_vat'] or 0
+            total_net_vat += net_vat or 0
         
     for purchase in purchase_invoices:
         if not any(sale['invoice_no'] == purchase['invoice_no'] for sale in sales_invoices):
