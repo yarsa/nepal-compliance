@@ -86,13 +86,3 @@ frappe.query_reports["Sales Return Vat Register"] = {
         DatePickerConfig.initializePickers(report);
     },
 };
-$(document).ready(function() {
-    setTimeout(() => {
-        if (cur_list && cur_list.doctype) {
-            if (cur_list.filter_area) {
-                cur_list.filter_area.clear();
-            }
-            DatePickerConfig.initializePickers(cur_list);
-        }
-    }, 1000);
-});

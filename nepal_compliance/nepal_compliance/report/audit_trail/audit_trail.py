@@ -296,7 +296,7 @@ class ReportSummary(BaseAuditTrail):
 
         if doctype == "Journal Entry":
             fields.append("user_remark as remarks")
-
+            fields.append("total_debit as amount")
 
         elif doctype in DoctypeFields["remarks_field"]:
             fields.append("remarks")

@@ -141,8 +141,14 @@ def execute(filters=None):
         conditions["bill_date"] = filters["bill_date"]
     if filters.get("due_date"):
         conditions["due_date"] = filters["due_date"]
+    if filters.get("from_date") and filters.get("to_date"):
+	    conditions["posting_date"] = ["between", [filters["from_date"], filters["to_date"]]]
+    elif filters.get("from_date"):
+	    conditions["posting_date"] = [">=", filters["from_date"]]
+    elif filters.get("to_date"):
+	    conditions["posting_date"] = ["<=", filters["to_date"]]
     if filters.get("nepali_date"):
-        nepali_date_filter = f"%{filter['nepali_date']}%"
+        nepali_date_filter = f"%{filters['nepali_date']}%"
         conditions["nepali_date"] = ["like", nepali_date_filter]
     if filters.get("expense_account"):
 	    account_filter = f"%{filters['expense_account']}%"
