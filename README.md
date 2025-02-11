@@ -34,7 +34,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] Balance Confirmation
 - [x] Sales Cancellation Register
 - [x] Audit Trial Report
-- [ ] SQL Query Audit Logs
+- [x] SQL Query Audit Logs
 
 ### HR & Payroll
 The HR and payroll module from Frappe HR is expected to fully comply with the Labor Law 2074 BS, and the latest regulations of Nepal.
