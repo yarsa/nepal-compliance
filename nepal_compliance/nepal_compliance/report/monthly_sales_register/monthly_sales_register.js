@@ -1,5 +1,5 @@
-// Copyright (c) 2024, njsubedi, Mukesh and contributors
-// For license information, please see license.txt
+// Copyright (c) 2024, Yarsa Labs Pvt. Ltd. and contributors
+// For license information, please see LICENSE at the root of this repository
 
 frappe.query_reports["Monthly Sales Register"] = {
 	"filters": [

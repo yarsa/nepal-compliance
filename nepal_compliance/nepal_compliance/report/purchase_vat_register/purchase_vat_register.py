@@ -1,3 +1,6 @@
+# Copyright (c) 2024, Yarsa Labs Pvt. Ltd. and contributors
+# For license information, please see LICENSE at the root of this repository
+
 from __future__ import unicode_literals
 import frappe
 from frappe import _
@@ -43,62 +46,29 @@ def execute(filters=None):
             'fieldtype': 'Data'
         },
         {
-            'fieldname': 'item_code',
-            'label': _('Item Code'),
-            'fieldtype': 'Link',
-            'options': 'Item'
-        },
-        {
-            'fieldname': 'item_name',
-            'label': _('Item Name'),
-            'fiedltype': 'Link',
-            'options': 'Item'
-        },
-        {
-            'fieldname': 'item_description',
-            'label': _('Item Description'),
-            'fieldtype': 'Text'
-        },
-        {
-            'fieldname': 'unit',
-            'label': _('Unit'),
-            'fieldtype': 'Data'
-        },
-        {
-            'fieldname': 'total',
-            'label': _(''),
-            'fieldtype': 'Data',
-            'width': 150
-        },
-        {
             'fieldname': 'qty',
             'label': _('Quantity'),
             'fieldtype': 'Data'
         },
         {
-            'fieldname': 'rate',
-            'label': _('Rate'),
-            'fieldtype': 'Data'
-        },
-        {
             'fieldname': 'amount',
             'label': _('Amount'),
-            'fieltype': 'Data'
+            'fieldtype': 'Currency'
         },
+        {
+			'fiedlname': 'discount',
+			'label': _('Discount'),
+			'fieldtype': 'Currency'
+		},
         {
             'fieldname': 'gross_amount',
             'label': _('Gross Amount'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
         {
             'fieldname': 'net_amount',
             'label': _('Net Amount'),
-            'fieldtype': 'Data'
-        },
-        {
-            'fiedlname': 'expense_account',
-            'label': _('Expense Account'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
         {
             'fiedlname': 'warehouse',
@@ -109,22 +79,27 @@ def execute(filters=None):
         {
             'fieldname': 'vat',
             'label': _('13% VAT'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
+		{
+			'fieldname': 'tds',
+			'label': _('TDS'),
+			'fieldtype': 'Currency'
+		},
         {
             'fieldname': 'invoice_total',
             'label': _('Invoice Total'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
         {
             'fieldname': 'outstanding_amount',
             'label': _('Outstanding Amount'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
         {
             'fieldname': 'total_tax_and_charges',
             'label': _('Total Tax and Charges'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Currency'
         },
 
     ]
@@ -150,13 +125,10 @@ def execute(filters=None):
     if filters.get("nepali_date"):
         nepali_date_filter = f"%{filters['nepali_date']}%"
         conditions["nepali_date"] = ["like", nepali_date_filter]
-    if filters.get("expense_account"):
-	    account_filter = f"%{filters['expense_account']}%"
-	    conditions["expense_account"] = ["like", account_filter]
     if filters.get("warehouse"):
 	    conditions["warehouse"] = filters["warehouse"]
-    if filters.get("name"):
-        conditions["name"] = filters["name"]   
+    if filters.get("document_number"):
+        conditions["name"] = filters["document_number"]   
          
     purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields=['*'])
     for purchase in purchase_invoice:
@@ -168,16 +140,21 @@ def execute(filters=None):
         gross_amount = 0
         sum_gross_amount = 0
         vat = 0
+        tds = 0
         sum_vat = 0
+        invoice_total = purchase.grand_total
+        net_total = purchase.net_total if purchase.additional_discount_percentage else invoice_total
         for item in items:
             total += item.amount
             gross_amount += item.amount
             sum_gross_amount += gross_amount
-            vat = total * 13/100
-            sum_vat += vat
             total_qty += item.qty
             total_rate += item.rate
         for t in tax:
-            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.bill_date, '', item.item_code, item.item_name, item.description, item.uom, '', item.qty, item.rat, item.amount, gross_amount, '', item.expense_account, item.warehouse, vat, '', '', ''])
+            if t.rate == 13:
+                vat = t.tax_amount 
+            elif t.rate in [1.5, 15]:
+                tds += t.tax_amount
+        data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.bill_date, '', total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item.warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
         # data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rat, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchae.outstanding_amount, purchase.taxes_and_charges_added])  
     return columns, data 

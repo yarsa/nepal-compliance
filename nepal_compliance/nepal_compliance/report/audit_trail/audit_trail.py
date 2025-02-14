@@ -1,3 +1,6 @@
+# Copyright (c) 2024, Yarsa Labs Pvt. Ltd. and contributors
+# For license information, please see LICENSE at the root of this repository
+
 def execute(filters=None):
 	columns, data = [], []
 	return columns, data
