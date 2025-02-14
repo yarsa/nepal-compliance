@@ -1,5 +1,5 @@
-// Copyright (c) 2024, njsubedi, Mukesh and contributors
-// For license information, please see license.txt
+// Copyright (c) 2024, Yarsa Labs Pvt. Ltd. and contributors
+// For license information, please see LICENSE at the root of this repository
 
 frappe.query_reports["Purchase Return Vat Register"] = {
     "filters": [
@@ -55,19 +55,7 @@ frappe.query_reports["Purchase Return Vat Register"] = {
         {
             fieldname: 'due_date',
             label: __('Invoice Due Date'),
-            fieldtype: 'Data'
-        },
-        {
-            fieldname: 'item_name',
-            label: __('Item Name'),
-            fieldtype: 'Link',
-            options: 'Item'
-        },
-        {
-            fieldname: 'expesne_account',
-            label: __('Expesne Account'),
-            fieldtype: 'Link',
-            options: 'Account'
+            fieldtype: 'Date'
         },
         {
             fieldname: 'warehouse',
