@@ -156,5 +156,5 @@ def execute(filters=None):
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
         data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.bill_date, '', total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item.warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
-        # data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rat, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchae.outstanding_amount, purchase.taxes_and_charges_added])  
+        # data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rat, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchase.outstanding_amount, purchase.taxes_and_charges_added])  
     return columns, data 
