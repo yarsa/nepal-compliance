@@ -37,11 +37,6 @@ def execute(filters=None):
 			'options': 'Customer Group'
 		},
 		{
-			'fieldname': 'customer_address',
-			'label': _('Customer Address'),
-			'fiedltype': 'Data'
-		},
-		{
 			'fiedlname': 'project',
 			'label': _('Project'),
 			'fieldtype': 'Link',
@@ -55,7 +50,7 @@ def execute(filters=None):
 		},
 		{
 			'fieldname': 'vat_no',
-			'label': _('Vat No'),
+			'label': _('Vat/Pan No'),
 			'fieldtype': 'Data'
 		},
 		{
@@ -69,50 +64,44 @@ def execute(filters=None):
 			'fieldtype': 'Data'
 		},
 		{
-			'fieldname': 'rate',
-			'label': _('Rate'),
-			'fieldtype': 'float'
-		},
-		{
 			'fieldname': 'total',
 			'label': _('Total'),
-			'fiedltype': 'Data'
+			'fiedltype': 'Currency'
 		},
 		{
 			'fiedlname': 'discount',
 			'label': _('Discount'),
 			'fieldtype': 'Currency'
 		},
+        {
+            'fieldname': 'gross_amount',
+            'label': _('Gross Amount'),
+            'fieldtype': 'Currency'
+        },
 		{
 			'fiedlname': 'net_total',
 			'label': _('Net Total'),
-			'fieldtype': 'Data'
-		},
-		{
-			'fieldname': 'charge_type',
-			'label': _('Charge Type'),
-			'fieldtype': 'Data'
-		},
-		{
-			'fieldname': 'account_head',
-			'label': _('Account Head'),
-			'fieldtype': 'link',
-			'options': 'Account'
+			'fieldtype': 'Currency'
 		},
 		{
 			'fieldname': 'vat',
 			'label': _('VAT'),
-			'fieldtype': 'Float'
+			'fieldtype': 'Currency'
 		},
 		{
 			'fieldname': 'tds',
 			'label': _('TDS'),
-			'fieldtype': 'Float'
+			'fieldtype': 'Currency'
 		},
 		{
 			'fieldname': 'total_taxes_and_charges',
 			'label': _('Total Tax and Charges'),
-			'fieldtype': 'Float'
+			'fieldtype': 'Currency'
+		},
+		{
+			'fieldname': 'total_advance',
+			'label': _('Total Advance'),
+			'fieldtype': 'Currency'
 		},
 		{
 			'fieldname': 'grand_total',
@@ -122,11 +111,6 @@ def execute(filters=None):
 		{
 			'fieldname': 'rounded_total',
 			'label': _('Rounded Total'),
-			'fieldtype': 'Currency'
-		},
-		{
-			'fieldname': 'total_advance',
-			'label': _('Total Advance'),
 			'fieldtype': 'Currency'
 		},
 		{
@@ -174,12 +158,17 @@ def execute(filters=None):
 		taxes = frappe.db.get_all("Sales Taxes and Charges", filters={"parent":sale.name}, fields=['*'])
 		total_qty = 0
 		total_rate = 0
-		net_total = sale.net_total if sale.net_total else 0
+		vat = 0
+		tds = 0
+		invoice_total = sale.grand_total
+		net_total = sale.net_total if sale.net_total else invoice_total
 		for item in items:
 			total_qty += item.qty	
 			total_rate += item.rate
 		for tax in taxes:
-			vat = tax.rate if tax.rate == 13 else ''
-			tds = tax.rate if (tax.rate == 1.5 or tax.rate == 15) else ''
-			data.append([sale.posting_date, sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.customer_address, sale.project, sale.cost_center, '', sale.owner, total_qty, total_rate, '',sale.discount_amount, net_total, tax.charge_type, tax.account_head, vat, tds, sale.total_taxes_and_charges, sale.grand_total, sale.rounded_total, sale.total_advance, sale.outstanding_amount, sale.return_against])
+			if tax.rate == 13:
+				vat = tax.tax_amount
+			elif tax.rate in [1.5, 15]:
+				tds = tax.tax_amount
+		data.append([sale.posting_date, sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number, sale.owner, total_qty, sale.total,sale.discount_amount, sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount, sale.return_against])
 	return columns, data
