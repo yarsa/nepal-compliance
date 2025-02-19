@@ -1,5 +1,8 @@
+[![docker pulls](https://img.shields.io/docker/pulls/yarsalabs/nepal-compliance.svg)](https://hub.docker.com/r/yarsalabs/nepal-compliance)
+[![Frappe Linter - Semgrep rules](https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml)
 [![CodeQL Advanced](https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml)
 [![Build and Push amd64 Docker Image](https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml)
+
 # Nepal Compliance
 
 This project is an app developed on top of [Frappe Framework](https://github.com/frappe/frappe) [ERPNext](https://github.com/frappe/erpnext) and [Frappe HR](https://github.com/frappe/hrms)  , free and open source projects built by Frappe Technologies.
@@ -57,4 +60,4 @@ If you're interested in contributing to the project:
 * Start by reading our [Contributing Guide](/CONTRIBUTING.md).
 
 ### License
-Nepal Compliance is licensed under the GNU General Public License v3.0 (GPL-3.0). For more details, refer to the [LICENSE](/LICENSE) file.
+Nepal Compliance is licensed under the [GNU General Public License v3.0 (GPL-3.0)](/LICENSE).
