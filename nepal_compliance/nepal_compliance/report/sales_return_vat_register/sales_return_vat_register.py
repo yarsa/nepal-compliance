@@ -45,7 +45,7 @@ def execute(filters=None):
 		{
 			'fieldname': 'cost_center',
 			'label': _('Cost Center'),
-			'fiedltype': 'Link',
+			'fieldtype': 'Link',
 			'options': 'Cost Center'
 		},
 		{
