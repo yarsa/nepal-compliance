@@ -68,7 +68,7 @@ frappe.query_reports["Sales Vat Register"] = {
 			options: 'Project'
 		},
 		{
-			fieldname: 'name',
+			fieldname: 'document_number',
 			label: __('Invoice Number'),
 			fieldtype: 'Link',
 			options: 'Sales Invoice',
