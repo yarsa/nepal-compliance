@@ -33,11 +33,11 @@ def execute(filters=None):
 		{
 			'fieldname': 'customer_group',
 			'label': _('Customer Group'),
-			'fiedltype': 'Link',
+			'fieldtype': 'Link',
 			'options': 'Customer Group'
 		},
 		{
-			'fiedlname': 'project',
+			'fieldname': 'project',
 			'label': _('Project'),
 			'fieldtype': 'Link',
 			'options': 'Project'
@@ -66,10 +66,10 @@ def execute(filters=None):
 		{
 			'fieldname': 'total',
 			'label': _('Total'),
-			'fiedltype': 'Currency'
+			'fieldtype': 'Currency'
 		},
 		{
-			'fiedlname': 'discount',
+			'fieldname': 'discount',
 			'label': _('Discount'),
 			'fieldtype': 'Currency'
 		},
@@ -79,7 +79,7 @@ def execute(filters=None):
             'fieldtype': 'Currency'
         },
 		{
-			'fiedlname': 'net_total',
+			'fieldname': 'net_total',
 			'label': _('Net Total'),
 			'fieldtype': 'Currency'
 		},
