@@ -42,7 +42,7 @@ def execute(filters=None):
         },
         {
             'fieldname': 'vat_no',
-            'label': _('Vat No'),
+            'label': _('Vat/Pan No'),
             'fieldtype': 'Data'
         },
         {
@@ -169,7 +169,7 @@ def execute(filters=None):
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
         for item in items:
-            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, '', '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
+            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, purchase.vat_number, '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
         data.append(['', '', '', '', '', '', '', 'Total', total_qty, total, purchase.discount_amount, total, net_total, '', vat, tds, purchase.grand_total,purchase.outstanding_amount, purchase.total_taxes_and_charges, ''])
     return columns, data
 

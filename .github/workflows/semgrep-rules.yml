@@ -1,0 +1,39 @@
+# These rules guard against typical mistakes or bad practices while working on Frappe Framework apps.
+# This workflow uses Frappe Semgrep rules specific to Frappe Framework, licensed under the MIT License.
+# Copyright (c) 2021 Frappe Technologies Pvt. Ltd. <developers@frappe.io>. See LICENSE at https://github.com/frappe/semgrep-rules
+
+name: Frappe Linter - Semgrep rules
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request: { }
+
+# workflow can only read this repo’s code but cannot change
+permissions:
+  contents: read
+  
+jobs:
+  linters:
+    name: Frappe Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Download Semgrep rules
+        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+
+      - name: Download semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep rules
+        run: semgrep ci --config ./frappe-semgrep-rules/rules
