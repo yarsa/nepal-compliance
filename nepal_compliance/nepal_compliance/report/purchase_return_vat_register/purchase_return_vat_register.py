@@ -47,7 +47,6 @@ def execute(filters=None):
         },
         {
             'fieldname': 'total',
-            'label': _(''),
             'fieldtype': 'Data',
             'width': 150
         },

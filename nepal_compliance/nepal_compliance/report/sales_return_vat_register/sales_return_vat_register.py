@@ -60,7 +60,7 @@ def execute(filters=None):
 		},
 		{
 			'fieldname': 'owner',
-			'label': 'Owner',
+			'label': _('Owner'),
 			'fieldtype': 'Data',
 		},
 		{
