@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
-from frappe.utils import flt 
+from frappe.utils import flt
+from frappe.utils import safe_eval
 
 def prevent_invoice_deletion(doc, method):
     frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
@@ -13,7 +14,7 @@ def evaluate_tax_formula(formula, taxable_salary):
             'taxable_salary': taxable_salary,
             'if': lambda x, y, z: y if x else z
         }
-        result = eval(formula, {"__builtins__": {}}, context)
+        result = safe_eval(formula, {"__builtins__": {}}, context)
         return flt(result)    
     except Exception as e:
         frappe.log_error(f"Tax Formula Evaluation Error: {str(e)}\nFormula: {formula}")
