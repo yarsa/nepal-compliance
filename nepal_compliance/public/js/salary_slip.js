@@ -111,8 +111,8 @@ frappe.call = function(opts) {
         isProcessing = true;
         isEndDateChange = true;
         try {
-            if (cur_frm) {
-                savedComponents = captureCurrentState(cur_frm);
+            if (frm) {
+                savedComponents = captureCurrentState(frm);
             } else {
                 console.log('No current form found for capture');
             }
@@ -123,20 +123,20 @@ frappe.call = function(opts) {
                     if (originalSuccess) {
                         originalSuccess(r);
                     }
-                    if (savedComponents && cur_frm) {
+                    if (savedComponents && frm) {
                         console.log('Starting restore process with:', {
                             hasEarnings: savedComponents.earnings?.length || 0,
                             hasDeductions: savedComponents.deductions?.length || 0,
-                            currentEarnings: cur_frm.doc.earnings?.length || 0,
-                            currentDeductions: cur_frm.doc.deductions?.length || 0
+                            currentEarnings: frm.doc.earnings?.length || 0,
+                            currentDeductions: frm.doc.deductions?.length || 0
                         });
                         setTimeout(() => {
-                            restoreComponents(cur_frm);
+                            restoreComponents(frm);
                         }, 1000);
                     } else {
                         console.log('Restore skipped:', {
                             hasSavedComponents: !!savedComponents,
-                            hasCurrentForm: !!cur_frm
+                            hasCurrentForm: !!frm
                         });
                     }
                 } finally {
