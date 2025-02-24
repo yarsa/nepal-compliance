@@ -75,7 +75,6 @@ def execute(filters=None):
         "qty": 0,
         "rate": 0,  
         "amount": 0,
-        "outstanding": 0,
         "total_taxes_and_charges": 0,
         "discount_amount": 0,
         "total": 0,
@@ -117,7 +116,6 @@ def execute(filters=None):
             invoice_totals[current_invoice] = {
                 "qty": 0,
                 "amount": 0,
-                "outstanding": 0,
                 "rate": 0, 
                 "total_taxes_and_charges": 0,
                 "discount_amount": 0,
