@@ -36,7 +36,7 @@ def execute(filters=None):
             'fieldtype': 'Data'
         },
     	{
-            'fieldtype': 'supplier_invoice_date',
+            'fieldname': 'supplier_invoice_date',
 		    'label': _('Supplier Invoice Date'),
 		    'fieldtype': 'Date'
 	    },

@@ -213,10 +213,6 @@ def create_custom_fields():
         "Employee Advance": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1}
         ],
-        "Shift Assignment": [
-            {"fieldname": "from_date_bs", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},
-            {"fieldname": "to_date_bs", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "in_list_view": 1}
-        ],
         "Job Offer": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "offer_date", "in_list_view": 1}
         ],
