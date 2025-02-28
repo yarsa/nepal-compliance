@@ -36,16 +36,32 @@ frappe.query_reports["Party Wise Sales Register"] = {
             "default": "Open"
         },
         {
+            "fieldname": "customer",
+            "label": __("Customer"),
+            "fieldtype": "Link",
+            "options": "Customer"
+        },
+        {
             "fieldname": "invoice_number",
             "label": __("Invoice Number"),
             "fieldtype": "Link",
             "options": "Sales Invoice",
             get_query: function(){
-            return {
-                filters: {
-                    'status': ["Not In", ['Draft']],
+                let customer = frappe.query_report.get_filter_value('customer');
+                if (customer) {
+                    return {
+                        filters: {
+                            'status': ["Not In", ['Draft']],
+                            'customer': customer
+                        }
+                    };
+                } else {
+                    return {
+                        filters: {
+                            'status': ["Not In", ['Draft']]
+                        }
+                    };
                 }
-            }
         }
     },
 	],

@@ -27,7 +27,7 @@ def execute(filters=None):
         _("Outstanding Amount") + ":Currency:120",
         _("Status") + ":Data:80",
     ]
-    conditions = " WHERE si.docstatus = 1" 
+    conditions = " WHERE si.docstatus IN (1, 2)"
     if filters.get("from_date"):
         conditions += " AND si.posting_date >= '{0}'".format(filters["from_date"])
     if filters.get("to_date"):
@@ -37,6 +37,8 @@ def execute(filters=None):
         conditions += " AND si.nepali_date = '{0}'".format(nepali_date) 
     if filters.get("status"):
         conditions += " AND si.status = '{0}'".format(filters["status"])
+    if filters.get("customer"):
+        conditions += " AND si.customer = '{0}'".format(filters["customer"])
     if filters.get("invoice_number"):
         conditions += " AND si.name = '{0}'".format(filters["invoice_number"])
 
