@@ -38,16 +38,32 @@ frappe.query_reports["Party Wise Purchase Register"] = {
             "default": "Open"
         },
         {
-            fieldname: 'invoice_number',
-            label: __('Invoice Number'),
-            fieldtype: 'Link',
-            options: 'Purchase Invoice',
+            "fieldname": "supplier",
+            "label": __("Supplier"),
+            "fieldtype": "Link",
+            "options": "Supplier"
+        },
+        {
+            "fieldname": "invoice_number",
+            "label": __("Invoice Number"),
+            "fieldtype": "Link",
+            "options": "Purchase Invoice",
             get_query: function() {
-            return {
-                filters: {
-                    'status': ["Not In", ['Draft']],
+                let supplier = frappe.query_report.get_filter_value('supplier');
+                if (supplier) {
+                    return {
+                        filters: {
+                            'status': ["Not In", ['Draft']],
+                            'supplier': supplier
+                        }
+                    };
+                } else {
+                    return {
+                        filters: {
+                            'status': ["Not In", ['Draft']]
+                        }
+                    };
                 }
-            }
         }
     },
     ],
