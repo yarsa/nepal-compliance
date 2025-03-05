@@ -54,5 +54,5 @@ def create_qr_code(doc, method=None):
     frappe.local.is_qr_code_updated = True
     doc.save()
 
-    frappe.msgprint("QR code generated successfully for the invoice.")
+    frappe.msgprint(frappe._("QR code generated successfully for the invoice."))
     return doc.qr_code
