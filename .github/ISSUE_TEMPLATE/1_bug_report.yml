@@ -1,0 +1,98 @@
+name: New Bug Report
+description: Report a bug to help improve Nepal Compliance.
+labels: ["bug"]
+assignees:
+  - octocat
+  - additional-maintainer
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us to improve Nepal Compliance! Please note that this issue form is only for bug reports.
+
+        If you have a **feature or enhancement request**, please use the [feature request][fr] section of our [GitHub Discussions][fr].
+        
+        [fr]: https://github.com/yarsa/nepal-compliance/discussions/new?category=feature-request
+        
+  - type: markdown
+    attributes:
+      value: |
+        **Tip:** Have you tried [searching](https://github.com/yarsa/nepal-compliance/issues) for similar issues? Duplicate issues are common.
+
+        Are you reporting a **security issue?** [Submit it here instead](https://github.com/yarsa/nepal-compliance/security/policy).
+  - type: markdown
+    attributes:
+      value: |
+       #
+
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Tell us what you were trying to do and what went wrong.
+      placeholder: If applicable, add screenshots or a screen recording to help explain the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How do we reproduce it?
+      description: Tell us how to reproduce the bug.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+      
+  - type: textarea
+    attributes:
+      label: App Versions
+      description: Share the versions of your software stack running Nepal Compliance
+      placeholder: |
+        - Frappe version
+        - ERPNext version
+        - Nepal Compliance version
+    validations:
+      required: true
+      
+  - type: dropdown
+    attributes:
+      label: Browser
+      description: Select which browsers you experience this bug on.
+      multiple: true
+      options:
+        - Chrome
+        - Safari
+        - Microsoft Edge
+        - Firefox
+        - Other (specify in additional details)
+        
+  - type: dropdown
+    attributes:
+      label: How often does this bug occur?
+      description: Select how frequently you experience this bug.
+      options:
+        - Always
+        - Sometimes
+        - Rarely
+        - Cannot reproduce anymore
+
+  - type: textarea
+    attributes:
+      label: Additional Details
+      description: Share any extra context, such as your OS, device type, or any specific configurations.
+      placeholder: e.g., macOS Sequoia, Windows 11, Ubuntu 24.04.2, mobile device, etc.
+  
+  - type: textarea
+    attributes:
+      label: Relevant Log Output
+      description: Paste any relevant logs or error messages. This will be automatically formatted into code blocks, so no need for backticks.
+      render: shell
+  
+  - type: checkboxes
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/yarsa/nepal-compliance/blob/master/CODE_OF_CONDUCT.md). 
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
