@@ -180,7 +180,13 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # 	}
 # }
 doc_events = {
-    "Purchase Invoice" : {"on_trash": "nepal_compliance.utils.prevent_invoice_deletion"}
+    "Purchase Invoice" : {
+        "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
+        "on_submit": "nepal_compliance.qr_code.create_qr_code"
+    },
+    "Sales Invoice" : {
+        "on_submit": "nepal_compliance.qr_code.create_qr_code"
+    }
 }
 # Scheduled Tasks
 # ---------------
