@@ -54,7 +54,8 @@ def create_custom_fields():
         "Purchase Invoice":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1},
             {"fieldname": "vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "supplier", "in_list_view": 1, "reqd": 1},
-            {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "reqd": 1}
+            {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "reqd": 1},
+            {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1}
         ],
         "Sales Order":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "in_list_view": 1, "in_standard_filter": 1}
@@ -64,6 +65,7 @@ def create_custom_fields():
             {"fieldname": "print_count", "label": "Print Count", "fieldtype": "Int", "insert_after": "amended_form", "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "reqd": 1},
             {"fieldname": "supplier_vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "reqd": 1},
+            {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "supplier_vat_number", "hidden": 1, "allow_on_submit": 1}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
