@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+    - name: New Feature Request
+      url: https://github.com/yarsa/nepal-compliance/discussions/new?category=feature-request
+      about: Please start a new discussion to request a new feature or suggest enhancements.
+    - name: 📃 Compliance Wiki
+      url: https://github.com/yarsa/nepal-compliance/wiki
+      about: Please check compliance requirements and updates with credible sources here.
+    - name: 🤔 Questions and Help
+      url: https://github.com/yarsa/nepal-compliance/discussions/categories/questions-answers
+      about: Please find the frequently asked questions and answers here.
