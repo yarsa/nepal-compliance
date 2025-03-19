@@ -14,7 +14,7 @@ def create_custom_fields():
             {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 1},
         ],
         "Expense Claim": [
-            {"fieldname": "nepali_date", "label": "Neplai Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
         ],
         "Supplier": [
             {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Int", "insert_after": "country"}
