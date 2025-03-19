@@ -51,6 +51,7 @@ app_include_js = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
+    "Company": "public/js/validate.js",
     "Salary Slip" : "public/js/salary_slip.js",
     "Expense Claim": "public/js/bs_date.js",
     "Leave Application": "public/js/bs_date.js",
@@ -59,10 +60,14 @@ doctype_js = {
     "Leave Allocation": "public/js/bs_date.js",
     "Attendance": "public/js/bs_date.js",
     "Fiscal Year": "public/js/bs_date.js",
-    "Purchase Invoice": "public/js/bs_date.js","Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
-    "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js","Sales Invoice": "public/js/bs_date.js",
+    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js"],
+    "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
+    "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js"],
     "Payment Entry": "public/js/bs_date.js",
     "Journal Entry": "public/js/bs_date.js",
+    "Supplier": "public/js/validate.js",
+    "Customer": "public/js/validate.js",
     "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
     "Blanket Order": "public/js/bs_date.js",
     "Landed Cost Voucher": "public/js/bs_date.js",

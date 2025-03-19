@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.utils import flt
-from frappe.utils import safe_eval
+from frappe.utils.safe_exec import safe_eval
 
 def prevent_invoice_deletion(doc, method):
     frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
