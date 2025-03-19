@@ -4,7 +4,7 @@ function validate_field_value(frm, field_name) {
     if (field_value) {
         var field_value_str = field_value.toString(); 
         if (field_value_str.length !== 9 || isNaN(field_value_str)) {
-            frappe.throw(__(`The field "${field_name}" must be exactly 9 digits and should be a valid VAT/PAN Number.`));
+            frappe.throw(frappe._('The field {0} must be exactly 9 digits and should be a valid VAT/PAN Number.', [field_name]));
             frappe.validated = false; 
             return true;
         }
