@@ -6,17 +6,22 @@ from frappe import _
 def create_custom_fields():
     custom_fields = {
         "Company": [
-            {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"}
+            {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
+            {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Int", "insert_after": "default_holiday_list"}
         ],
         "Employee": [
             {"fieldname": "date_picker", "label": "Date Picker", "fieldtype": "Date", "insert_after": "gender", "reqd": 0},
             {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 1},
         ],
         "Expense Claim": [
-            {"fieldname": "nepali_date", "label": "Neplai Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
+        ],
+        "Supplier": [
+            {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Int", "insert_after": "country"}
         ],
         "Customer": [
             {"fieldname": "customer_code", "label": "Customer Code", "fieldtype": "Data", "insert_after": "customer_name", "reqd": 0},
+            {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Int", "insert_after": "customer_group"}
         ],
         "Salary Slip": [
             {"fieldname": "nepali_start_date", "label": "Nepali Start Date", "fieldtype": "Data", "insert_after": "start_date"},
