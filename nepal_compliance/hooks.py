@@ -60,10 +60,10 @@ doctype_js = {
     "Leave Allocation": "public/js/bs_date.js",
     "Attendance": "public/js/bs_date.js",
     "Fiscal Year": "public/js/bs_date.js",
-    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js"],
+    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js"],
     "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
     "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js"],
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js"],
     "Payment Entry": "public/js/bs_date.js",
     "Journal Entry": "public/js/bs_date.js",
     "Supplier": "public/js/validate.js",
@@ -187,10 +187,10 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 doc_events = {
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
-        "on_submit": "nepal_compliance.qr_code.create_qr_code"
+        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
     },
     "Sales Invoice" : {
-        "on_submit": "nepal_compliance.qr_code.create_qr_code"
+        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
     }
 }
 # Scheduled Tasks
