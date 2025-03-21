@@ -17,11 +17,13 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "in_list_view": 1, "in_standard_filter": 1}
         ],
         "Supplier": [
-            {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Int", "insert_after": "country"}
+            {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Int", "insert_after": "country"},
+            {"fieldname": "supplier_email_address", "label": "Supplier Email Address", "fieldtype": "Data", "insert_after": "supplier_vat_number"}
         ],
         "Customer": [
             {"fieldname": "customer_code", "label": "Customer Code", "fieldtype": "Data", "insert_after": "customer_name", "reqd": 0},
-            {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Int", "insert_after": "customer_group"}
+            {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Int", "insert_after": "customer_group"},
+            {"fieldname": "customer_email_address", "label": "Customer Email Address", "fieldtype": "Data", "insert_after": "customer_vat_number"}
         ],
         "Salary Slip": [
             {"fieldname": "nepali_start_date", "label": "Nepali Start Date", "fieldtype": "Data", "insert_after": "start_date"},

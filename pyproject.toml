@@ -7,6 +7,7 @@ description = "ERPNext app to comply with Nepali laws and regulations"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
+    "qrcode[pil]",
     # "frappe~=15.0.0" # Installed and managed by bench.
 ]
 
