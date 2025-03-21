@@ -6,7 +6,7 @@ function handle_send_email(frm, doctype) {
         callback: function (r) {
           if (r.message) {
             let email_button = frm
-              .add_custom_button("Send Email", function () {
+              .add_custom_button(__("Send Email"), function () {
                 frappe.call({
                   method: "nepal_compliance.email_utils.send_invoice_email",
                   args: { docname: frm.doc.name, doctype: doctype },
