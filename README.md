@@ -1,11 +1,17 @@
-[![docker pulls](https://img.shields.io/docker/pulls/yarsalabs/nepal-compliance.svg)](https://hub.docker.com/r/yarsalabs/nepal-compliance)
-[![Frappe Linter - Semgrep rules](https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml)
-[![CodeQL Advanced](https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml)
-[![Build and Push amd64 Docker Image](https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml)
+<h1 align="center">Nepal Compliance</h1>
+<p align="center">
+  Open source ERP Solution for Nepalese businesses with HR, Payroll & Accounting compliance.
+  <br/>
+</p>
 
-# Nepal Compliance
+<p align="center">
+  <a href="https://hub.docker.com/r/yarsalabs/nepal-compliance" rel="nofollow"><img src="https://img.shields.io/docker/pulls/yarsalabs/nepal-compliance.svg"></a>
+  <a href="https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml" rel="nofollow"><img src="https://github.com/yarsa/nepal-compliance/actions/workflows/semgrep-rules.yml/badge.svg"></a>
+  <a href="https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml" rel="nofollow"><img src="https://github.com/yarsa/nepal-compliance/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml" rel="nofollow"><img src="https://github.com/yarsa/nepal-compliance/actions/workflows/docker-build-push.yml/badge.svg"></a>
+</p>
 
-This project is an app developed on top of [Frappe Framework](https://github.com/frappe/frappe) [ERPNext](https://github.com/frappe/erpnext) and [Frappe HR](https://github.com/frappe/hrms)  , free and open source projects built by Frappe Technologies.
+This project is an app developed on top of <a href="https://github.com/frappe/frappe"> Frappe Framework </a>, <a href="https://github.com/frappe/erpnext"> ERPNext</a> and <a href="https://github.com/frappe/hrms"> Frappe HR</a>, free and open source projects built by Frappe Technologies.
 
 ## Key Features
 This app aims to customize the HR, Payroll and Accounting modules to make your installation of ERPNext compliant with the existing laws of Nepal. We plan to slowly roll out the compliance framework. This list may or may not sync with this repository's projects.
