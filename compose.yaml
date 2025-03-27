@@ -1,4 +1,6 @@
-version: "0.1.0"
+# This file is based on frappe_docker repository specific to Frappe Framework, licensed under the MIT License.
+# Copyright (c) 2017 Frappe Technologies Pvt. Ltd. See LICENSE at https://github.com/frappe/frappe_docker
+
 
 services:
   backend:

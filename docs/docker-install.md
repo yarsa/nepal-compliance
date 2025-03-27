@@ -11,6 +11,10 @@ First, clone the Nepal Compliance repository from GitHub:
 ```
 git clone https://github.com/yarsa/nepal-compliance.git
 ```
+Change directory into the folder:
+```
+cd nepal-compliance
+```
 
 ## Step 2: Set Up Environment Variables
 
@@ -34,10 +38,14 @@ DB_ROOT_PASSWORD=your-db-root-password
 ```
 docker pull yarsalabs/nepal-compliance
 ```
-**Or**, specify a `${VERSION_TAG}` in your `.env` file:
+**Or**, specify a VERSION_TAG. For example, to pull v0.1.0:
 ```
 docker pull yarsalabs/nepal-compliance:v0.1.0
 ```
+
+For arm64 based macOS, edit first line of `.env` file and set `VERSION_TAG=latest`.
+
+For amd64 based Windows and Ubuntu, set `VERSION_TAG=v0.1.0`.
 
 ## Step 4: Run Nepal Compliance with Docker Compose
 
@@ -62,3 +70,5 @@ This command should display all environment variables in `.env` being used in yo
 
 # Next
 * Learn how to [contribute to this project](/CONTRIBUTING.md)
+
+**If you liked our work, then we would love to get your stars on our GitHub and Docker repositories.** 😀

@@ -13,7 +13,11 @@ As an open source project, you can contribute to the Nepal Compliance in many wa
 
 * Report bugs and suggest enhancements. [Create an Issue](https://github.com/yarsa/nepal-compliance/issues)
 
+* Request for a new feature. [Start a new discussion](https://github.com/yarsa/nepal-compliance/discussions/new?category=feature-request)
+
 * Contribute to documentation for users and contributors. [Write in Wiki](https://github.com/yarsa/nepal-compliance/wiki)
+
+* Find the frequently asked questions and answers. [Ask community for help](https://github.com/yarsa/nepal-compliance/discussions/new?category=questions-answers)
 
 * Help us with a code review. Help us identify problems in the source code and find solutions.
 
