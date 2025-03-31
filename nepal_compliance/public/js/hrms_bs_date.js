@@ -30,7 +30,7 @@ const dateFields = [
     { from: 'effective_from', to: 'effective_from_bs' },
     { from: 'effective_to', to: 'effective_to_bs' },
     { from: 'encashment_date', to: 'encashment_date_bs' },
-    { from: ['attendance_date', 'posting_date', 'claim_date', 'offer_date', 'date'], to: 'nepali_date' }
+    { from: ['attendance_date', 'posting_date', 'claim_date', 'offer_date', 'date', 'transaction_date'], to: 'nepali_date' }
 ];
 
 const doctypes = [
@@ -48,7 +48,9 @@ const doctypes = [
     'Leave Period',
     'Leave Policy Assignment',
     'Leave Control Panel',
-    'Leave Encashment'
+    'Leave Encashment',
+    'Stock Entry',
+    'Material Request'
 ];
 
 doctypes.forEach(function(doctype) {
@@ -69,6 +71,9 @@ doctypes.forEach(function(doctype) {
             }
             if(frm.doc.end_date){
                 frm.trigger('end_date')
+            }
+            if (frm.doc.transaction_date){
+                frm.trigger('transaction_date')
             }
         },
 
