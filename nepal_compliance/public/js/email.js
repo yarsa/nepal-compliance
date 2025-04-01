@@ -13,7 +13,7 @@ function handle_send_email(frm, doctype) {
                   freeze: true,
                   freeze_message: __("Sending Email..."),
                   callback: function (response) {
-                    frappe.msgprint(__("Email has been queued for sending."));
+                    frappe.msgprint(__("Email has been queued for sending.")); 
                   },
                   error: function (error) {
                     frappe.msgprint(
