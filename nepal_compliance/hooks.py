@@ -65,7 +65,8 @@ doctype_js = {
     "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js"],
     "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
     "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js"],
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Payment Entry": "public/js/bs_date.js",
     "Journal Entry": "public/js/bs_date.js",
     "Supplier": "public/js/validate.js",
@@ -192,7 +193,8 @@ doc_events = {
         "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
     },
     "Sales Invoice" : {
-        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
+        ]
     }
 }
 # Scheduled Tasks
