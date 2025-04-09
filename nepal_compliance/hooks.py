@@ -3,7 +3,7 @@ app_title = "Nepal Compliance"
 app_publisher = "Yarsa Labs Pvt. Ltd."
 app_description = "ERPNext app to comply with Nepali laws and regulations"
 app_email = "support@yarsalabs.com"
-app_license = "gpl-3.0"
+app_license = "GNU General Public License (v3)"
 
 # Apps
 # ------------------
@@ -26,7 +26,13 @@ app_license = "gpl-3.0"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
+app_include_css = ["/assets/nepal_compliance/css/calendar.css",
+                   "/assets/nepal_compliance/css/doctype.css"]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
+app_include_js = [
+                 "/assets/nepal_compliance/js/bs_module.js",
+                 "/assets/nepal_compliance/js/report_filter.js",
+                 ]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
@@ -44,6 +50,40 @@ app_license = "gpl-3.0"
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+    "Company": "public/js/validate.js",
+    "Salary Slip" : "public/js/salary_slip.js",
+    "Expense Claim": "public/js/bs_date.js",
+    "Leave Application": "public/js/bs_date.js",
+    "Holiday List": ["public/js/bs_date.js","public/js/holiday_list.js"],
+    "Holiday": "public/js/holiday_list.js",
+    "Leave Allocation": "public/js/bs_date.js",
+    "Attendance": "public/js/bs_date.js",
+    "Fiscal Year": "public/js/bs_date.js",
+    "Stock Entry": "public/js/hrms_bs_date.js",
+    "Material Request": "public/js/hrms_bs_date.js",
+    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js"],
+    "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
+    "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
+    "Payment Entry": "public/js/bs_date.js",
+    "Journal Entry": "public/js/bs_date.js",
+    "Supplier": "public/js/validate.js",
+    "Customer": "public/js/validate.js",
+    "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
+    "Blanket Order": "public/js/bs_date.js",
+    "Landed Cost Voucher": "public/js/bs_date.js",
+    "Asset": "public/js/bs_date.js", "Asset Repair": "public/js/bs_date.js", "Asset Movement": "public/js/bs_date.js", "Asset Value Adjustment": "public/js/bs_date.js", "Asset Capitalization": "public/js/bs_date.js",
+    "POS Opening Entry": "public/js/bs_date.js", "POS Closing Entry": "public/js/bs_date.js",
+    "Loyalty Program": "public/js/bs_date.js", "Promotional Scheme": "public/js/bs_date.js", "Pricing Rule": "public/js/bs_date.js", "Coupon Code": "public/js/bs_date.js",
+    "Serial No": "public/js/bs_date.js", "Batch": "public/js/bs_date.js",
+    "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js",
+    "Payroll Entry": "public/js/payroll_bs_date.js", "Income Tax Slab": "public/js/payroll_bs_date.js", "Payroll Period": "public/js/payroll_bs_date.js", "Salary Structure Assignment": "public/js/payroll_bs_date.js", "Salary Withholding": "public/js/payroll_bs_date.js", "Additional Salary": "public/js/payroll_bs_date.js", "Employee Incentive": "public/js/payroll_bs_date.js", "Retention Bonus": "public/js/payroll_bs_date.js",
+    "Employee Tax Exemption Proof Submission": "public/js/payroll_bs_date.js", "Employee Benefit Application": "public/js/payroll_bs_date.js", "Employee Benefit Claim": "public/js/hrms_bs_date.js",
+    "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js", "Employee Attendance Tool": "public/js/hrms_bs_date.js",
+    "Upload Attendance": "public/js/hrms_bs_date.js", "Leave Period": "public/js/hrms_bs_date.js", "Leave Policy Assignment": "public/js/hrms_bs_date.js", "Leave Control Panel": "public/js/hrms_bs_date.js", "Leave Encashment": "public/js/hrms_bs_date.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -83,6 +123,9 @@ app_license = "gpl-3.0"
 # ------------
 
 # before_install = "nepal_compliance.install.before_install"
+after_install = "nepal_compliance.install.install"
+after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
+              "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
 # after_install = "nepal_compliance.install.after_install"
 
 # Uninstallation
@@ -144,7 +187,16 @@ app_license = "gpl-3.0"
 # 		"on_trash": "method"
 # 	}
 # }
-
+doc_events = {
+    "Purchase Invoice" : {
+        "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
+        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
+    },
+    "Sales Invoice" : {
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
+        ]
+    }
+}
 # Scheduled Tasks
 # ---------------
 
@@ -242,3 +294,34 @@ app_license = "gpl-3.0"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+fixtures = [
+     {
+        "dt": "Custom Field",
+        "filters": [
+            [
+               "module", "in", ["nepal_compliance"]
+            ]
+        ]
+    },
+    {
+        "doctype": "Salary Component",
+        "filters": [
+            ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
+                            "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
+                            "Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
+                            "Provident Fund Employer Deduction", "Gratuity Deduction"]]
+        ]
+    },
+    {
+        "doctype": "Leave Type",
+        "filters": [
+            ["name", "in", ["Annual Sick Leave", "Home Leave"]]
+        ]
+    }
+]
+
+purchase_sales = ["Purchase Invoice", "Sales Invoice"]
+
+doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
+                 "Landed Cost Voucher","Payment Entry","Period Closing Voucher","Process Deferred Accounting","Purchase Invoice",
+                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation","Subcontracting Receipt",]
