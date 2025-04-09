@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-04 12:12:13.417768",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "cbms_credential_setup_section",
+  "user_name",
+  "password",
+  "column_break_xvxj",
+  "panvat_no",
+  "sales_api_url",
+  "credit_note_api_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "cbms_credential_setup_section",
+   "fieldtype": "Section Break",
+   "label": "CBMS Credential Setup"
+  },
+  {
+   "fieldname": "user_name",
+   "fieldtype": "Data",
+   "label": "User Name"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
+  },
+  {
+   "fieldname": "column_break_xvxj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "panvat_no",
+   "fieldtype": "Data",
+   "label": "PAN/VAT No."
+  },
+  {
+   "default": "https://cbapi.ird.gov.np/api/bill",
+   "fieldname": "sales_api_url",
+   "fieldtype": "Data",
+   "label": "Sales API URL"
+  },
+  {
+   "default": "https://cbapi.ird.gov.np/api/billreturn",
+   "fieldname": "credit_note_api_url",
+   "fieldtype": "Data",
+   "label": "Credit Note API URL"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-04-08 13:32:09.372106",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "CBMS Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Administrator",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
