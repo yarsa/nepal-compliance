@@ -16,6 +16,16 @@ dependencies = [
 requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
-# These dependencies are only installed when developer mode is enabled
+[tool.isort]
+profile = "black"
+known_frappe = "frappe"
+known_erpnext = "erpnext"
+known_hrms = "hrms"  
+known_payment = "payments"
+no_lines_before = ["ERPNEXT"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FRAPPE", "ERPNEXT", "HRMS", "PAYMENTS", "FIRSTPARTY", "LOCALFOLDER"]
+
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
+parameterized = "~=0.8.1"
+time-machine = "~=2.10.0"
