@@ -32,7 +32,7 @@ The accounting module is expected to comply with the most recent directives of N
 - [x] Displays "Copy # of Original" on subsequent invoice prints
 - [x] Audit trail records of user activities
 - [x] Auto-incremented Invoice Numbers in chronological order
-- [ ] Sync with Central Billing Management System (CBMS) of the IRD
+- [x] Sync with Central Billing Management System (CBMS) of the IRD
 - [x] Sales and Sales Return VAT Register
 - [x] Purchase and Purchase Return VAT Register
 - [x] Party-wise Sales and Purchase Register

@@ -1,9 +1,10 @@
 [project]
 name = "nepal_compliance"
 authors = [
-    { name = "Yarsa Labs Pvt. Ltd.", email = "support@yarsalabs.com" }
+    { name = "Yarsa Labs Pvt. Ltd.", email = "support@yarsalabs.com"}
 ]
 description = "ERPNext app to comply with Nepali laws and regulations"
+requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [

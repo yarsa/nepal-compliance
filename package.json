@@ -1,7 +1,32 @@
 {
+  "name": "nepal_compliance",
+  "version": "v0.1.0",
+  "scripts": {
+    "build": "yarn run esbuild",
+    "production": "yarn run esbuild --production",
+    "watch": "yarn run esbuild --watch",
+    "postinstall": "yarn run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yarsa/nepal-compliance.git"
+  },
+  "author": "Yarsa Labs Pvt. Ltd.",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/yarsa/nepal-compliance/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
+    "esbuild": "^0.24.0",
     "husky": "^9.1.7"
+  },
+  "dependencies": {
+    "erpnext": "^1.0.2",
+    "frappe": "^0.0.1"
   }
 }
