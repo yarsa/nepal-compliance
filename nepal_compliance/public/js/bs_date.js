@@ -51,6 +51,9 @@ frappe.ui.form.on('Expense Claim', {
 frappe.ui.form.on('Attendance',{
     refresh: function(frm) {
         DatePickerConfig.initializePickers(frm);
+        if (frm.doc.attendance_date) {
+            frm.trigger('attendance_date');
+        }
     },
     attendance_date(frm){
         frappe.model.set_value(frm.doctype, frm.docname, "nepali_date",NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
