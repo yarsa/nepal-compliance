@@ -30,7 +30,7 @@ def create_custom_fields():
             {"fieldname": "taxable_salary", "label": "Taxable Salary", "fieldtype": "Currency", "insert_after": "total_deduction"},
         ],
         "Attendance": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "field_type": "Data", "insert_after": "attendance_date", "in_list_view": 1, "in_standard_filter": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "field_type": "Data", "insert_after": "attendance_date", "in_list_view": 1, "in_standard_filter": 1, "allow_on_submit": 1}
         ],
         "Fiscal Year": [
             {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_start_date"},

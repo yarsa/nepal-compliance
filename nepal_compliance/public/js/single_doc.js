@@ -5,7 +5,7 @@ frappe.ui.form.on('Bulk Salary Structure Assignment', {
 });
 frappe.ui.form.on('Employee Attendance Tool', {
     refresh(frm) {
-        NepaliFormDatePicker.init(frm, 'nepali_date', 'from_date');
+        NepaliFormDatePicker.init(frm, 'nepali_date', 'date');
     }
 });
 const NepaliFormDatePicker = {
