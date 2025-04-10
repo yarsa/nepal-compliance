@@ -10,7 +10,6 @@ def create_custom_fields():
             {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list"}
         ],
         "Employee": [
-            {"fieldname": "date_picker", "label": "Date Picker", "fieldtype": "Date", "insert_after": "gender", "reqd": 0},
             {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 1},
         ],
         "Expense Claim": [
@@ -185,7 +184,7 @@ def create_custom_fields():
             {"fieldname": "nepali_end_date", "label": "End Date BS", "fieldtype": "Data", "insert_after": "end_date", "in_list_view": 1,}
         ],
         "Salary Structure Assignment": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1},            
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "from_date", "in_list_view": 1, "allow_on_submit": 1},            
         ],
         "Bulk Salary Structure Assignment": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_payable_account", "in_list_view": 1},            
