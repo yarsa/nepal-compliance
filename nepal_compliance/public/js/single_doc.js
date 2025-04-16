@@ -20,7 +20,7 @@ const NepaliFormDatePicker = {
         $input.nepaliDatePicker({
             ndpYear: true,
             ndpMonth: true,
-            ndpYearCount: 100,
+            ndpYearCount: 10,
             ndpFormat: 'YYYY-MM-DD',
             onChange: (e) => {
                 const bsDate = e.bs;

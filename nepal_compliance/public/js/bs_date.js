@@ -51,15 +51,24 @@ frappe.ui.form.on('Expense Claim', {
 frappe.ui.form.on('Attendance',{
     refresh: function(frm) {
         DatePickerConfig.initializePickers(frm);
-        if (frm.doc.attendance_date) {
-            frm.trigger('attendance_date');
+        if (frm.is_new()) return;
+
+        if (frm.doc.attendance_date && !frm.doc.nepali_date) {
+            const nepali = NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali).then(() => {frm.reload_doc()});
         }
     },
     attendance_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date",NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        if (frm.doc.docstatus === 0){
+            const nepali = NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.model.set_value(frm.doctype, frm.docname, 'nepali_date', nepali);
+        }
     },
     nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "attendance_date",NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
+        if (frm.doc.docstatus === 0){
+            const ad = NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.model.set_value(frm.doctype, frm.docname, 'attendance_date', ad);
+        }
     }
 });
 
