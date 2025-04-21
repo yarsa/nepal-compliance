@@ -1,6 +1,6 @@
 import frappe
 
-from migration.custom_code.payroll.salary_component import create_salary_component
+from nepal_compliance.custom_code.payroll.salary_component import create_salary_component
 
 def delete_salary_component():
     # Calling create_salary_component to get the salary components

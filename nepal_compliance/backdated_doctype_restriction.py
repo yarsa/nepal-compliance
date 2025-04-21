@@ -3,7 +3,15 @@ from frappe.utils import getdate, nowdate
 from frappe import _
 
 def validate_backdate_and_sequence(doc, method):
-    settings = frappe.get_single("Nepal Compliance Settings")
+
+    if not frappe.db.exists("Nepal Compliance Settings"):
+        return
+    try:
+        settings = frappe.get_single("Nepal Compliance Settings")
+
+    except Exception:
+        return
+
 
     allowed_doctypes = [d.doctypes for d in settings.restricted_doctypes]
     if doc.doctype not in allowed_doctypes:
