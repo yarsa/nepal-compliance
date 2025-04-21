@@ -124,7 +124,7 @@ def create_salary_structure_for_company(company_name):
         for deduction in get_deductions(ssf_compliance=False, deduction_type="unmarried"):
             doc.append("deductions", deduction)
 
-        doc.save()
+        doc.insert()
     else:
         frappe.msgprint(f"Salary Structure '{salary_structure_unmarried_epf_name}' already exists for company: {company_name}")
     
@@ -142,7 +142,7 @@ def create_salary_structure_for_company(company_name):
         for deduction in get_deductions(ssf_compliance=False, deduction_type="married"):
             doc.append("deductions", deduction)
 
-        doc.save()
+        doc.insert()
     else:
         frappe.msgprint(f"Salary Structure '{salary_structure_married_epf_name}' already exists for company: {company_name}")
 
@@ -160,7 +160,7 @@ def create_salary_structure_for_company(company_name):
         for deduction in get_deductions(ssf_compliance=True, deduction_type="unmarried"):
             doc.append("deductions", deduction)
 
-        doc.save()
+        doc.insert()
 
     else:
         frappe.msgprint(f"Salary Structure '{salary_structure_unmarried_ssf_name}' already exists for company: {company_name}")
@@ -179,7 +179,7 @@ def create_salary_structure_for_company(company_name):
         for deduction in get_deductions(ssf_compliance=True, deduction_type="married"):
             doc.append("deductions", deduction)
 
-        doc.save()
+        doc.insert()
     else:
         frappe.msgprint(f"Salary Structure '{salary_structure_married_ssf_name}' already exists for company: {company_name}")
         
