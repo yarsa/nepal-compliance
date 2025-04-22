@@ -1,0 +1,32 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-21 12:13:32.079512",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "doctypes"
+ ],
+ "fields": [
+  {
+   "fieldname": "doctypes",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Doctypes",
+   "options": "DocType"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-21 12:14:32.073758",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "Nepal Compliance Doctype",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
