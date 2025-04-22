@@ -1,5 +1,5 @@
 # Install Nepal Compliance using Docker
-**This guide will help you install and run Nepal Compliance using Docker and Docker Compose.**
+**This guide will help you to install and run Nepal Compliance using Docker and Docker Compose.**
 
 ### Dependencies
 You need to have the Docker installed and ready in your system:
@@ -70,5 +70,6 @@ This command should display all environment variables in `.env` being used in yo
 
 # Next
 * Learn how to [contribute to this project](/CONTRIBUTING.md)
+* [Manual Install - Nepal Compliance](/docs/manual-install.md)
 
 **If you liked our work, then we would love to get your stars on our GitHub and Docker repositories.** 😀
