@@ -48,6 +48,7 @@ jobs:
         run: |
           cd frappe_docker
           docker buildx build \
+            --no-cache \
             --platform linux/amd64 \
             --build-arg FRAPPE_PATH=https://github.com/frappe/frappe \
             --build-arg FRAPPE_BRANCH=version-15 \
@@ -56,6 +57,6 @@ jobs:
             --build-arg APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }} \
             --tag yarsalabs/nepal-compliance:v0.1.0 \
             --file images/custom/Containerfile \
-            --cache-from=type=gha \
-            --cache-to=type=gha,mode=max \
+            # --cache-from=type=gha \
+            # --cache-to=type=gha,mode=max \
             --push .
