@@ -52,15 +52,24 @@ frappe.ui.form.on('Payroll Period', {
 frappe.ui.form.on('Salary Structure Assignment', {
     refresh: function(frm){
         DatePickerConfig.initializePickers(frm)
-        if (frm.doc.from_date) {
-            frm.trigger('from_date');
+        if (frm.is_new()) return;
+
+        if (frm.doc.from_date && !frm.doc.nepali_date) {
+            const nepali = NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali).then(() => {frm.reload_doc()});
+        }
+    },
+    from_date(frm){
+        if (frm.doc.docstatus === 0){
+            const nepali = NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.model.set_value(frm.doctype, frm.docname, 'nepali_date', nepali);
         }
     },
     nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
+        if (frm.doc.docstatus === 0){
+            const ad = NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+            frappe.model.set_value(frm.doctype, frm.docname, 'form_date', ad);
+        }
     }
 });
 

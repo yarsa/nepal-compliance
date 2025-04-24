@@ -17,7 +17,8 @@ This project is an app developed on top of <a href="https://github.com/frappe/fr
 This app aims to customize the HR, Payroll and Accounting modules to make your installation of ERPNext compliant with the existing laws of Nepal. We plan to slowly roll out the compliance framework. This list may or may not sync with this repository's projects.
 
 ## Installation
-* [Install with Docker](/docs/docker-install.md) guide.
+* [Manual Install](/docs/manual-install.md)
+* [Install with Docker](/docs/docker-install.md)
 
 ### Basic Setup
 - [x] Nepali Date support for fiscal year

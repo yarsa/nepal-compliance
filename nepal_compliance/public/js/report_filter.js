@@ -42,7 +42,7 @@ const DatePickerConfig = {
             .nepaliDatePicker({
                 ndpYear: true,
                 ndpMonth: true,
-                ndpYearCount: 1000,
+                ndpYearCount: 10,
                 ndpFormat: 'YYYY-MM-DD',
                 onChange: (e) => {
                     const nepaliDate = e.bs;
