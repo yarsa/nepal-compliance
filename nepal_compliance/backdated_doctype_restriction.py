@@ -12,6 +12,7 @@ def validate_backdate_and_sequence(doc, method):
     except Exception:
         return
 
+
     allowed_doctypes = [d.doctypes for d in settings.restricted_doctypes]
     if doc.doctype not in allowed_doctypes:
         return
