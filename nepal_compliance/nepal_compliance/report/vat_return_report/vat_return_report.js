@@ -22,6 +22,13 @@ frappe.query_reports["Vat Return Report"] = {
 			"fieldname": "to_nepali_date",
 			"label": __("To Nepali Date"),
 			"fieldtype": "Data",
+		},
+		{
+			"fieldname": "party_type",
+			"label": __("Party Type"),
+			"fieldtype": "Select",
+			"options": "Customer\nSupplier\nAll",
+			"default": "All"
 		}
 	],
     onload: function(report) {

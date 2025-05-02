@@ -19,6 +19,7 @@ def execute(filters=None):
 		{'fieldname': 'amount','label': _('Amount'),'fieldtype': 'Currency'},
 		{'fieldname': 'applicable_charges','label': _('Applicable Charges'),'fieldtype': 'Currency'},
 		{'fieldname': 'supplier','label': _('Supplier'),'fieldtype': 'Link','options': 'Supplier'},
+		{'fieldname': 'supplier_vat_number', 'label': _('VAT/PAN Number'), 'fieldtype': 'Data'},
 		{'fieldname': 'expense_account', 'label': _('Expense Account'), 'fieldtype': 'Link', 'options': 'Account'},
 		{'fieldname': 'distribute_charges_based_on', 'label': _('Distributed Charge Based On'), 'fieldtype': 'Data'},
 		{'fieldname': 'grand_total','label': _('Total Tax and Charges'),'fieldtype': 'Currency','options': 'Company:company:default_currency'}
@@ -55,7 +56,8 @@ def execute(filters=None):
 		taxes = frappe.db.get_all("Landed Cost Taxes and Charges", filters = {"parent": land.name}, fields=['*'])
 		for item in items:
 			for r in receipts:
+				supplier_vat_number = frappe.db.get_value("Supplier", r.supplier, "supplier_vat_number")
 				grand_totals = 0
 			for t in taxes: 
-				data.append([land.posting_date, land.nepali_date, land.name, item.receipt_document_type, item.receipt_document, item.item_code, item.description, item.qty, item.rate, item.amount, item.applicable_charges, r.supplier, t.expense_account, land.distribute_charges_based_on, land.total_taxes_and_charges])
+				data.append([land.posting_date, land.nepali_date, land.name, item.receipt_document_type, item.receipt_document, item.item_code, item.description, item.qty, item.rate, item.amount, item.applicable_charges, r.supplier, supplier_vat_number, t.expense_account, land.distribute_charges_based_on, land.total_taxes_and_charges])
 	return columns, data
