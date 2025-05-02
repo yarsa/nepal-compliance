@@ -31,7 +31,7 @@ def get_columns():
             "label": _("Invoice Number"),
             "fieldtype": "Link",
             "options": "Sales Invoice",
-            "width": 150
+            "width": 200
         },
         {
             "fieldname": "customer",
@@ -83,7 +83,7 @@ def get_data(filters):
             si.nepali_date as nepali_date,
             si.name as invoice_number,
             si.customer_name as customer,
-            si.tax_id as pan_number,
+            si.vat_number as pan_number,
             si.grand_total as total_amount,
             si.net_total as taxable_amount,
             si.total_taxes_and_charges as vat_amount,
