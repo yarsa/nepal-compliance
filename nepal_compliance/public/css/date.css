@@ -1,0 +1,23 @@
+.equivalent-date {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 0px;
+    padding-top: 0px;
+    line-height: 1.2;
+}
+
+.frappe-control .equivalent-date {
+    margin-top: -2px;
+}
+
+.static-input .equivalent-date {
+    margin-top: -8px;
+}
+
+.grid-static-form .equivalent-date {
+    margin-top: 2px;
+}
+
+.grid-body .equivalent-date {
+    margin-top: 2px;
+}

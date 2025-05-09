@@ -95,7 +95,8 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
         }))
     
     return deductions
-
+    
+@frappe.whitelist()
 def create_salary_structures():
     companies = frappe.get_all("Company", fields=["name"])
     for company in companies:

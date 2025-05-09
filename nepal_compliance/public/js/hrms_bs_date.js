@@ -52,7 +52,20 @@ const doctypes = [
     'Stock Entry',
     'Material Request'
 ];
-
+const hiddenFields = [
+    'nepali_date',
+    'from_date_bs',
+    'to_date_bs',
+    'work_from_date_bs',
+    'work_end_date_bs',
+    'start_date_bs',
+    'end_date_bs',
+    'att_fr_date_bs',
+    'att_to_date_bs',
+    'effective_from_bs',
+    'effective_to_bs',
+    'encashment_date_bs'
+];
 doctypes.forEach(function(doctype) {
     frappe.ui.form.on(doctype, {
         refresh: function(frm) {
@@ -75,6 +88,9 @@ doctypes.forEach(function(doctype) {
             if (frm.doc.transaction_date){
                 frm.trigger('transaction_date')
             }
+            hiddenFields.forEach(field => {
+                frm.set_df_property(field, 'hidden', 1);
+            });
         },
 
         ...dateFields.reduce((acc, field) => {

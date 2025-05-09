@@ -1,607 +1,97 @@
-frappe.ui.form.on('Fiscal Year',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    year_start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_start_date",NepaliFunctions.AD2BS(frm.doc.year_start_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    year_end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_year_end_date",NepaliFunctions.AD2BS(frm.doc.year_end_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));       
-    },
-    nepali_year_start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "year_start_date",NepaliFunctions.BS2AD(frm.doc.nepali_year_start_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));       
-    },
-    nepali_year_end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "year_end_date",NepaliFunctions.BS2AD(frm.doc.nepali_year_end_date.split(" ") [0], "YYYY-MM-DD", "YYYY-MM-DD"));       
-    },
+const convertADtoBS = date => NepaliFunctions.AD2BS(date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+const convertBStoAD = date => NepaliFunctions.BS2AD(date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+
+const hideFields = (frm, fields = []) => {
+    fields.forEach(field => frm.set_df_property(field, 'hidden', 1));
+};
+
+const createDateFieldTriggers = (datePairs = []) => {
+    return datePairs.reduce((triggers, [adField, bsField]) => {
+        triggers[adField] = frm => {
+            frappe.model.set_value(frm.doctype, frm.docname, bsField, convertADtoBS(frm.doc[adField]));
+        };
+        triggers[bsField] = frm => {
+            frappe.model.set_value(frm.doctype, frm.docname, adField, convertBStoAD(frm.doc[bsField]));
+        };
+        return triggers;
+    }, {});
+};
+
+const setupFieldTriggers = (doctype, config) => {
+    frappe.ui.form.on(doctype, {
+        refresh(frm) {
+            if (config.hide_fields) hideFields(frm, config.hide_fields);
+            if (config.auto_trigger && frm.doc[config.auto_trigger]) {
+                frm.trigger(config.auto_trigger);
+            }
+            config.refresh_action?.(frm);
+        },
+        ...createDateFieldTriggers(config.date_pairs)
+    });
+};
+
+const singleNepaliDateConfig = (field = 'posting_date') => ({
+    hide_fields: ['nepali_date'],
+    auto_trigger: field,
+    date_pairs: [[field, 'nepali_date']]
 });
 
-frappe.ui.form.on('Salary Slip', {
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date",NepaliFunctions.AD2BS(frm.doc.start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date",NepaliFunctions.AD2BS(frm.doc.end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    nepali_end_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "end_date",NepaliFunctions.BS2AD(frm.doc.nepali_end_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    nepali_start_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "start_date",NepaliFunctions.BS2AD(frm.doc.nepali_start_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
+const multipleNepaliDateConfig = (fromField, toField, fromNepali, toNepali) => ({
+    hide_fields: [fromNepali, toNepali],
+    date_pairs: [[fromField, fromNepali], [toField, toNepali]]
 });
-frappe.ui.form.on('Expense Claim', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
+
+const nepaliDateConfig = {
+    "Fiscal Year": multipleNepaliDateConfig('year_start_date', 'year_end_date', 'nepali_year_start_date', 'nepali_year_end_date'),
+    "Expense Claim": singleNepaliDateConfig('posting_date'),
+    "Attendance": {
+        hide_fields: ['nepali_date'],
+        date_pairs: [['attendance_date', 'nepali_date']],
+        refresh_action(frm) {
+            if (!frm.is_new() && frm.doc.attendance_date && !frm.doc.nepali_date) {
+                const nepali = convertADtoBS(frm.doc.attendance_date);
+                frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali)
+                    .then(() => frm.reload_doc());
+            }
         }
     },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
+    "Leave Allocation": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date_leave_allocation', 'to_nepali_date_leave_allocation'),
+    "Leave Application": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date_leave_application', 'to_nepali_date_leave_application'),
+    "Holiday List": multipleNepaliDateConfig('from_date', 'to_date', 'nepali_from_date', 'nepali_to_date'),
+    "Purchase Order": singleNepaliDateConfig('transaction_date'),
+    "Purchase Receipt": singleNepaliDateConfig('posting_date'),
+    "Purchase Invoice": singleNepaliDateConfig('posting_date'),
+    "Sales Order": singleNepaliDateConfig('transaction_date'),
+    "Delivery Note": singleNepaliDateConfig('posting_date'),
+    "Sales Invoice": singleNepaliDateConfig('posting_date'),
+    "Payment Entry": singleNepaliDateConfig('posting_date'),
+    "Journal Entry": singleNepaliDateConfig('posting_date'),
+    "Request for Quotation": singleNepaliDateConfig('transaction_date'),
+    "Supplier Quotation": singleNepaliDateConfig('transaction_date'),
+    "Quotation": singleNepaliDateConfig('transaction_date'),
+    "Blanket Order": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date', 'to_nepali_date'),
+    "Landed Cost Voucher": singleNepaliDateConfig('posting_date'),
+    "Asset": singleNepaliDateConfig('posting_date'),
+    "Asset Repair": singleNepaliDateConfig('transaction_date'),
+    "Asset Movement": singleNepaliDateConfig('transaction_date'),
+    "Asset Value Adjustment": singleNepaliDateConfig('date'),
+    "Asset Capitalization": singleNepaliDateConfig('posting_date'),
+    "POS Opening Entry": singleNepaliDateConfig('posting_date'),
+    "POS Closing Entry": singleNepaliDateConfig('posting_date'),
+    "Loyalty Program": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date', 'to_nepali_date'),
+    "Promotional Scheme": multipleNepaliDateConfig('valid_from', 'valid_upto', 'valid_from_bs', 'valid_to_bs'),
+    "Pricing Rule": multipleNepaliDateConfig('valid_from', 'valid_upto', 'valid_from_bs', 'valid_to_bs'),
+    "Coupon Code": multipleNepaliDateConfig('valid_from', 'valid_upto', 'valid_from_bs', 'valid_to_bs'),
+    "Serial No": multipleNepaliDateConfig('warranty_expiry_date', 'amc_expiry_date', 'warranty_expiry_date_bs', 'amc_expiry_date_bs'),
+    "Batch": multipleNepaliDateConfig('manufacturing_date', 'expiry_date', 'manufacturing_date_bs', 'expiry_date_bs'),
+    "Installation Note": singleNepaliDateConfig('inst_date'),
+    "Stock Reconciliation": singleNepaliDateConfig('posting_date'),
+    "Quality Inspection": singleNepaliDateConfig('report_date_bs_quality_inspection'),
+    "Quick Stock Balance": singleNepaliDateConfig('date'),
+    "Bulk Salary Structure Assignment": singleNepaliDateConfig('from_date'),
+    "Employee Attendance Tool": singleNepaliDateConfig('date')
+};
 
-frappe.ui.form.on('Attendance',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-        if (frm.is_new()) return;
-
-        if (frm.doc.attendance_date && !frm.doc.nepali_date) {
-            const nepali = NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
-            frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali).then(() => {frm.reload_doc()});
-        }
-    },
-    attendance_date(frm){
-        if (frm.doc.docstatus === 0){
-            const nepali = NepaliFunctions.AD2BS(frm.doc.attendance_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
-            frappe.model.set_value(frm.doctype, frm.docname, 'nepali_date', nepali);
-        }
-    },
-    nepali_date(frm){
-        if (frm.doc.docstatus === 0){
-            const ad = NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
-            frappe.model.set_value(frm.doctype, frm.docname, 'attendance_date', ad);
-        }
-    }
-});
-
-frappe.ui.form.on('Leave Allocation', {
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date_leave_allocation",NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date_leave_allocation",NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    from_nepali_date_leave_allocation(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date",NepaliFunctions.BS2AD(frm.doc.from_nepali_date_leave_allocation.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_nepali_date_leave_allocation(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_date",NepaliFunctions.BS2AD(frm.doc.to_nepali_date_leave_allocation.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Leave Application',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date_leave_application",NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date_leave_application",NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    from_nepali_date_leave_application(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date",NepaliFunctions.BS2AD(frm.doc.from_nepali_date_leave_application.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_nepali_date_leave_application(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_date",NepaliFunctions.BS2AD(frm.doc.to_nepali_date_leave_application.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Holiday List', {
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_from_date",NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_to_date",NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-    nepali_from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date", NepaliFunctions.BS2AD(frm.doc.nepali_from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    nepali_to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_date", NepaliFunctions.BS2AD(frm.doc.nepali_to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD"));
-    },
-});
-
-frappe.ui.form.on('Purchase Order', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Purchase Invoice', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Purchase Receipt', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Sales Order', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Delivery Note', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Sales Invoice', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Payment Entry', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Journal Entry', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Request for Quotation', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Supplier Quotation', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Quotation', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Blanket Order',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date",NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date",NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    from_nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date",NepaliFunctions.BS2AD(frm.doc.from_nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_date",NepaliFunctions.BS2AD(frm.doc.to_nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Landed Cost Voucher', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Asset', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Asset Repair', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Asset Movement', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.transaction_date) {
-            frm.trigger('transaction_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "transaction_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    transaction_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.transaction_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Asset Value Adjustment', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.date) {
-            frm.trigger('date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Asset Capitalization', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('POS Opening Entry', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('POS Closing Entry', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Loyalty Program',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    from_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_nepali_date",NepaliFunctions.AD2BS(frm.doc.from_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_nepali_date",NepaliFunctions.AD2BS(frm.doc.to_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    from_nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "from_date",NepaliFunctions.BS2AD(frm.doc.from_nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    to_nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "to_date",NepaliFunctions.BS2AD(frm.doc.to_nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Promotional Scheme',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-        if (frm.doc.valid_from) {
-            frm.trigger('valid_from');
-        }
-    },
-    valid_from(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from_bs",NepaliFunctions.AD2BS(frm.doc.valid_from.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_upto(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_to_bs",NepaliFunctions.AD2BS(frm.doc.valid_upto.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_from_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from",NepaliFunctions.BS2AD(frm.doc.valid_from_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_to_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_upto",NepaliFunctions.BS2AD(frm.doc.valid_to_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Pricing Rule',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-        if (frm.doc.valid_from) {
-            frm.trigger('valid_from');
-        }
-    },
-    valid_from(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from_bs",NepaliFunctions.AD2BS(frm.doc.valid_from.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_upto(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_to_bs",NepaliFunctions.AD2BS(frm.doc.valid_upto.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_from_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from",NepaliFunctions.BS2AD(frm.doc.valid_from_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_to_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_upto",NepaliFunctions.BS2AD(frm.doc.valid_to_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Coupon Code',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    valid_from(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from_bs",NepaliFunctions.AD2BS(frm.doc.valid_from.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_upto(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_to_bs",NepaliFunctions.AD2BS(frm.doc.valid_upto.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_from_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_from",NepaliFunctions.BS2AD(frm.doc.valid_from_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    valid_to_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "valid_upto",NepaliFunctions.BS2AD(frm.doc.valid_to_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Serial No',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-    },
-    warranty_expiry_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "warranty_expiry_date_bs",NepaliFunctions.AD2BS(frm.doc.warranty_expiry_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    amc_expiry_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "amc_expiry_date_bs",NepaliFunctions.AD2BS(frm.doc.amc_expiry_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    warranty_expiry_date_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "warranty_expiry_date",NepaliFunctions.BS2AD(frm.doc.warranty_expiry_date_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    amc_expiry_date_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "amc_expiry_date",NepaliFunctions.BS2AD(frm.doc.amc_expiry_date_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Batch',{
-    refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
-        if (frm.doc.manufacturing_date) {
-            frm.trigger('manufacturing_date');
-        }
-    },
-    manufacturing_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "manufacturing_date_bs",NepaliFunctions.AD2BS(frm.doc.manufacturing_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    expiry_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "expiry_date_bs",NepaliFunctions.AD2BS(frm.doc.expiry_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    manufacturing_date_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "manufacturing_date",NepaliFunctions.BS2AD(frm.doc.manufacturing_date_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    expiry_date_bs(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "expiry_date",NepaliFunctions.BS2AD(frm.doc.expiry_date_bs.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-});
-
-frappe.ui.form.on('Installation Note', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.inst_date) {
-            frm.trigger('inst_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "inst_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    inst_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.inst_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Stock Reconciliation', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.posting_date) {
-            frm.trigger('posting_date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "posting_date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    posting_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.posting_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Quality Inspection', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.report_date) {
-            frm.trigger('report_date');
-        }
-    },
-    report_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "report_date_bs_quality_inspection", NepaliFunctions.AD2BS(frm.doc.report_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    report_date_bs_quality_inspection(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "report_date", NepaliFunctions.BS2AD(frm.doc.report_date_bs_quality_inspection.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
-});
-
-frappe.ui.form.on('Quick Stock Balance', {
-    refresh: function(frm){
-        DatePickerConfig.initializePickers(frm)
-        if (frm.doc.date) {
-            frm.trigger('date');
-        }
-    },
-    nepali_date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "date", NepaliFunctions.BS2AD(frm.doc.nepali_date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    },
-    date(frm){
-        frappe.model.set_value(frm.doctype, frm.docname, "nepali_date", NepaliFunctions.AD2BS(frm.doc.date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD")); 
-    }
+Object.entries(nepaliDateConfig).forEach(([doctype, config]) => {
+    setupFieldTriggers(doctype, config);
 });
