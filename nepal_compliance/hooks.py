@@ -32,6 +32,7 @@ app_include_css = ["/assets/nepal_compliance/css/calendar.css",
 app_include_js = [
                  "/assets/nepal_compliance/js/bs_module.js",
                  "/assets/nepal_compliance/js/report_filter.js",
+                 "/assets/nepal_compliance/js/icon_patch.js"
                  ]
 
 # include js, css files in header of web template
