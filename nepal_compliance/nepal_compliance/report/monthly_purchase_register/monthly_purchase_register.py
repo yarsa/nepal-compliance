@@ -2,16 +2,35 @@
 # For license information, please see LICENSE at the root of this repository
 
 import frappe
+from datetime import datetime
+import calendar
 from frappe import _
 
 def execute(filters=None):
     columns, data = [], []
-    
+    nepali_month = filters.get("nepali_month")
+    nepali_year = filters.get("nepali_year")
+
+    if not nepali_month:
+        month_pattern = "%"
+
+    else:
+	    nepali_month_map = {
+		    "Baishakh": "01", "Jestha": "02", "Ashadh": "03", "Shrawan": "04",
+		    "Bhadra": "05", "Ashwin": "06", "Kartik": "07", "Mangsir": "08",
+		    "Poush": "09", "Magh": "10", "Falgun": "11", "Chaitra": "12"
+	    }
+
+	    month_number = nepali_month_map.get(nepali_month)
+	    if not month_number:
+		    frappe.throw(_("Invalid Nepali Month selected."))
+
+	    month_pattern = f"%-{month_number}-%"
     columns = [
         _("Invoice Date") + ":Date:150",
-        _("Nepali Date") + ":Data:150",
         _("Supplier") + ":Link/Supplier:150",
-        _("Invoice Number") + ":Link/Purchase Invoice:120",
+        _("VAT/PAN Number") + ":Data:120",
+        _("Invoice Number") + ":Link/Purchase Invoice:200",
         _("Qty") + ":Float:60",
         _("Amount") + ":Currency:100",
         _("Tax and Charges Added") + ":Currency:120",
@@ -23,23 +42,22 @@ def execute(filters=None):
         _("Outstanding Amount") + ":Currency:120",
         _("Status") + ":Data:80",
     ]
-    conditions = "pi.docstatus = 1"
-    from_date, to_date, from_nepali_date, to_nepali_date, nepali_date = None, None, None, None, None
-    
-    if filters.get("from_date") and filters.get("to_date"):
-        from_date = filters["from_date"]
-        to_date = filters["to_date"]
-        conditions += " AND pi.posting_date BETWEEN %(from_date)s AND %(to_date)s" 
+    conditions = ""
+    from_nepali_date, to_nepali_date = None, None
+ 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
         from_nepali_date = filters["from_nepali_date"]
         to_nepali_date = filters["to_nepali_date"]
         conditions += " AND pi.nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
-    
+
+    if filters.get("supplier"):
+	    conditions += " AND pi.supplier = %(supplier)s"
+
     query = """
         SELECT
-            pi.posting_date,
             pi.nepali_date,
             pi.supplier,
+            pi.vat_number,
             pi.name AS invoice_number,
             SUM(item.qty) AS total_qty,
             SUM(item.qty * item.rate) AS total_amount,
@@ -56,20 +74,28 @@ def execute(filters=None):
         JOIN
             `tabPurchase Invoice Item` item ON item.parent = pi.name
         WHERE
-			{0}
+			pi.docstatus = 1
+            AND pi.nepali_date LIKE %(month_pattern)s
+            {conditions}
         GROUP BY
             pi.name
         ORDER BY
             pi.posting_date DESC
-    """.format(conditions)
+    """.format(conditions=conditions)
 
-    result = frappe.db.sql(query, values={'from_date': from_date, 'to_date': to_date,'from_nepali_date': from_nepali_date, 'to_nepali_date': to_nepali_date}, as_dict=True)
+    values = {
+	    "month_pattern": month_pattern,
+	    "from_nepali_date": filters.get("from_nepali_date"),
+	    "to_nepali_date": filters.get("to_nepali_date"),
+	    "supplier": filters.get("supplier")
+	}
+    result = frappe.db.sql(query, values=values, as_dict=True)
 
     for row in result:
-        data.append([
-            row.posting_date,                         
+        data.append([                         
             row.nepali_date,                          
-            row.supplier,                             
+            row.supplier,
+            row.vat_number,                            
             row.invoice_number,                      
             row.total_qty,                            
             row.total_amount,                         
