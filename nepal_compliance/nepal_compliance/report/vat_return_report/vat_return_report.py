@@ -10,6 +10,7 @@ def execute(filters=None):
         _("Date") + ":Date:150",
         _("Nepali_Date") + ":Data:150",
         _("Customer/Supplier") + ":Data:200",
+        _("VAT/PAN Number") + ":Data:150",
         _("Sales Amount") + ":Currency:150",
         _("VAT Collected (Sales)") + ":Currency:150",
         _("Purchase Amount") + ":Currency:150",
@@ -21,6 +22,8 @@ def execute(filters=None):
     total_sales_vat = 0
     total_purchase_vat = 0
     total_net_vat = 0
+    total_sales_amount = 0
+    total_purchase_amount = 0
 
     conditions = "si.docstatus = 1"
     purchase_conditions = "pi.docstatus = 1"
@@ -38,8 +41,12 @@ def execute(filters=None):
         conditions += " AND si.nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
         purchase_conditions += " AND pi.nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
 
+    party_type = filters.get("party_type", "All")
+    sales_invoices = []
+    purchase_invoices = []
+
     sales_invoices_query = """
-        SELECT si.name AS invoice_no, si.posting_date, si.nepali_date, si.customer AS customer, si.rounded_total AS sales_amount, 
+        SELECT si.name AS invoice_no, si.posting_date, si.nepali_date, si.customer AS customer, si.vat_number AS vat_number, si.rounded_total AS sales_amount, 
                SUM(stc.tax_amount) AS sales_vat
         FROM `tabSales Invoice` si
         LEFT JOIN `tabSales Taxes and Charges` stc ON stc.parent = si.name
@@ -49,7 +56,7 @@ def execute(filters=None):
     """.format(conditions=conditions)
 
     purchase_invoices_query = """
-        SELECT pi.name AS invoice_no, pi.posting_date, pi.nepali_date, pi.supplier AS supplier, pi.grand_total AS purchase_amount, 
+        SELECT pi.name AS invoice_no, pi.posting_date, pi.nepali_date, pi.supplier AS supplier, pi.vat_number AS vat_number, pi.grand_total AS purchase_amount, 
                SUM(ptc.tax_amount) AS purchase_vat
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabPurchase Taxes and Charges` ptc ON ptc.parent = pi.name
@@ -59,19 +66,21 @@ def execute(filters=None):
     """.format(purchase_conditions=purchase_conditions)
 
     try:
-        sales_invoices = frappe.db.sql(sales_invoices_query, values={
+        if party_type in ["Customer", "All"]:
+            sales_invoices = frappe.db.sql(sales_invoices_query, values={
             'from_date': from_date, 
             'to_date': to_date, 
             'from_nepali_date': from_nepali_date, 
             'to_nepali_date': to_nepali_date
-        }, as_dict=True)
+            }, as_dict=True)
 
-        purchase_invoices = frappe.db.sql(purchase_invoices_query, values={
+        if party_type in ["Supplier", "All"]:
+            purchase_invoices = frappe.db.sql(purchase_invoices_query, values={
             'from_date': from_date, 
             'to_date': to_date, 
             'from_nepali_date': from_nepali_date, 
             'to_nepali_date': to_nepali_date
-        }, as_dict=True)
+            }, as_dict=True)
     except Exception as e:
         print(f"Error in SQL execution: {str(e)}")
         raise
@@ -94,6 +103,7 @@ def execute(filters=None):
                 purchase_vat,
                 net_vat
             ])
+            total_sales_amount += sale['sales_amount'] or 0
             total_sales_vat += sale['sales_vat'] or 0
             total_purchase_vat += purchase_vat 
             total_net_vat += net_vat or 0
@@ -105,12 +115,14 @@ def execute(filters=None):
                 sale['posting_date'],
                 sale['nepali_date'],
                 sale['customer'],
+                sale['vat_number'],
                 sale['sales_amount'],
                 sale['sales_vat'],
                 0,
                 0,
                 net_vat
             ])
+            total_sales_amount += sale['sales_amount'] or 0
             total_sales_vat += sale['sales_vat'] or 0
             total_net_vat += net_vat or 0
         
@@ -123,19 +135,22 @@ def execute(filters=None):
                 purchase['posting_date'],
                 purchase['nepali_date'],
                 purchase['supplier'],
+                purchase['vat_number'],
                 0,
                 0,
                 purchase['purchase_amount'],
                 purchase_vat,
                 purchase_vat
             ])
+            total_purchase_amount += purchase['purchase_amount'] or 0
             total_purchase_vat += purchase_vat
             total_net_vat -= purchase_vat
     data.append([
         _("Total"),
         "", "", "", "",
+        total_sales_amount,
         total_sales_vat,
-        "",
+        total_purchase_amount,
         total_purchase_vat,
         total_net_vat
     ])
