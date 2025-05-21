@@ -12,7 +12,8 @@ def execute(filters=None):
         _("Invoice Date") + ":Date:150",
         _("Nepali Date") + ":Data:150",
         _("Customer") + ":Link/Customer:150",
-        _("Invoice Number") + ":Link/Sales Invoice:120",
+        _("VAT/PAN Number") + ":Data:120",
+        _("Invoice Number") + ":Link/Sales Invoice:200",
         _("Item Code") + ":Link/Item:120",
         _("Item Name") + ":Data:150",
         _("Qty") + ":Float:60",
@@ -47,6 +48,7 @@ def execute(filters=None):
             si.posting_date,
             si.nepali_date,
             si.customer,
+            si.vat_number,
             si.name AS invoice_number,
             item.item_code,
             item.item_name,
@@ -90,7 +92,7 @@ def execute(filters=None):
         if current_invoice != row.invoice_number:
             if current_invoice:
                 data.append([
-                    "","", "", "", "", "Total", 
+                    "", "", "", "", "", "", "Total", 
                     invoice_totals[current_invoice]["qty"],
                     invoice_totals[current_invoice]["rate"], 
                     invoice_totals[current_invoice]["amount"],
@@ -132,6 +134,7 @@ def execute(filters=None):
             row.posting_date,
             row.nepali_date,
             row.customer,
+            row.vat_number,
             row.invoice_number,
             row.item_code,
             row.item_name,
@@ -155,7 +158,7 @@ def execute(filters=None):
 
     if current_invoice:
         data.append([
-            "", "", "", "", "", "Total", 
+            "", "", "", "", "", "", "Total", 
             invoice_totals[current_invoice]["qty"],
             invoice_totals[current_invoice]["rate"], 
             invoice_totals[current_invoice]["amount"],
@@ -181,7 +184,7 @@ def execute(filters=None):
         overall_totals["total_advance"] += invoice_totals[current_invoice]["total_advance"]
 
     data.append([
-        "", "", "", "", "", "Overall Total", 
+        "", "", "", "", "", "", "Overall Total", 
         overall_totals["qty"],
         overall_totals["rate"], 
         overall_totals["amount"],

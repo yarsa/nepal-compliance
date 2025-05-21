@@ -4,16 +4,19 @@
 frappe.query_reports["Monthly Purchase Register"] = {
 	"filters": [
         {
-            "fieldname": "from_date",
-            "label": __("From Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.add_days(frappe.datetime.nowdate(), -30)
+            "fieldname": "nepali_month",
+            "label": __("Nepali Month"),
+            "fieldtype": "Select",
+            "options": [
+                "", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin",
+                "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
+            ]
         },
         {
-            "fieldname": "to_date",
-            "label": __("To Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.nowdate()
+            "fieldname": "supplier",
+            "label": __("Supplier"),
+            "fieldtype": "Link",
+            "options": "Supplier"
         },
 		{
             "fieldname": "from_nepali_date",
