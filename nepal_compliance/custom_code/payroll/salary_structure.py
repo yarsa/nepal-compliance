@@ -99,11 +99,13 @@ def get_deductions(ssf_compliance=False, deduction_type="unmarried"):
 @frappe.whitelist()
 def create_salary_structures():
     companies = frappe.get_all("Company", fields=["name"])
+    all_messages = []
     for company in companies:
-        create_salary_structure_for_company(company.name)
+        all_messages += create_salary_structure_for_company(company.name)
+    return all_messages
 
 def create_salary_structure_for_company(company_name):
-
+    messages = []
     currency = frappe.get_value("Company", company_name, "default_currency") or "NPR"  
 
     salary_structure_unmarried_epf_name = f"Salary Structure Unmarried - EPF - {company_name}"
@@ -111,80 +113,33 @@ def create_salary_structure_for_company(company_name):
     salary_structure_unmarried_ssf_name = f"Salary Structure Unmarried - SSF - {company_name}"
     salary_structure_married_ssf_name = f"Salary Structure Married - SSF - {company_name}"
 
-    if not frappe.db.exists("Salary Structure", {"company": company_name, "name": salary_structure_unmarried_epf_name}):
-        doc = frappe.new_doc("Salary Structure")
-        doc.name = salary_structure_unmarried_epf_name
-        doc.company = company_name
-        doc.currency = currency
-        doc.payroll_frequency = "Monthly"
-        doc.is_active = "Yes"
-        doc.is_default = "No"
+    def create_structure(name, ssf, deduction_type):
+        if not frappe.db.exists("Salary Structure", {"company": company_name, "name": name}):
+            doc = frappe.new_doc("Salary Structure")
+            doc.name = name
+            doc.company = company_name
+            doc.currency = currency
+            doc.payroll_frequency = "Monthly"
+            doc.is_active = "Yes"
+            doc.is_default = "No"
 
-        for earning in get_earnings(ssf_compliance=False):
-            doc.append("earnings", earning)
-        for deduction in get_deductions(ssf_compliance=False, deduction_type="unmarried"):
-            doc.append("deductions", deduction)
+            for earning in get_earnings(ssf_compliance=ssf):
+                doc.append("earnings", earning)
+            for deduction in get_deductions(ssf_compliance=ssf, deduction_type=deduction_type):
+                doc.append("deductions", deduction)
 
-        doc.insert()
-    else:
-        frappe.msgprint(f"Salary Structure '{salary_structure_unmarried_epf_name}' already exists for company: {company_name}")
-    
-    if not frappe.db.exists("Salary Structure", {"company": company_name, "name": salary_structure_married_epf_name}):
-        doc = frappe.new_doc("Salary Structure")
-        doc.name = salary_structure_married_epf_name
-        doc.company = company_name
-        doc.currency = currency
-        doc.payroll_frequency = "Monthly"
-        doc.is_active = "Yes"
-        doc.is_default = "No"
+            doc.insert()
+            messages.append(f"✔️ Salary Structure '{name}' created for company: {company_name}")
+        else:
+            messages.append(f"⚠️ Salary Structure '{name}' already exists for company: {company_name}")
 
-        for earning in get_earnings(ssf_compliance=False):
-            doc.append("earnings", earning)
-        for deduction in get_deductions(ssf_compliance=False, deduction_type="married"):
-            doc.append("deductions", deduction)
+    create_structure(f"Salary Structure Unmarried - EPF - {company_name}", ssf=False, deduction_type="unmarried")
+    create_structure(f"Salary Structure Married - EPF - {company_name}", ssf=False, deduction_type="married")
+    create_structure(f"Salary Structure Unmarried - SSF - {company_name}", ssf=True, deduction_type="unmarried")
+    create_structure(f"Salary Structure Married - SSF - {company_name}", ssf=True, deduction_type="married")
 
-        doc.insert()
-    else:
-        frappe.msgprint(f"Salary Structure '{salary_structure_married_epf_name}' already exists for company: {company_name}")
+    return messages
 
-    if not frappe.db.exists("Salary Structure", {"company": company_name, "name": salary_structure_unmarried_ssf_name}):
-        doc = frappe.new_doc("Salary Structure")
-        doc.name = salary_structure_unmarried_ssf_name
-        doc.company = company_name
-        doc.currency = currency
-        doc.payroll_frequency = "Monthly"
-        doc.is_active = "Yes"
-        doc.is_default = "No"
-
-        for earning in get_earnings(ssf_compliance=True):
-            doc.append("earnings", earning)
-        for deduction in get_deductions(ssf_compliance=True, deduction_type="unmarried"):
-            doc.append("deductions", deduction)
-
-        doc.insert()
-
-    else:
-        frappe.msgprint(f"Salary Structure '{salary_structure_unmarried_ssf_name}' already exists for company: {company_name}")
-    
-    if not frappe.db.exists("Salary Structure", {"company": company_name, "name": salary_structure_married_ssf_name}):
-        doc = frappe.new_doc("Salary Structure")
-        doc.name = salary_structure_married_ssf_name
-        doc.company = company_name
-        doc.currency = currency
-        doc.payroll_frequency = "Monthly"
-        doc.is_active = "Yes"
-        doc.is_default = "No"
-
-        for earning in get_earnings(ssf_compliance=True):
-            doc.append("earnings", earning)
-        for deduction in get_deductions(ssf_compliance=True, deduction_type="married"):
-            doc.append("deductions", deduction)
-
-        doc.insert()
-    else:
-        frappe.msgprint(f"Salary Structure '{salary_structure_married_ssf_name}' already exists for company: {company_name}")
-        
-        
 def assign_salary_structures_to_employees():
     companies = frappe.get_all("Company", fields=["name", "custom_type_of_company"])
     for company in companies:
