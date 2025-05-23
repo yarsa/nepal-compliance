@@ -35,6 +35,7 @@ app_include_js = [
                  "/assets/nepal_compliance/js/nepali_date.js",
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
+                 "/assets/nepal_compliance/js/icon_patch.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
