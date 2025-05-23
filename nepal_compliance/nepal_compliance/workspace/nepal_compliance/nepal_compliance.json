@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"1_IisBdJfF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span>\",\"col\":12}},{\"id\":\"Av9d5gc5bf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nepal Compliance Settings\",\"col\":3}},{\"id\":\"AxbCeczGAx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Cbms Settings\",\"col\":3}},{\"id\":\"gr238m0dxE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-C_qhFA2jE\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Shortcuts</span>\",\"col\":12}},{\"id\":\"WoPN9MUqpE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fiscal Year\",\"col\":3}},{\"id\":\"b1jTkv26GP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Holiday List\",\"col\":3}},{\"id\":\"5ptJalRP84\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Type\",\"col\":3}},{\"id\":\"7uLhKBLGLN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Component\",\"col\":3}},{\"id\":\"9sYOiCy_Jq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Structure\",\"col\":3}},{\"id\":\"qp_bsiF4JJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"SqK4KcqRYx\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports &amp; Masters</span>\",\"col\":12}},{\"id\":\"v2w-KJGnfW\",\"type\":\"card\",\"data\":{\"card_name\":\"Purchase Reports\",\"col\":4}},{\"id\":\"KJWGTH4Wrx\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"bIz3bV7Dv-\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"0M2ckf9EKT\",\"type\":\"card\",\"data\":{\"card_name\":\"Audit Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"1_IisBdJfF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span>\",\"col\":12}},{\"id\":\"Av9d5gc5bf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nepal Compliance Settings\",\"col\":3}},{\"id\":\"AxbCeczGAx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CBMS Settings\",\"col\":3}},{\"id\":\"gr238m0dxE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-C_qhFA2jE\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Shortcuts</span>\",\"col\":12}},{\"id\":\"WoPN9MUqpE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fiscal Year\",\"col\":3}},{\"id\":\"b1jTkv26GP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Holiday List\",\"col\":3}},{\"id\":\"5ptJalRP84\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Type\",\"col\":3}},{\"id\":\"7uLhKBLGLN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Component\",\"col\":3}},{\"id\":\"9sYOiCy_Jq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Structure\",\"col\":3}},{\"id\":\"qp_bsiF4JJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"SqK4KcqRYx\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports &amp; Masters</span>\",\"col\":12}},{\"id\":\"v2w-KJGnfW\",\"type\":\"card\",\"data\":{\"card_name\":\"Purchase Reports\",\"col\":4}},{\"id\":\"KJWGTH4Wrx\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"bIz3bV7Dv-\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"0M2ckf9EKT\",\"type\":\"card\",\"data\":{\"card_name\":\"Audit Reports\",\"col\":4}}]",
  "creation": "2025-05-16 12:55:45.685194",
  "custom_blocks": [],
  "docstatus": 0,
@@ -200,7 +200,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-05-16 14:27:50.506771",
+ "modified": "2025-05-23 14:08:55.253912",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance",
@@ -210,8 +210,15 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 9.0,
+ "sequence_id": 2.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "CBMS Settings",
+   "link_to": "CBMS Settings",
+   "type": "DocType"
+  },
   {
    "color": "Grey",
    "doc_view": "List",
@@ -241,13 +248,6 @@
    "label": "Salary Component",
    "link_to": "Salary Component",
    "stats_filter": "[]",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Cbms Settings",
-   "link_to": "CBMS Settings",
    "type": "DocType"
   },
   {
