@@ -23,6 +23,8 @@ frappe.ui.form.on('CBMS Settings', {
           link.target = '_blank'; 
           link.click();
       });
+      frm.fields_dict.user_name.$wrapper.find("input").attr("placeholder", "Use your CBMS username");
+      frm.fields_dict.password.$wrapper.find("input").attr("placeholder", "Use your CBMS password");
+      frm.fields_dict.panvat_no.$wrapper.find("input").attr("placeholder", "Use your CBMS VAT/PAN");
     },
   });
-  

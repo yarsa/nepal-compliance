@@ -35,6 +35,7 @@ app_include_js = [
                  "/assets/nepal_compliance/js/nepali_date.js",
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
+                 "/assets/nepal_compliance/js/icon_patch.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
@@ -92,6 +93,9 @@ doctype_js = {
     "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js'
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_list_js = {
+    "Salary Component": "public/js/custom_button.js"
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
