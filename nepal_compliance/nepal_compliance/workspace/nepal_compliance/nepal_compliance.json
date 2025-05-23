@@ -1,0 +1,271 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"1_IisBdJfF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span>\",\"col\":12}},{\"id\":\"Av9d5gc5bf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nepal Compliance Settings\",\"col\":3}},{\"id\":\"AxbCeczGAx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CBMS Settings\",\"col\":3}},{\"id\":\"gr238m0dxE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-C_qhFA2jE\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Shortcuts</span>\",\"col\":12}},{\"id\":\"WoPN9MUqpE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fiscal Year\",\"col\":3}},{\"id\":\"b1jTkv26GP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Holiday List\",\"col\":3}},{\"id\":\"5ptJalRP84\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Type\",\"col\":3}},{\"id\":\"7uLhKBLGLN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Component\",\"col\":3}},{\"id\":\"9sYOiCy_Jq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Structure\",\"col\":3}},{\"id\":\"qp_bsiF4JJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"SqK4KcqRYx\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports &amp; Masters</span>\",\"col\":12}},{\"id\":\"v2w-KJGnfW\",\"type\":\"card\",\"data\":{\"card_name\":\"Purchase Reports\",\"col\":4}},{\"id\":\"KJWGTH4Wrx\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"bIz3bV7Dv-\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"0M2ckf9EKT\",\"type\":\"card\",\"data\":{\"card_name\":\"Audit Reports\",\"col\":4}}]",
+ "creation": "2025-05-16 12:55:45.685194",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "/assets/nepal_compliance/icon/nepal-compliance.svg",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Nepal Compliance",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Reports",
+   "link_count": 5,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Purchase Vat Register",
+   "link_count": 0,
+   "link_to": "Purchase Vat Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Purchase Return Vat Register",
+   "link_count": 0,
+   "link_to": "Purchase Return Vat Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Monthly Purchase Register",
+   "link_count": 0,
+   "link_to": "Monthly Purchase Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Party Wise Purchase Register",
+   "link_count": 0,
+   "link_to": "Party Wise Purchase Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Landing Cost Voucher",
+   "link_count": 0,
+   "link_to": "Landing Cost Voucher",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Reports",
+   "link_count": 5,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Vat Register",
+   "link_count": 0,
+   "link_to": "Sales Vat Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Return Vat Register",
+   "link_count": 0,
+   "link_to": "Sales Return Vat Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Monthly Sales Register",
+   "link_count": 0,
+   "link_to": "Monthly Sales Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Party Wise Sales Register",
+   "link_count": 0,
+   "link_to": "Party Wise Sales Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Cancellation Register",
+   "link_count": 0,
+   "link_to": "Sales Cancellation Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Other Reports",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Materialized Report",
+   "link_count": 0,
+   "link_to": "Materialized Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Balance Confirmation",
+   "link_count": 0,
+   "link_to": "Balance Confirmation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Vat Return Report",
+   "link_count": 0,
+   "link_to": "Vat Return Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Audit Reports",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Audit Trail",
+   "link_count": 0,
+   "link_to": "Audit Trail",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Audit Log",
+   "link_count": 0,
+   "link_to": "Audit Log",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-05-23 14:08:55.253912",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "Nepal Compliance",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 2.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "CBMS Settings",
+   "link_to": "CBMS Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Nepal Compliance Settings",
+   "link_to": "Nepal Compliance Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Fiscal Year",
+   "link_to": "Fiscal Year",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Holiday List",
+   "link_to": "Holiday List",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Salary Component",
+   "link_to": "Salary Component",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Salary Structure",
+   "link_to": "Salary Structure",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Leave Type",
+   "link_to": "Leave Type",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Nepal Compliance"
+}
