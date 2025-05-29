@@ -79,17 +79,20 @@ jobs:
           fi
 
       - name: Set APPS_JSON based on branch
-        id: apps_json
         run: |
           if [ "${{ github.ref_name }}" = "develop" ]; then
-            echo "apps_json=${{ vars.APPS_JSON_DEVELOP }}" >> $GITHUB_OUTPUT
+            echo "APPS_JSON_RAW<<EOF" >> $GITHUB_ENV
+            echo '${{ vars.APPS_JSON_DEVELOP }}' >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           else
-            echo "apps_json=${{ vars.APPS_JSON }}" >> $GITHUB_OUTPUT
+            echo "APPS_JSON_RAW<<EOF" >> $GITHUB_ENV
+            echo '${{ vars.APPS_JSON }}' >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           fi
 
       - name: Encode APPS_JSON to base64
         run: |
-          echo "APPS_JSON_BASE64=$(echo '${{ steps.apps_json.outputs.apps_json }}' | base64 -w 0)" >> $GITHUB_ENV
+          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON_RAW }}' | base64 -w 0)" >> $GITHUB_ENV
 
       - name: Clone frappe_docker
         run: git clone --depth=1 https://github.com/frappe/frappe_docker
