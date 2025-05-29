@@ -14,7 +14,6 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
   REGISTRY: docker.io
   IMAGE_NAME: dockmyapp0/nepal-compliance
-  APPS_JSON: ${{ vars.APPS_JSON }}
 
 permissions:
   contents: read
@@ -79,9 +78,18 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT  
           fi
 
+      - name: Set APPS_JSON based on branch
+        id: apps_json
+        run: |
+          if [ "${{ github.ref_name }}" = "develop" ]; then
+            echo "apps_json=${{ vars.APPS_JSON_DEVELOP }}" >> $GITHUB_OUTPUT
+          else
+            echo "apps_json=${{ vars.APPS_JSON }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Encode APPS_JSON to base64
         run: |
-          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON }}' | base64 -w 0)" >> $GITHUB_ENV
+          echo "APPS_JSON_BASE64=$(echo '${{ steps.apps_json.outputs.apps_json }}' | base64 -w 0)" >> $GITHUB_ENV
 
       - name: Clone frappe_docker
         run: git clone --depth=1 https://github.com/frappe/frappe_docker
