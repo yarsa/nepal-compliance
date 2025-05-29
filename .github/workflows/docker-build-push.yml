@@ -1,5 +1,4 @@
-name: Build and Push amd64 Docker Image
-
+name: Build and Push
 on:
   push:
     branches:
@@ -11,7 +10,10 @@ env:
   TZ: /usr/share/zoneinfo/Asia/Kathmandu
   # 1m cache segment restore timeout to stop wasting resource time
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-  
+  REGISTRY: docker.io
+  IMAGE_NAME: yarsalabs/nepal-compliance
+  APPS_JSON: ${{ vars.APPS_JSON }}
+
 # workflow can only read this repo’s code but cannot change
 # workflow can push Docker or GHCR images
 permissions:
@@ -19,43 +21,122 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-
+  build:
+    strategy:
+      matrix:
+        include:
+          - name: amd64
+            os: ubuntu-24.04
+            platform: linux/amd64
+          - name: arm64
+            os: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.os }}
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+      metadata: ${{ steps.meta.outputs.json }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
+      - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+
+      - name: Encode APPS_JSON to base64
+        run: |
+          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON }}' | base64 -w 0)" >> $GITHUB_ENV
+
       - name: Clone frappe_docker
-        run: git clone --depth=1 https://github.com/frappe/frappe_docker && cd frappe_docker
+        run: git clone --depth=1 https://github.com/frappe/frappe_docker
 
-      - name: Read repo var, Encode apps.json to base64, add-mask
-        run: |
-           echo "::add-mask::$(echo '$APPS_JSON' | base64 -w 0)" >> $GITHUB_ENV
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        env:
+          SOURCE_DATE_EPOCH: 0
+        with:
+          context: ./frappe_docker
+          platforms: ${{ matrix.platform }}
+          file: frappe_docker/images/custom/Containerfile
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            FRAPPE_PATH=https://github.com/frappe/frappe
+            FRAPPE_BRANCH=version-15
+            PYTHON_VERSION=3.11.9
+            NODE_VERSION=18.20.2
+            APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
 
-      - name: Docker buildX, Push Image, Use GHA Cache
+      - name: Export digest
+        id: digest
         run: |
-          cd frappe_docker
-          docker buildx build \
-            --platform linux/amd64 \
-            --build-arg FRAPPE_PATH=https://github.com/frappe/frappe \
-            --build-arg FRAPPE_BRANCH=version-15 \
-            --build-arg PYTHON_VERSION=3.11.9 \
-            --build-arg NODE_VERSION=18.20.2 \
-            --build-arg APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }} \
-            --tag yarsalabs/nepal-compliance:v0.1.0 \
-            --file images/custom/Containerfile \
-            --cache-from=type=gha \
-            --cache-to=type=gha,mode=max \
-            --push .
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+          echo "digest=${digest}" >> $GITHUB_OUTPUT
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.name }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
