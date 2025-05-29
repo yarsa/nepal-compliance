@@ -43,15 +43,21 @@ def execute(filters=None):
     if filters.get("party_type") == "Customer" and filters.get("customer"):
         conditions += " AND si.customer = %(customer)s"
 
+
     if filters.get("party_type") == "Supplier" and filters.get("supplier"):
         purchase_conditions += " AND pi.supplier = %(supplier)s"
+
+
 
     party_type = filters.get("party_type", "All")
     sales_invoices = []
     purchase_invoices = []
 
+
     sales_invoices_query = f"""
         SELECT si.name AS invoice_no, si.nepali_date, si.customer AS customer, si.vat_number AS vat_number, si.rounded_total AS sales_amount, 
+    sales_invoices_query = """
+        SELECT si.name AS invoice_no, si.posting_date, si.nepali_date, si.customer AS customer, si.vat_number AS vat_number, si.rounded_total AS sales_amount, 
                SUM(stc.tax_amount) AS sales_vat
         FROM `tabSales Invoice` si
         LEFT JOIN `tabSales Taxes and Charges` stc ON stc.parent = si.name
@@ -62,6 +68,8 @@ def execute(filters=None):
 
     purchase_invoices_query = f"""
         SELECT pi.name AS invoice_no, pi.nepali_date, pi.supplier AS supplier, pi.vat_number AS vat_number, pi.grand_total AS purchase_amount, 
+    purchase_invoices_query = """
+        SELECT pi.name AS invoice_no, pi.posting_date, pi.nepali_date, pi.supplier AS supplier, pi.vat_number AS vat_number, pi.grand_total AS purchase_amount, 
                SUM(ptc.tax_amount) AS purchase_vat
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabPurchase Taxes and Charges` ptc ON ptc.parent = pi.name
@@ -82,6 +90,26 @@ def execute(filters=None):
         sales_invoices = frappe.db.sql(sales_invoices_query, values=params, as_dict=True)
     if party_type in ["Supplier", "All"]:
         purchase_invoices = frappe.db.sql(purchase_invoices_query, values=params, as_dict=True)
+
+    try:
+        if party_type in ["Customer", "All"]:
+            sales_invoices = frappe.db.sql(sales_invoices_query, values={
+            'from_date': from_date, 
+            'to_date': to_date, 
+            'from_nepali_date': from_nepali_date, 
+            'to_nepali_date': to_nepali_date
+            }, as_dict=True)
+
+        if party_type in ["Supplier", "All"]:
+            purchase_invoices = frappe.db.sql(purchase_invoices_query, values={
+            'from_date': from_date, 
+            'to_date': to_date, 
+            'from_nepali_date': from_nepali_date, 
+            'to_nepali_date': to_nepali_date
+            }, as_dict=True)
+    except Exception as e:
+        print(f"Error in SQL execution: {str(e)}")
+        raise
 
     for sale in sales_invoices:
         purchase = next((p for p in purchase_invoices if p['invoice_no'] == sale['invoice_no']), None)
@@ -143,6 +171,7 @@ def execute(filters=None):
     data.append([
         _("Total"),
         "", "", "",
+        "", "", "", "",
         total_sales_amount,
         total_sales_vat,
         total_purchase_amount,

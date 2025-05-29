@@ -88,6 +88,7 @@ jobs:
       - name: Export digest
         id: digest
         run: |
+
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
@@ -140,3 +141,15 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cd frappe_docker
+          docker buildx build \
+            --no-cache \
+            --platform linux/amd64 \
+            --build-arg FRAPPE_PATH=https://github.com/frappe/frappe \
+            --build-arg FRAPPE_BRANCH=version-15 \
+            --build-arg PYTHON_VERSION=3.11.9 \
+            --build-arg NODE_VERSION=18.20.2 \
+            --build-arg APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }} \
+            --tag yarsalabs/nepal-compliance:v0.1.0 \
+            --file images/custom/Containerfile \
+            --push .

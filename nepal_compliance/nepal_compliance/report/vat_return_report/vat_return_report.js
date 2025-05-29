@@ -18,6 +18,7 @@ frappe.query_reports["Vat Return Report"] = {
 			"label": __("Party Type"),
 			"fieldtype": "Select",
 			"options": "Customer\nSupplier\nAll",
+
 			"default": "All",
             on_change: function (report) {
 				const party_type = frappe.query_report.get_filter_value("party_type");
@@ -51,6 +52,9 @@ frappe.query_reports["Vat Return Report"] = {
 			"label": __("Supplier"),
 			"fieldtype": "Link",
 			"options": "Supplier"
+
+			"default": "All"
+
 		}
 	],
 	onload: function(report) {

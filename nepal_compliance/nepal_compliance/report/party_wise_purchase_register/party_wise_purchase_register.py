@@ -100,7 +100,11 @@ def execute(filters=None):
         if current_invoice != row.invoice_number:
             if current_invoice:
                 data.append([
+
                     "", "", "", "", "", "Total", 
+
+                    "", "", "", "", "", "", "Total", 
+
                     invoice_totals[current_invoice]["qty"],
                     invoice_totals[current_invoice]["rate"], 
                     invoice_totals[current_invoice]["amount"],
@@ -165,7 +169,7 @@ def execute(filters=None):
 
     if current_invoice:
         data.append([
-            "", "", "", "", "", "Total", 
+            "", "", "", "", "", "", "Total", 
             invoice_totals[current_invoice]["qty"],
             invoice_totals[current_invoice]["rate"], 
             invoice_totals[current_invoice]["amount"],
@@ -191,7 +195,7 @@ def execute(filters=None):
         overall_totals["total_advance"] += invoice_totals[current_invoice]["total_advance"]
 
     data.append([
-        "", "", "", "", "", "Overall Total", 
+        "", "", "", "", "", "", "Overall Total", 
         overall_totals["qty"],
         overall_totals["rate"], 
         overall_totals["amount"],
