@@ -3,16 +3,33 @@
 
 frappe.query_reports["Party Wise Purchase Register"] = {
     "filters": [
+        {
+            "fieldname": "from_date",
+            "label": __("From Date"),
+            "fieldtype": "Date",
+            // "default": frappe.datetime.add_days(frappe.datetime.get_today(), -1)
+        },
+        {
+            "fieldname": "to_date",
+            "label": __("To Date"),
+            "fieldtype": "Date",
+            // "default": frappe.datetime.get_today()
+        },
 		{
             "fieldname": "from_nepali_date",
-            "label": __("From Date"),
+            "label": __("From Nepali Date"),
             "fieldtype": "Data",
 		},
 		{
 			"fieldname": "to_nepali_date",
-            "label": __("To Date"),
+            "label": __("To Nepali Date"),
             "fieldtype": "Data",
 		},
+        {
+            "fieldname": "nepali_date",
+            "label": __("Nepali Date"),
+            "fieldtype": "Data",
+        },
         {
             "fieldname": "status",
             "label": __("Status"),

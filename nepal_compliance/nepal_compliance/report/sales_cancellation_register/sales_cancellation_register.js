@@ -12,28 +12,30 @@ frappe.query_reports["Sales Cancellation Register"] = {
             "reqd": 1
         },
         {
-            "fieldname": "from_nepali_date",
+            "fieldname": "from_date",
             "label": __("From Date"),
+            "fieldtype": "Date",
+            // "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+            "reqd": 0
+        },
+        {
+            "fieldname": "to_date",
+            "label": __("To Date"),
+            "fieldtype": "Date",
+            // "default": frappe.datetime.get_today(),
+            "reqd": 0
+        },
+        {
+            "fieldname": "from_nepali_date",
+            "label": __("From Nepali Date"),
             "fieldtype": "Data",
             "reqd": 0
         },
         {
             "fieldname": "to_nepali_date",
-            "label": __("To Date"),
+            "label": __("To Nepali Date"),
             "fieldtype": "Data",
             "reqd": 0
-        },
-        {
-            "fieldname": "customer_name",
-            "label": __("Customer"),
-            "fieldtype": "Link",
-            "options": "Customer"
-        },
-        {
-            "fieldname": "cancelled_by",
-            "label": __("Cancelled By"),
-            "fieldtype": "Link",
-            "options": "User"
         }
     ],
     onload: function(report) {

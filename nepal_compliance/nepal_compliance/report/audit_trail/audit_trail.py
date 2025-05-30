@@ -121,7 +121,7 @@ class BaseAuditTrail:
             return ["in", users]
 
     def get_doctypes(self):
-        doctypes = list(get_relevant_doctypes())
+        doctypes = list(get_relavant_doctypes())
         return doctypes
 
     def update_count(self):
@@ -434,7 +434,7 @@ class UserReport(BaseAuditTrail):
 
 
 @frappe.whitelist()
-def get_relevant_doctypes():
+def get_relavant_doctypes():
     doctypes = get_audit_trail_doctypes()
     return doctypes
 

@@ -289,11 +289,10 @@ const DatePickerConfig = {
                 ["doctype", this.ENGLISH_DATE_FIELD, "between", dateRangeValue]
             ];
   
-            if (listview.filter_area) {
-                listview.filter_area.clear();
-                listview.filter_area.add(dateRangeFilters);
-                listview.refresh(dateRangeFilters);
-            }            
+            listview.filter_area.clear();
+            listview.filter_area.add(dateRangeFilters);
+            listview.refresh(dateRangeFilters);
+ 
             
         } catch (error) {
             console.error('Error applying filter:', error);

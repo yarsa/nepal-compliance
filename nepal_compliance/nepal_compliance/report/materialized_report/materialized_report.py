@@ -287,7 +287,7 @@ class ColumnDetail(BaseAuditTrail):
             self.data.append(row)
             
 @frappe.whitelist()
-def get_relevant_doctypes():
+def get_relavant_doctypes():
     doctypes = get_purchase_sales_doctype()
     return doctypes
 

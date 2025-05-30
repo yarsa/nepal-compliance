@@ -9,8 +9,13 @@ from frappe import _
 def execute(filters=None):
 	columns = [
 		{
-			'fieldname': 'nepali_date',
+			'fieldname': 'posting_date',
 			'label': _('Date'),
+			'fieldtype': 'Date'
+		},
+		{
+			'fieldname': 'nepali_date',
+			'label': _('Nepali Date'),
 			'fieldtype': 'Data'
 		},
 		{
@@ -116,57 +121,36 @@ def execute(filters=None):
 	]
 	
 	data = []
-	query = """
-		SELECT DISTINCT si.*
-		FROM `tabSales Invoice` si
-		LEFT JOIN `tabSales Invoice Item` sii ON si.name = sii.parent
-		WHERE si.docstatus = 1 AND si.is_return = 0
-	"""
-	conditions = []
-	values = []
-
+	conditions = {"docstatus": 1, "is_return": 0}
 	if filters.get("company"):
-		conditions.append("si.company = %s")
-		values.append(filters["company"])
-
-	if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-		conditions.append("si.nepali_date >= %s AND si.nepali_date <= %s")
-		values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
-	elif filters.get("from_nepali_date"):
-		conditions.append("si.nepali_date >= %s")
-		values.append(filters["from_nepali_date"])
-	elif filters.get("to_nepali_date"):
-		conditions.append("si.nepali_date <= %s")
-		values.append(filters["to_nepali_date"])
-
+		conditions["company"] = filters["company"]
+	if filters.get("from_date") and filters.get("to_date"):
+		conditions["posting_date"] = ["between", [filters["from_date"], filters["to_date"]]]
+	elif filters.get("from_date"):
+		conditions["posting_date"] = [">=", filters["from_date"]]
+	elif filters.get("to_date"):
+		conditions["posting_date"] = ["<=", filters["to_date"]]
+	if filters.get("nepali_date"):
+		nepali_date_filter = f"%{filters['nepali_date']}%"
+		conditions["nepali_date"] = ["like", nepali_date_filter]
 	if filters.get("customer"):
-		conditions.append("si.customer = %s")
-		values.append(filters["customer"])
+		conditions["customer"] = filters["customer"]
 	if filters.get("customer_group"):
-		conditions.append("si.customer_group = %s")
-		values.append(filters["customer_group"])
+		conditions["customer_group"] = filters["customer_group"]
 	if filters.get("owner"):
-		conditions.append("si.owner = %s")
-		values.append(filters["owner"])
+		conditions["owner"] = filters["owner"]
 	if filters.get("cost_center"):
-		conditions.append("si.cost_center = %s")
-		values.append(filters["cost_center"])
+		conditions["cost_center"] = filters["cost_center"]
 	if filters.get("project"):
-		conditions.append("si.project = %s")
-		values.append(filters["project"])
+		conditions["project"] = filters["project"]
 	if filters.get("document_number"):
-		conditions.append("si.name = %s")
-		values.append(filters["document_number"])
+		conditions["name"] = filters["document_number"]
 
-	if conditions:
-		query += " AND " + " AND ".join(conditions)
 
-	query += " ORDER BY si.modified DESC"
-
-	sales_invoice = frappe.db.sql(query, values, as_dict=True)
+	sales_invoice = frappe.db.get_list("Sales Invoice", filters = conditions, fields=['*'])
 	for sale in sales_invoice:
-		items = frappe.get_all("Sales Invoice Item", filters={"parent":sale.name}, fields=['*'])
-		taxes = frappe.get_all("Sales Taxes and Charges", filters={"parent":sale.name}, fields=['*'])
+		items = frappe.db.get_all("Sales Invoice Item", filters={"parent":sale.name}, fields=['*'])
+		taxes = frappe.db.get_all("Sales Taxes and Charges", filters={"parent":sale.name}, fields=['*'])
 		total_qty = 0
 		total_rate = 0
 		vat = 0
@@ -181,6 +165,6 @@ def execute(filters=None):
 				vat = tax.tax_amount
 			elif tax.rate in [1.5, 15]:
 				tds = tax.tax_amount
-		data.append([sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number, sale.owner, total_qty, sale.total, sale.discount_amount,sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount])
+		data.append([sale.posting_date, sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number, sale.owner, total_qty, sale.total, sale.discount_amount,sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount])
 	return columns, data
     
