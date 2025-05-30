@@ -36,7 +36,7 @@ const Configuration: UserConfig = {
 
             'test',   // Adding or Updating tests
             
-            //other rules as requred
+            //other rules as required
 
         ],
 

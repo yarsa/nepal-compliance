@@ -10,21 +10,6 @@ frappe.query_reports["Purchase Return Vat Register"] = {
             options: 'Company',
             default: frappe.defaults.get_user_default('company')
         },
-        {
-            fieldname: 'nepali_date',
-            label: __('Nepali Date'),
-            fieldtype: 'Data'
-        },
-		{
-			fieldname: 'from_date',
-			label: __('From Date'),
-			fieldtype: 'Date'
-		},
-		{
-			fieldname: 'to_date',
-			label: __('To Date'),
-			fieldtype: 'Date'
-		},
 		{
 			fieldname: 'from_nepali_date',
 			label: __('From Nepali Date'),
@@ -46,16 +31,6 @@ frappe.query_reports["Purchase Return Vat Register"] = {
             label: __('Supplier Invoice No'),
             fieldtype: 'Data',
             reqd: 0
-        },
-        {
-            fieldname: 'bill_date',
-            label: __('Supplier Invoice Date'),
-            fieldtype: 'Date',
-        },
-        {
-            fieldname: 'due_date',
-            label: __('Invoice Due Date'),
-            fieldtype: 'Date'
         },
         {
             fieldname: 'warehouse',

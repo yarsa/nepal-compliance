@@ -4,30 +4,15 @@
 frappe.query_reports["Party Wise Sales Register"] = {
 	"filters": [
 		{
-            "fieldname": "from_date",
-            "label": __("From Date"),
-            "fieldtype": "Date"
-        },
-        {
-            "fieldname": "to_date",
-            "label": __("To Date"),
-            "fieldtype": "Date"
-        },
-		{
             "fieldname": "from_nepali_date",
-            "label": __("From Nepali Date"),
+            "label": __("From Date"),
             "fieldtype": "Data",
 		},
 		{
 			"fieldname": "to_nepali_date",
-            "label": __("To Nepali Date"),
+            "label": __("To Date"),
             "fieldtype": "Data",
 		},
-        {
-            "fieldname": "nepali_date",
-            "label": __("Nepali Date"),
-            "fieldtype": "Data",
-        },
         {
             "fieldname": "status",
             "label": __("Status"),
