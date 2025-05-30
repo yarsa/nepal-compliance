@@ -99,7 +99,7 @@ def execute(filters=None):
         if current_invoice != row.invoice_number:
             if current_invoice:
                 data.append([
-                    "", "", "", "", "", "Total", 
+                    "", "", "", "", "", "Total",
                     invoice_totals[current_invoice]["qty"],
                     invoice_totals[current_invoice]["rate"], 
                     invoice_totals[current_invoice]["amount"],
