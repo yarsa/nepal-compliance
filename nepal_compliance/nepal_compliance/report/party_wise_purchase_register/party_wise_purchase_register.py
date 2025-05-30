@@ -9,8 +9,7 @@ from frappe.utils import flt, getdate
 def execute(filters=None):
     columns, data = [], []
     columns = [
-        _("Invoice Date") + ":Date:150",
-        _("Nepali Date") + ":Data:150",
+        _("Date") + ":Data:150",
         _("Supplier") + ":Link/Supplier:150",
         _("VAT/PAN Number") + ":Data:120",
         _("Invoice Number") + ":Link/Purchase Invoice:200",
@@ -29,24 +28,32 @@ def execute(filters=None):
         _("Status") + ":Data:80",
     ]
 
-    conditions = " WHERE pi.docstatus IN (1, 2)"
-    if filters.get("from_date"):
-        conditions += " AND pi.posting_date >= '{0}'".format(filters["from_date"])
-    if filters.get("to_date"):
-        conditions += " AND pi.posting_date <= '{0}'".format(filters["to_date"])
-    if filters.get("nepali_date"):
-        nepali_date = filters.get("nepali_date")
-        conditions += " AND pi.nepali_date = '{0}'".format(nepali_date) 
-    if filters.get("status"):
-        conditions += " AND pi.status = '{0}'".format(filters["status"])
-    if filters.get("supplier"):
-        conditions += " AND pi.supplier = '{0}'".format(filters["supplier"])
-    if filters.get("invoice_number"):
-        conditions += " AND pi.name = '{0}'".format(filters["invoice_number"])
+    conditions = ["pi.docstatus IN (1, 2)"]
+    values = []
+    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
+        conditions.append("pi.nepali_date >= %s AND nepali_date <= %s")
+        values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
+    elif filters.get("from_nepali_date"):
+        conditions.append("pi.nepali_date >= %s")
+        values.append(filters["from_nepali_date"])
+    elif filters.get("to_nepali_date"):
+        conditions.append("pi.nepali_date <= %s")
+        values.append(filters["to_nepali_date"])
 
-    query = """
+    if filters.get("status"):
+        conditions.append("pi.status = %s")
+        values.append(filters["status"])
+
+    if filters.get("supplier"):
+        conditions.append("pi.supplier = %s")
+        values.append(filters["supplier"])
+
+    if filters.get("invoice_number"):
+        conditions.append("pi.name = %s")
+        values.append(filters["invoice_number"])
+
+    query = f"""
         SELECT
-            pi.posting_date,
             pi.nepali_date,
             pi.supplier,
             pi.vat_number,
@@ -68,11 +75,11 @@ def execute(filters=None):
             `tabPurchase Invoice` pi
         JOIN
             `tabPurchase Invoice Item` item ON item.parent = pi.name
-        {0}
+        WHERE { " AND ".join(conditions) }
         ORDER BY pi.posting_date DESC
-    """.format(conditions)
+    """
     
-    result = frappe.db.sql(query, as_dict=True)
+    result = frappe.db.sql(query, values=values, as_dict=True)
     invoice_totals = {}
     current_invoice = None
 
@@ -93,7 +100,7 @@ def execute(filters=None):
         if current_invoice != row.invoice_number:
             if current_invoice:
                 data.append([
-                    "", "", "", "", "", "", "Total", 
+                    "", "", "", "", "", "Total",
                     invoice_totals[current_invoice]["qty"],
                     invoice_totals[current_invoice]["rate"], 
                     invoice_totals[current_invoice]["amount"],
@@ -135,7 +142,6 @@ def execute(filters=None):
             row.posting_date,
             row.nepali_date,
             row.supplier,
-            row.vat_number,
             row.invoice_number,
             row.item_code,
             row.item_name,
@@ -159,7 +165,7 @@ def execute(filters=None):
 
     if current_invoice:
         data.append([
-            "", "", "", "", "", "", "Total", 
+            "", "", "", "", "", "Total", 
             invoice_totals[current_invoice]["qty"],
             invoice_totals[current_invoice]["rate"], 
             invoice_totals[current_invoice]["amount"],
@@ -185,7 +191,7 @@ def execute(filters=None):
         overall_totals["total_advance"] += invoice_totals[current_invoice]["total_advance"]
 
     data.append([
-        "", "", "", "", "", "", "Overall Total", 
+        "", "", "", "", "", "Overall Total", 
         overall_totals["qty"],
         overall_totals["rate"], 
         overall_totals["amount"],
