@@ -9,8 +9,13 @@ def execute(filters=None):
     
     columns = [
         {
-            'fieldname': 'nepali_date',
+            'fieldname': 'date',
             'label': _('Date'),
+            'fieldtype': 'Date'
+        },
+        {
+            'fieldname': 'nepali_date',
+            'label': _('Nepali Date'),
             'fieldtype': 'Data'
         },
         {
@@ -109,54 +114,36 @@ def execute(filters=None):
 
     ]
     data = []
-    query = """
-    SELECT DISTINCT pi.*
-    FROM `tabPurchase Invoice` pi
-    LEFT JOIN `tabPurchase Invoice Item` pii ON pi.name = pii.parent
-    WHERE pi.docstatus = 1 AND pi.is_return = 1
-    """
-    conditions = []
-    values = []
-
+    conditions = {"docstatus": 1, "is_return": 1}
     if filters.get("company"):
-        conditions.append("pi.company = %s")
-        values.append(filters["company"])
-
+        conditions["company"] = filters["company"]
     if filters.get("supplier"):
-        conditions.append("pi.supplier = %s")
-        values.append(filters["supplier"])
-
+        conditions["supplier"] = filters["supplier"]
     if filters.get("bill"):
-        conditions.append("pi.bill_no LIKE %s")
-        values.append(f"%{filters['bill']}%")
-
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date >= %s AND nepali_date <= %s")
-        values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
-    elif filters.get("from_nepali_date"):
-        conditions.append("pi.nepali_date >= %s")
-        values.append(filters["from_nepali_date"])
-    elif filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date <= %s")
-        values.append(filters["to_nepali_date"])
-
+        bill_no_filter = f"%{filters['bill']}%"
+        conditions["bill_no"] = ["like", bill_no_filter]
+    if filters.get("bill_date"):
+        conditions["bill_date"] = filters["bill_date"]
+    if filters.get("due_date"):
+        conditions["due_date"] = filters["due_date"]
+    if filters.get("from_date") and filters.get("to_date"):
+	    conditions["posting_date"] = ["between", [filters["from_date"], filters["to_date"]]]
+    elif filters.get("from_date"):
+	    conditions["posting_date"] = [">=", filters["from_date"]]
+    elif filters.get("to_date"):
+	    conditions["posting_date"] = ["<=", filters["to_date"]]
+    if filters.get("nepali_date"):
+        nepali_date_filter = f"%{filters['nepali_date']}%"
+        conditions["nepali_date"] = ["like", nepali_date_filter]
     if filters.get("warehouse"):
-        conditions.append("pii.warehouse = %s")
-        values.append(filters["warehouse"])
-
+	    conditions["warehouse"] = filters["warehouse"]
     if filters.get("return_invoice"):
-        conditions.append("pi.name = %s")
-        values.append(filters["return_invoice"])
+        conditions["name"] = filters["return_invoice"]
          
-    if conditions:
-        query += " AND " + " AND ".join(conditions)
-
-    query += " ORDER BY modified DESC"
-
-    purchase_invoice = frappe.db.sql(query, values, as_dict=True)
+    purchase_invoice = frappe.db.get_list("Purchase Invoice", filters = conditions, fields=['*'])
     for purchase in purchase_invoice:
-        items = frappe.get_all("Purchase Invoice Item", filters={"parent":purchase.name}, fields=['*'])
-        tax = frappe.get_all("Purchase Taxes and Charges", filters={"parent":purchase.name}, fields=['*'])
+        items = frappe.db.get_all("Purchase Invoice Item", filters={"parent":purchase.name}, fields=['*'])
+        tax = frappe.db.get_all("Purchase Taxes and Charges", filters={"parent":purchase.name}, fields=['*'])
         total = 0
         total_qty = 0
         total_rate = 0
@@ -181,7 +168,7 @@ def execute(filters=None):
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
         for item in items:
-            data.append([purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, purchase.vat_number, '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
-        data.append(['', '', '', '', '', '', 'Total', total_qty, total, purchase.discount_amount, total, net_total, '', vat, tds, purchase.grand_total,purchase.outstanding_amount, purchase.total_taxes_and_charges, ''])
+            data.append([purchase.posting_date, purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, purchase.vat_number, '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
+        data.append(['', '', '', '', '', '', '', 'Total', total_qty, total, purchase.discount_amount, total, net_total, '', vat, tds, purchase.grand_total,purchase.outstanding_amount, purchase.total_taxes_and_charges, ''])
     return columns, data
 

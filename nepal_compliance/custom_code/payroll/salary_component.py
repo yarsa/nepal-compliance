@@ -84,8 +84,8 @@ def get_salary_components_config() -> List[Dict[str, Any]]:
             "formula": "BASIC * 0.1"
         },
         {
-            "name": "PF_Employer",
-            "abbr": "PF_Employer",
+            "name": "PF_Employeer",
+            "abbr": "PF_Employeer",
             "type": "Deduction",
             "description": "PF Based on Formula",
             "formula": "BASIC * 0.1"

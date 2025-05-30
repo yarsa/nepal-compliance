@@ -104,7 +104,7 @@ frappe.query_reports["Audit Trail"] = {
             default: "",
             get_query: function () {
                 return {
-                    query: "nepal_compliance.nepal_compliance.report.audit_trail.audit_trail.get_relevant_doctypes",
+                    query: "nepal_compliance.nepal_compliance.report.audit_trail.audit_trail.get_relavant_doctypes",
                 };
             },
         },
