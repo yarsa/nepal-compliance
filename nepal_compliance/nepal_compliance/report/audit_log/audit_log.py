@@ -36,6 +36,12 @@ def get_columns():
             "width": 180
         },
         {
+            "fieldname": "operation",
+            "label": _("Operation"),
+            "fieldtype": "Data",
+            "width": 120
+        },
+        {
             "fieldname": "modified",
             "label": _("Last Modified Date and Time"),
             "fieldtype": "Datetime",
@@ -43,7 +49,7 @@ def get_columns():
         },
         {
             "fieldname": "nepali_date",
-            "label": _("Nepali Date"),
+            "label": _("Date"),
             "fieldtype": "Data",
             "width": 150
         },
@@ -63,63 +69,82 @@ def get_columns():
     return columns
 
 def get_conditions(filters):
-    conditions = "1=1"
-    allowed_doctypes = ["Sales Invoice", "Purchase Invoice"]
-    
+    allowed_doctypes = [
+    "Sales Invoice", "Purchase Invoice", "Journal Entry", "Payment Entry",
+    "Sales Order", "Purchase Order", "Delivery Note", "Purchase Receipt",
+    "Stock Entry", "Stock Reconciliation", "POS Invoice", "Asset", "Expense Claim"]
+
+    conditions = []
+
     if filters.get("ref_doctype"):
         if filters["ref_doctype"] not in allowed_doctypes:
             frappe.throw(_("The selected document type is not allowed."))
-        conditions += " AND v.ref_doctype = %(ref_doctype)s"
+        conditions.append("v.ref_doctype = %(ref_doctype)s")
     else:
-        conditions += " AND v.ref_doctype IN %(allowed_doctypes)s"
-        
-    if filters.get('docname'):
-        conditions += " AND v.docname = %(docname)s"
+        conditions.append("v.ref_doctype IN %(allowed_doctypes)s")
 
-    if filters.get('from_date') and filters.get('to_date'):
-        conditions += " AND DATE(v.modified) >= %(from_date)s AND DATE(v.modified) <= %(to_date)s"
-        
+    if filters.get('docname'):
+        conditions.append("v.docname = %(docname)s")
+
+    if filters.get("from_nepali_date"):
+        conditions.append("IFNULL(d.nepali_date, '') >= %(from_nepali_date)s")
+    if filters.get("to_nepali_date"):
+        conditions.append("IFNULL(d.nepali_date, '') <= %(to_nepali_date)s")
+
     if filters.get("doc_status"):
-        conditions += " AND d.status = %(doc_status)s"
-        
-    return conditions, allowed_doctypes
+        conditions.append("IFNULL(d.status, '') = %(doc_status)s")
+    
+    if filters.get("modified_by"):
+        conditions.append("v.modified_by = %(modified_by)s")
+
+    condition_str = " AND ".join(conditions) if conditions else "1=1"
+    return condition_str, allowed_doctypes
 
 def get_audit_log(filters, columns):
     
     conditions, allowed_doctypes = get_conditions(filters)
-    filters_values = {}
-    if filters:
-        filters_values.update(filters)
-    else:
-        filters_values = {}
+    filters_values = filters.copy() if filters else {}
         
     if not filters.get("ref_doctype"):
         filters_values['allowed_doctypes'] = tuple(allowed_doctypes)
     
     ref_doctype = filters.get("ref_doctype", "Sales Invoice")
-    
-    if ref_doctype == "Sales Invoice":
-        table_name = "Sales Invoice"
-    elif ref_doctype == "Purchase Invoice":
-        table_name = "Purchase Invoice"
-    else:
+
+    if ref_doctype not in allowed_doctypes:
         frappe.throw(_("Invalid ref_doctype"))
 
-    query = '''
-        SELECT v.ref_doctype,
-               v.docname,
-               v.data AS "audit_detail",
-               v.owner,
-               v.modified_by,
-               v.modified,
-               IFNULL (d.nepali_date, '') AS nepali_date,
-               d.status AS doc_status 
+    meta = frappe.get_meta(ref_doctype)
+    has_nepali_date = "nepali_date" in [df.fieldname for df in meta.fields]
+    has_status = "status" in [df.fieldname for df in meta.fields]
+
+    select_fields = [
+        "v.ref_doctype",
+        "v.docname",
+        "v.data AS audit_detail",
+        "v.owner",
+        "v.modified_by",
+        "v.modified"
+    ]
+
+    if has_nepali_date:
+        select_fields.append("IFNULL(d.nepali_date, '') AS nepali_date")
+    else:
+        select_fields.append("'' AS nepali_date")
+
+    if has_status:
+        select_fields.append("d.status AS doc_status")
+    else:
+        select_fields.append("'' AS doc_status")
+
+    select_clause = ",\n       ".join(select_fields)
+
+    query = f"""
+        SELECT {select_clause}
         FROM tabVersion v
-        LEFT JOIN `tab{table_name}` d ON v.docname = d.name
+        LEFT JOIN `tab{ref_doctype}` d ON v.docname = d.name
         WHERE {conditions}
         ORDER BY v.docname
-    '''.format(table_name=ref_doctype, conditions=conditions)
-    
+    """
     data = frappe.db.sql(query, filters_values, as_dict=1)
     dl = list(data)
     dict_submit = {}
@@ -129,13 +154,21 @@ def get_audit_log(filters, columns):
         temp_json = json.loads(row['audit_detail'])
         changes = []
         row['submit_status'] = "No"
+        row["operation"] = "Update"
+
+        if "operation" in temp_json:
+            row["operation"] = temp_json["operation"].capitalize()
 
         if "changed" in temp_json:
             for d in temp_json['changed']:
                 if d[0] == 'docstatus':
                     if d[1] == 0 and d[2] == 1:
                         row['submit_status'] = "Yes"
+                        row["operation"] = "Submit"
                         dict_submit.setdefault(row['docname'], frappe._dict()).setdefault("modified", []).append(row["modified"])
+                    elif d[1] == 1 and d[2] == 2:
+                        row["operation"] = "Cancel"
+                        row["submit_status"] = "No"
                     else:
                         row['submit_status'] = "No"
                 else:
@@ -161,7 +194,10 @@ def get_audit_log(filters, columns):
                     changes.append(f"- **User Activity**: {d[1]}")
         doc = frappe.get_doc(row['ref_doctype'], row['docname'])
         
-        row['doc_status'] = doc.get("status")
+        row['doc_status'] = doc.get("status") or ""
+        if not row.get('nepali_date'):
+            row['nepali_date'] = doc.get("nepali_date") or ""
+
         row['audit_detail_summary'] = "\n".join(changes)
         
     for field in changed_fields:
@@ -194,5 +230,8 @@ def get_audit_log(filters, columns):
 
     if filters.get("doc_status"):
         dl = [row for row in dl if row['doc_status'] == filters["doc_status"]]
-        
+    
+    if filters.get("operation"):
+        dl = [row for row in dl if row.get("operation") == filters["operation"]]
+ 
     return dl

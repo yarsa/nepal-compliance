@@ -89,7 +89,12 @@ const nepaliDateConfig = {
     "Quality Inspection": singleNepaliDateConfig('report_date_bs_quality_inspection'),
     "Quick Stock Balance": singleNepaliDateConfig('date'),
     "Bulk Salary Structure Assignment": singleNepaliDateConfig('from_date'),
-    "Employee Attendance Tool": singleNepaliDateConfig('date')
+    "Employee Attendance Tool": singleNepaliDateConfig('date'),
+    "Period Closing Voucher": singleNepaliDateConfig('transaction_date'),
+    "Invoice Discounting": singleNepaliDateConfig('posting_date'),
+    "Dunning": singleNepaliDateConfig('posting_date'),
+    "Process Deferred Accounting": singleNepaliDateConfig('posting_date'),
+    "POS Invoice": singleNepaliDateConfig('posting_date')
 };
 
 Object.entries(nepaliDateConfig).forEach(([doctype, config]) => {

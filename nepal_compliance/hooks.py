@@ -90,7 +90,8 @@ doctype_js = {
     "Employee Tax Exemption Proof Submission": "public/js/payroll_bs_date.js", "Employee Benefit Application": "public/js/payroll_bs_date.js", "Employee Benefit Claim": "public/js/hrms_bs_date.js",
     "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js",
     "Upload Attendance": "public/js/hrms_bs_date.js", "Leave Period": "public/js/hrms_bs_date.js", "Leave Policy Assignment": "public/js/hrms_bs_date.js", "Leave Control Panel": "public/js/hrms_bs_date.js", "Leave Encashment": "public/js/hrms_bs_date.js",
-    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js'
+    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js',
+    "Period Closing Voucher": "public/js/bs_date.js", "Invoice Discounting": "public/js/bs_date.js", "Dunning": "public/js/bs_date.js", "Process Deferred Accounting": "public/js/bs_date.js", "POS Invoice": "public/js/bs_date.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
@@ -339,4 +340,4 @@ purchase_sales = ["Purchase Invoice", "Sales Invoice"]
 
 doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
                  "Landed Cost Voucher","Payment Entry","Period Closing Voucher","Process Deferred Accounting","Purchase Invoice",
-                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation","Subcontracting Receipt",]
+                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation"]

@@ -266,7 +266,22 @@ def create_custom_fields():
         ],
         "Leave Encashment":[
             {"fieldname": "encashment_date_bs", "label": "Encashment Date BS", "fieldtype": "Data", "insert_after": "encashment_date", "in_list_view": 1}
-        ], 
+        ],
+        "Period Closing Voucher": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date"}
+        ],
+        "Invoice Discounting":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
+        ],
+        "Dunning":[
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
+        ],
+        "Process Deferred Accounting": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
+        ],
+        "POS Invoice": [
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date",}
+        ]
     }
 
     created_fields = [] 
@@ -282,7 +297,7 @@ def create_custom_fields():
                 })
                 custom_field.save()
                 frappe.msgprint(_(f"Custom field '{field['label']}' added successfully to {doctype_name}!"))
-                created_fields.append({"dt": doctype_name, "fieldname": field["fieldname"]})  # Store created field info
+                created_fields.append({"dt": doctype_name, "fieldname": field["fieldname"]})
             else:
                 frappe.msgprint(_(f"Field '{field['label']}' already exists in {doctype_name}."))
 
