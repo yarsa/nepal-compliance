@@ -30,34 +30,26 @@ frappe.query_reports["Audit Trail"] = {
             on_change: function (report) {
                 let selected_value = report.get_filter_value("date_option");
                 let date_range = report.get_filter("date_range");
-                let fields_to_toggle = ["from_date", "to_date", "from_nepali_date", "to_nepali_date"];
+                let fields_to_toggle = ["from_nepali_date", "to_nepali_date"];
                 fields_to_toggle.forEach(fieldname => {
                     let field = report.get_filter(fieldname);
-                    if (selected_value === "Nepali Date Filter") {
-                        field.df.hidden = false;
-                    } 
-                    else {
-                        field.df.hidden = true;
-                        field.set_value('')
-                    }
+                    field.df.hidden = selected_value !== "Nepali Date Filter";
+                    if (field.df.hidden) field.set_value("");
                     field.refresh();
                 });
-                if (selected_value === "Custom") {
-                    date_range.df.hidden = false;
-                } else {
-                    date_range.df.hidden = true;
-                }
-                date_range.refresh()
-                let report_field = report.get_filter("report");
-                if (selected_value === "Nepali Date Filter") {
-                    report_field.df.options = "Detail Report";  
-                } else {
-                    report_field.df.options = "Detail Report\nDocType Summary\nUser Summary";  
-                }
-            
-                report_field.refresh();
-                report.refresh();
 
+                date_range.df.hidden = selected_value !== "Custom";
+                if (date_range.df.hidden) date_range.set_value("");
+                date_range.refresh();
+
+                const report_field = report.get_filter("report");
+                report_field.df.options =
+                    selected_value === "Nepali Date Filter"
+                        ? "Detail Report"
+                        : "Detail Report\nDocType Summary\nUser Summary";
+                report_field.refresh();
+
+                report.refresh();
             },
         },
         {
@@ -67,26 +59,14 @@ frappe.query_reports["Audit Trail"] = {
             hidden: true,
         },
         {
-            fieldname: "from_date",
-            label: __("From Date"),
-            fieldtype: "Date",
-            hidden: true
-        },
-        {
-            fieldname: "to_date",
-            label: __("To Date"),
-            fieldtype: "Date",
-            hidden: true
-        },
-        {
             fieldname: "from_nepali_date",
-            label: __("From Nepali Date"),
+            label: __("From Date"),
             fieldtype: "Data",
             hidden: true
         },
         {
             fieldname: "to_nepali_date",
-            label: __("To Nepali Date"),
+            label: __("To Date"),
             fieldtype: "Data",
             hidden: true
         },
@@ -110,6 +90,8 @@ frappe.query_reports["Audit Trail"] = {
         },
     ],
     onload: function(report) {
-        DatePickerConfig.initializePickers(report);
+        if (typeof DatePickerConfig !== "undefined") {
+            DatePickerConfig.initializePickers(report);
+        }
     },
 };
