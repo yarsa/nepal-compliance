@@ -75,7 +75,7 @@ doctype_js = {
     "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Payment Entry": "public/js/bs_date.js",
-    "Journal Entry": "public/js/bs_date.js",
+    "Journal Entry": ["public/js/bs_date.js", "public/js/utils.js"],
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
     "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
@@ -197,7 +197,7 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # 		"on_update": "method",
 # 		"on_cancel": "method",
 # 		"on_trash": "method"
-# 	}
+# 	} 
 # }
 doc_events = {
 
@@ -211,6 +211,9 @@ doc_events = {
     "Sales Invoice" : {
         "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
         ]
+    },
+    "Salary Slip": {
+        "after_insert": "nepal_compliance.patches.payroll_entry.execute",
     }
 }
 # Scheduled Tasks
