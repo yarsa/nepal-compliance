@@ -13,3 +13,13 @@ frappe.ui.form.on('Purchase Invoice',{
         frm.set_df_property('customer_vat_number', 'read_only', 1);
     }
 })
+
+frappe.ui.form.on('Journal Entry', {
+    refresh(frm) {
+        if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
+            const nepali = convertADtoBS(frm.doc.posting_date);
+            frappe.db.set_value('Journal Entry', frm.doc.name, 'nepali_date', nepali)
+                .then(() => frm.reload_doc());
+        }
+    }
+});
