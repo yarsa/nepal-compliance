@@ -7,7 +7,11 @@
 }
 
 .frappe-control .equivalent-date {
-    margin-top: -2px;
+    margin: -16px 0 0 4px;
+    padding: 0 0 4px 2px;
+    font-size: 0.85em;
+    line-height: 1.2;
+    color: #888;
 }
 
 .static-input .equivalent-date {
