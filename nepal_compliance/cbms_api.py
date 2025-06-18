@@ -61,7 +61,7 @@ class CBMSIntegration:
                 "username": self.cbms_settings.user_name,
                 "password": self.cbms_settings.get_password("password"),
                 "seller_pan": self.cbms_settings.panvat_no,
-                "buyer_pan": self.doc.vat_number,  
+                "buyer_pan": self.doc.vat_number if self.doc.vat_number else "",  
                 "fiscal_year": fiscal_year,
                 "total_sales": self.doc.grand_total if not self.doc.is_return else abs(self.doc.grand_total), 
                 "taxable_sales_vat": abs(self.doc.net_total) if self.doc.is_return else (self.doc.net_total if self.doc.discount_amount else abs(self.doc.total)),
@@ -169,7 +169,7 @@ def post_sales_invoice_or_return_to_cbms(doc_name, method=None):
             is_async=True,
             doc=doc_name 
         )
-        frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS"))
+        frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS."))
         return {"message": _("Request processed successfully"), "status": "success"}
 
     except Exception as e:
