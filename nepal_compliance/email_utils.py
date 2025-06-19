@@ -75,7 +75,7 @@ def send_invoice_email(docname, doctype, auto_send=False):
     if not recipient_email :
         if not auto_send:
             frappe.msgprint(
-            _("No email address found for this Supplier/Customer. Please update their contact details."),
+            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype."),
             indicator="orange"
         )
         return
@@ -121,7 +121,7 @@ def check_email_setup(doctype, docname):
 
     if not email:
         frappe.msgprint(
-            _("No email address found for this Supplier/Customer. Please update their contact details."),
+            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype."),
             indicator="orange",
             alert=True
         )

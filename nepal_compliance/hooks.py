@@ -69,10 +69,10 @@ doctype_js = {
     "Fiscal Year": "public/js/bs_date.js",
     "Stock Entry": "public/js/hrms_bs_date.js",
     "Material Request": "public/js/hrms_bs_date.js",
-    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "Purchase Invoice": ["public/js/bs_date.js", "public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
     "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
     "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Payment Entry": "public/js/bs_date.js",
     "Journal Entry": ["public/js/bs_date.js", "public/js/utils.js"],
@@ -206,11 +206,12 @@ doc_events = {
     },
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
-        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "on_submit": "nepal_compliance.qr_code.create_qr_code"
     },
     "Sales Invoice" : {
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
-        ]
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"],
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",

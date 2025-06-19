@@ -7,7 +7,7 @@ def create_custom_fields():
     custom_fields = {
         "Company": [
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
-            {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list"}
+            {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list", "allow_on_submit": 1}
         ],
         "User": [
             {"fieldname": "use_ad_date", "label": "Use Ad Date", "fieldtype": "Check", "insert_after": "username",
@@ -20,11 +20,11 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
         ],
         "Supplier": [
-            {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Data", "insert_after": "country", "reqd": 1},
+            {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Data", "insert_after": "country", "allow_on_submit": 1},
             {"fieldname": "supplier_email_address", "label": "Supplier Email Address", "fieldtype": "Data", "insert_after": "supplier_vat_number"}
         ],
         "Customer": [
-            {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Data", "insert_after": "customer_group", "reqd": 1},
+            {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Data", "insert_after": "customer_group", "allow_on_submit": 1},
             {"fieldname": "customer_email_address", "label": "Customer Email Address", "fieldtype": "Data", "insert_after": "customer_vat_number"}
         ],
         "Salary Slip": [
@@ -61,19 +61,18 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
         ],  
         "Purchase Invoice":[
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"},
-            {"fieldname": "vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "supplier", "in_list_view": 1, "reqd": 1},
-            {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "reqd": 1},
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "supplier", "in_list_view": 1, "allow_on_submit": 1},
+            {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1}
         ],
         "Sales Order":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date"}
         ],
         "Sales Invoice": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"},
-            {"fieldname": "print_count", "label": "Print Count", "fieldtype": "Int", "insert_after": "amended_form", "read_only": 1},
-            {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "reqd": 1},
-            {"fieldname": "supplier_vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "reqd": 1},
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},
+            {"fieldname": "supplier_vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "supplier_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "supplier_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "cbms_status", "label": "CBMS Status", "fieldtype": "Select", "options": "\nSuccess\nPending\nFailed", "default": "", "insert_after": "supplier_vat_number", "in_list_view": 1, "allow_on_submit": 1},
