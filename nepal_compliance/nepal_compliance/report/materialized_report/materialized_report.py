@@ -57,6 +57,11 @@ class BaseAuditTrail:
             conditions["docstatus"] = ["in", [1, 2]]
         elif sync_with_ird == "No":
             conditions["docstatus"] = 0
+        if self.filters.get("party_name"):
+            if self.filters.get("doctype") in DOC["supplier_name"]:
+                conditions["supplier_name"] = ["like", f"%{self.filters['party_name']}%"]
+            elif self.filters.get("doctype") in DOC["customer_name"]:
+                conditions["customer_name"] = ["like", f"%{self.filters['party_name']}%"]
 
         return conditions
 
@@ -105,6 +110,12 @@ class ColumnDetail(BaseAuditTrail):
                 "width": 150,
                 "options": "party_type",
             },
+            {
+                "label": _("VAT/PAN Number"),
+                "fieldtype": "Data",
+                "fieldname": "vat_number",
+                "width": 150
+            },
 		    {
                 'fieldname': 'vat',
                 'label': _('VAT'),
@@ -135,12 +146,6 @@ class ColumnDetail(BaseAuditTrail):
                 "width": 150,
             },
             {
-                "label": _("Sync with IRD"),
-                "fieldtype": "Check",
-                "fieldname": "sync_with_ird",
-                "width": 120
-            },
-            {
                 "label": _("Is Bill Printed"),
                 "fieldtype": "Check",
                 "fieldname": "is_bill_printed",
@@ -160,17 +165,28 @@ class ColumnDetail(BaseAuditTrail):
                 "width": 180,
             },
         ]
+        doctype = self.filters.get("doctype")
+        if doctype != "Purchase Invoice":
+            columns.append({
+            "label": _("Sync with IRD"),
+            "fieldtype": "Check",
+            "fieldname": "sync_with_ird",
+            "width": 120
+        })
 
         return columns
 
     def get_data(self):
         self.data = []
         conditions = self.get_conditions()
+        sync_with_ird = self.filters.get("sync_with_ird")
 
         if doctype := self.filters.get("doctype"):
             doctypes = [doctype]
         else:
             doctypes = self.get_doctypes()
+            if sync_with_ird == "Yes":
+                doctypes = [dt for dt in doctypes if dt != "Purchase Invoice"]
 
         for doctype in doctypes:
             fields = self.get_fields(doctype)
@@ -193,11 +209,12 @@ class ColumnDetail(BaseAuditTrail):
 
         if doctype in DOC["supplier_name"]:
             fields.append("supplier_name as party_name")
+            fields.append("vat_number")
             fields.append("")
 
         elif doctype in DOC["customer_name"]:
             fields.append("customer_name as party_name")
-
+            fields.append("vat_number")
 
         if doctype in DOC["remark_field"]:
             fields.append("remarks")
@@ -237,7 +254,8 @@ class ColumnDetail(BaseAuditTrail):
             row["is_bill_printed"] = 1 if print_count > 0 else 0
             row["printed_by"] = printed_by_user 
             
-            row["sync_with_ird"] = 1 if row.get('docstatus') in [1,2] else 0
+            if self.filters.get("doctype") != "Purchase Invoice":
+                row["sync_with_ird"] = 1 if doctype == "Sales Invoice" and row.get("docstatus") in [1, 2] else 0
                 
             vat = 0.0
             tds = 0.0
@@ -269,7 +287,7 @@ class ColumnDetail(BaseAuditTrail):
             self.data.append(row)
             
 @frappe.whitelist()
-def get_relavant_doctypes():
+def get_relevant_doctypes():
     doctypes = get_purchase_sales_doctype()
     return doctypes
 

@@ -1,0 +1,80 @@
+name: Label Large PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label-large-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if "large-pr" label exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labelName = 'large-pr';
+            const labelColor = 'BC5834';
+            const labelDescription = 'Pull request with over 300 LOC changed.';
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName,
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName,
+                  color: labelColor,
+                  description: labelDescription,
+                });
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Label Large PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = pr.number;
+
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            const totalChanges = files.reduce((sum, file) => {
+              return sum + file.additions + file.deletions;
+            }, 0);
+
+            if (totalChanges > 300) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: ['large-pr'],
+              });
+              console.log('Label "large-pr" added.');
+            } else {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  name: 'large-pr',
+                });
+                console.log('Label "large-pr" removed.');
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                console.log('Label "large-pr" not present, nothing to remove.');
+              }
+            }

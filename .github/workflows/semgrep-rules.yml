@@ -1,8 +1,9 @@
 # These rules guard against typical mistakes or bad practices while working on Frappe Framework apps.
 # This workflow uses Frappe Semgrep rules specific to Frappe Framework, licensed under the MIT License.
 # Copyright (c) 2021 Frappe Technologies Pvt. Ltd. <developers@frappe.io>. See LICENSE at https://github.com/frappe/semgrep-rules
+# spelling job derived from typos-action. See LICENSE at https://github.com/crate-ci/typos
 
-name: Frappe Linter - Semgrep rules
+name: Frappe Linter - Semgrep rules + Typos Check
 
 on:
   push:
@@ -15,6 +16,15 @@ permissions:
   contents: read
   
 jobs:
+  spelling:
+    name: Spell Check with Typos
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Actions Repository
+      uses: actions/checkout@v4
+    - name: Spell Check Repo
+      uses: crate-ci/typos@v1.32.0
+
   linters:
     name: Frappe Linter
     runs-on: ubuntu-latest

@@ -27,12 +27,18 @@ app_license = "GNU General Public License (v3)"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
 app_include_css = ["/assets/nepal_compliance/css/calendar.css",
+                   "assets/nepal_compliance/css/date.css",
                    "/assets/nepal_compliance/css/doctype.css"]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
 app_include_js = [
                  "/assets/nepal_compliance/js/bs_module.js",
+                 "/assets/nepal_compliance/js/nepali_date.js",
+                 "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
+                 "/assets/nepal_compliance/js/icon_patch.js"
                  ]
+
+boot_session = "nepal_compliance.boot.get_boot_info"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
@@ -52,6 +58,7 @@ app_include_js = [
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
     "Company": "public/js/validate.js",
+    "User": "public/js/nepali_date.js",
     "Salary Slip" : "public/js/salary_slip.js",
     "Expense Claim": "public/js/bs_date.js",
     "Leave Application": "public/js/bs_date.js",
@@ -79,13 +86,16 @@ doctype_js = {
     "Loyalty Program": "public/js/bs_date.js", "Promotional Scheme": "public/js/bs_date.js", "Pricing Rule": "public/js/bs_date.js", "Coupon Code": "public/js/bs_date.js",
     "Serial No": "public/js/bs_date.js", "Batch": "public/js/bs_date.js",
     "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js",
-    "Payroll Entry": "public/js/payroll_bs_date.js", "Income Tax Slab": "public/js/payroll_bs_date.js", "Payroll Period": "public/js/payroll_bs_date.js", "Salary Structure Assignment": ["public/js/payroll_bs_date.js", "public/js/single_doc.js"], "Salary Withholding": "public/js/payroll_bs_date.js", "Additional Salary": "public/js/payroll_bs_date.js", "Employee Incentive": "public/js/payroll_bs_date.js", "Retention Bonus": "public/js/payroll_bs_date.js",
+    "Payroll Entry": "public/js/payroll_bs_date.js", "Income Tax Slab": "public/js/payroll_bs_date.js", "Payroll Period": "public/js/payroll_bs_date.js", "Salary Structure Assignment": ["public/js/payroll_bs_date.js"], "Salary Withholding": "public/js/payroll_bs_date.js", "Additional Salary": "public/js/payroll_bs_date.js", "Employee Incentive": "public/js/payroll_bs_date.js", "Retention Bonus": "public/js/payroll_bs_date.js",
     "Employee Tax Exemption Proof Submission": "public/js/payroll_bs_date.js", "Employee Benefit Application": "public/js/payroll_bs_date.js", "Employee Benefit Claim": "public/js/hrms_bs_date.js",
-    "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js", "Employee Attendance Tool": "public/js/hrms_bs_date.js",
+    "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js",
     "Upload Attendance": "public/js/hrms_bs_date.js", "Leave Period": "public/js/hrms_bs_date.js", "Leave Policy Assignment": "public/js/hrms_bs_date.js", "Leave Control Panel": "public/js/hrms_bs_date.js", "Leave Encashment": "public/js/hrms_bs_date.js",
-    "Bulk Salary Structure Assignment": "public/js/single_doc.js"
+    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js'
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_list_js = {
+    "Salary Component": "public/js/custom_button.js"
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 

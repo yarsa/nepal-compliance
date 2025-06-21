@@ -167,7 +167,8 @@ frappe.call = function(opts) {
 let manualDateChange = false;
 frappe.ui.form.on('Salary Slip', {
     refresh: function(frm) {
-        DatePickerConfig.initializePickers(frm);
+        frm.set_df_property('nepali_start_date', 'hidden', 1);
+        frm.set_df_property('nepali_end_date', 'hidden', 1);
  
         if (!isEndDateChange) {
             calculate_selected_earnings(frm);
