@@ -9,6 +9,15 @@ def create_custom_fields():
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
             {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list", "allow_on_submit": 1}
         ],
+        "Item": [
+            {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_stock_item"},
+        ],
+        "Sales Invoice Item": [
+            {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
+        ],
+        "Purchase Invoice Item": [
+            {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
+        ],
         "User": [
             {"fieldname": "use_ad_date", "label": "Use Ad Date", "fieldtype": "Check", "insert_after": "username",
             "description": "<b>Disclaimer:</b> Checking this means you prefer using the default date picker (AD format) as your preferred format."},
