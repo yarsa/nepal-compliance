@@ -1,4 +1,6 @@
 import frappe
+from frappe import _
+from frappe.utils import flt
 import json
 import openpyxl
 from frappe.utils import get_site_path
@@ -10,7 +12,7 @@ def convert_to_nepali_fy_format(fy_name):
     if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
         return fy_name
     try:
-        start, end = map(int, fy_name.split("-"))
+        start, end = [int(x) for x in fy_name.split("-")]
         nep_start = start + 57
         nep_end = end + 57
         return f"{nep_start}/{str(nep_end)[-2:]}"
@@ -26,7 +28,7 @@ def generate_ird_purchase_register_excel():
     rows = get_data(filters)
 
     if not rows:
-        frappe.throw("No data found for the selected filters.")
+        frappe.throw(_("No data found for the selected filters."))
 
     company = filters.get("company")
     company_info = frappe.get_doc("Company", company) if company else None
