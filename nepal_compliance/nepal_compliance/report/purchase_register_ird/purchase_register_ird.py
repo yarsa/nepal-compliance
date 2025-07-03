@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.utils import flt
+from frappe import _
 
 def execute(filters=None):
     columns = get_columns()
@@ -11,20 +12,20 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": "मिति", "fieldname": "nepali_date", "fieldtype": "Data", "width": 120},
+        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 120},
         # {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Purchase Invoice", "width": 100},
-        {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Data", "width": 200},
-        {"label": "प्रज्ञापनपत्र नं.", "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
-        {"label": "आपूर्तिकर्ताको नाम", "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
-        {"label": "आपूर्तिकर्ताको स्थायी लेखा नम्बर", "fieldname": "pan", "fieldtype": "Data", "width": 120},
-        {"label": "जम्मा खरिद मूल्य (रु)", "fieldname": "total", "fieldtype": "Float", "width": 120},
-        {"label": "कर छुट हुने वस्तु वा सेवाको खरिद / पैठारी मूल्य (रु)", "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
-        {"label": "करयोग्य खरिद (पूंजीगत बाहेक) मूल्य (रु)", "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य खरिद (पूंजीगत बाहेक) कर (रु)", "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य पैठारी (पूंजीगत बाहेक) मूल्य (रु)", "fieldname": "taxable_import_non_capital_amount", "fieldtype": "Float", "width": 140},
-        {"label": "करयोग्य पैठारी (पूंजीगत बाहेक) कर (रु)", "fieldname": "taxable_import_non_capital_tax", "fieldtype": "Float", "width": 140},
-        {"label": "पूंजीगत करयोग्य खरिद / पैठारी मूल्य (रु)", "fieldname": "capital_taxable_amount", "fieldtype": "Float", "width": 140},
-        {"label": "पूंजीगत करयोग्य खरिद / पैठारी कर (रु)", "fieldname": "capital_taxable_tax", "fieldtype": "Float", "width": 140},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
+        {"label": _("प्रज्ञापनपत्र नं."), "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
+        {"label": _("आपूर्तिकर्ताको नाम"), "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
+        {"label": _("आपूर्तिकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
+        {"label": _("जम्मा खरिद मूल्य (रु)"), "fieldname": "total", "fieldtype": "Float", "width": 120},
+        {"label": _("कर छुट हुने वस्तु वा सेवाको खरिद / पैठारी मूल्य (रु)"), "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
+        {"label": _("करयोग्य खरिद (पूंजीगत बाहेक) मूल्य (रु)"), "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य खरिद (पूंजीगत बाहेक) कर (रु)"), "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य पैठारी (पूंजीगत बाहेक) मूल्य (रु)"), "fieldname": "taxable_import_non_capital_amount", "fieldtype": "Float", "width": 140},
+        {"label": _("करयोग्य पैठारी (पूंजीगत बाहेक) कर (रु)"), "fieldname": "taxable_import_non_capital_tax", "fieldtype": "Float", "width": 140},
+        {"label": _("पूंजीगत करयोग्य खरिद / पैठारी मूल्य (रु)"), "fieldname": "capital_taxable_amount", "fieldtype": "Float", "width": 140},
+        {"label": _("पूंजीगत करयोग्य खरिद / पैठारी कर (रु)"), "fieldname": "capital_taxable_tax", "fieldtype": "Float", "width": 140},
     ]
 
 def get_data(filters):

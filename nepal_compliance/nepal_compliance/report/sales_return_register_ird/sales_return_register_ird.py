@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.utils import flt
+from frappe import _
 
 def execute(filters=None):
     columns = get_columns()
@@ -11,17 +12,17 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": "मिति", "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
-        {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
-        {"label": "खरिदकर्ताको नाम", "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
-        {"label": "खरिदकर्ताको स्थायी लेखा नम्बर", "fieldname": "pan", "fieldtype": "Data", "width": 120},
-        {"label": "वस्तु वा सेवाको नाम", "fieldname": "name", "fieldtype": "Data", "width": 200},
-        {"label": "वस्तु वा सेवाको परिमाण", "fieldname": "qty", "fieldtype": "Float", "width": 120},
-        {"label": "वस्तु वा सेवाको एकाइ", "fieldname": "uom", "fieldtype": "Data", "width": 100},
-        {"label": "जम्मा फिर्ता मूल्य (रु)", "fieldname": "total", "fieldtype": "Float", "width": 120},
-        {"label": "स्थानीय कर छुटको फिर्ता  मूल्य (रु)", "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
-        {"label": "करयोग्य फिर्ता मूल्य (रु)", "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य फिर्ता कर (रु)", "fieldname": "tax_amount", "fieldtype": "Float", "width": 120}
+        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
+        {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
+        {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
+        {"label": _("वस्तु वा सेवाको नाम"), "fieldname": "name", "fieldtype": "Data", "width": 200},
+        {"label": _("वस्तु वा सेवाको परिमाण"), "fieldname": "qty", "fieldtype": "Float", "width": 120},
+        {"label": _("वस्तु वा सेवाको एकाइ"), "fieldname": "uom", "fieldtype": "Data", "width": 100},
+        {"label": _("जम्मा फिर्ता मूल्य (रु)"), "fieldname": "total", "fieldtype": "Float", "width": 120},
+        {"label": _("स्थानीय कर छुटको फिर्ता  मूल्य (रु)"), "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
+        {"label": _("करयोग्य फिर्ता मूल्य (रु)"), "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य फिर्ता कर (रु)"), "fieldname": "tax_amount", "fieldtype": "Float", "width": 120}
     ]
 
 def get_data(filters):

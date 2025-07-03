@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.utils import flt
+from frappe import _
 
 def execute(filters=None):
     columns = get_columns()
@@ -11,23 +12,23 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": "मिति", "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
         # {"label": "बीजक नं./प्रज्ञापनपत्र नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Purchase Invoice", "width": 100},
-        {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Data", "width": 200},
-        {"label": "प्रज्ञापनपत्र नं.", "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
-        {"label": "आपूर्तिकर्ताको नाम", "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
-        {"label": "आपूर्तिकर्ताको स्थायी लेखा नम्बर", "fieldname": "pan", "fieldtype": "Data", "width": 120},
-        {"label": "खरिद/पैठारी फिर्ता गरिएका वस्तु वा सेवाको विवरण", "fieldname": "reason", "fieldtype": "Data", "width": 200},
-        {"label": "खरिद/पैठारी फिर्ता गरिएका वस्तु वा सेवाको परिमाण", "fieldname": "qty", "fieldtype": "Float", "width": 120},
-        {"label": "वस्तु वा सेवाको एकाइ", "fieldname": "uom", "fieldtype": "Data", "width": 100},
-        {"label": "जम्मा फिर्ता मूल्य (रु)", "fieldname": "total", "fieldtype": "Float", "width": 120},
-        {"label": "कर छुट हुने वस्तु वा सेवाको फिर्ता मूल्य (रु)", "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
-        {"label": "करयोग्य फिर्ता (पूंजीगत बाहेक) मूल्य (रु)", "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य फिर्ता (पूंजीगत बाहेक) कर (रु)", "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य पैठारी फिर्ता (पूंजीगत बाहेक) मूल्य (रु)", "fieldname": "taxable_import_non_capital_amount", "fieldtype": "Float", "width": 140},
-        {"label": "करयोग्य पैठारी फिर्ता (पूंजीगत बाहेक) कर (रु)", "fieldname": "taxable_import_non_capital_tax", "fieldtype": "Float", "width": 140},
-        {"label": "पूंजीगत करयोग्य फिर्ता मूल्य (रु)", "fieldname": "capital_taxable_amount", "fieldtype": "Float", "width": 140},
-        {"label": "पूंजीगत करयोग्य फिर्ता कर (रु)", "fieldname": "capital_taxable_tax", "fieldtype": "Float", "width": 140},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
+        {"label": _("प्रज्ञापनपत्र नं."), "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
+        {"label": _("आपूर्तिकर्ताको नाम"), "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
+        {"label": _("आपूर्तिकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
+        {"label": _("खरिद/पैठारी फिर्ता गरिएका वस्तु वा सेवाको विवरण"), "fieldname": "reason", "fieldtype": "Data", "width": 200},
+        {"label": _("खरिद/पैठारी फिर्ता गरिएका वस्तु वा सेवाको परिमाण"), "fieldname": "qty", "fieldtype": "Float", "width": 120},
+        {"label": _("वस्तु वा सेवाको एकाइ"), "fieldname": "uom", "fieldtype": "Data", "width": 100},
+        {"label": _("जम्मा फिर्ता मूल्य (रु)"), "fieldname": "total", "fieldtype": "Float", "width": 120},
+        {"label": _("कर छुट हुने वस्तु वा सेवाको फिर्ता मूल्य (रु)"), "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
+        {"label": _("करयोग्य फिर्ता (पूंजीगत बाहेक) मूल्य (रु)"), "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य फिर्ता (पूंजीगत बाहेक) कर (रु)"), "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य पैठारी फिर्ता (पूंजीगत बाहेक) मूल्य (रु)"), "fieldname": "taxable_import_non_capital_amount", "fieldtype": "Float", "width": 140},
+        {"label": _("करयोग्य पैठारी फिर्ता (पूंजीगत बाहेक) कर (रु)"), "fieldname": "taxable_import_non_capital_tax", "fieldtype": "Float", "width": 140},
+        {"label": _("पूंजीगत करयोग्य फिर्ता मूल्य (रु)"), "fieldname": "capital_taxable_amount", "fieldtype": "Float", "width": 140},
+        {"label": _("पूंजीगत करयोग्य फिर्ता कर (रु)"), "fieldname": "capital_taxable_tax", "fieldtype": "Float", "width": 140},
     ]
 
 def get_data(filters):

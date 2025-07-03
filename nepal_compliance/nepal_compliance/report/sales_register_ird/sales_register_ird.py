@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.utils import flt
+from frappe import _
 
 def execute(filters=None):
     columns = get_columns()
@@ -11,18 +12,18 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": "मिति", "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
-        {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
-        {"label": "खरिदकर्ताको नाम", "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
-        {"label": "खरिदकर्ताको स्थायी लेखा नम्बर", "fieldname": "pan", "fieldtype": "Data", "width": 120},
-        {"label": "जम्मा बिक्री / निकासी (रु)", "fieldname": "total", "fieldtype": "Float", "width": 120},
-        {"label": "स्थानीय कर छुटको बिक्री  मूल्य (रु)", "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
-        {"label": "करयोग्य बिक्री मूल्य (रु)", "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
-        {"label": "करयोग्य बिक्री कर (रु)", "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
-        {"label": "निकासी गरेको वस्तु वा सेवाको मूल्य (रु)", "fieldname": "Value of Exported Goods or Services", "fieldtype": "Float", "width": 140},
-        {"label": "निकासी गरेको देश", "fieldname": "export_country", "fieldtype": "Data", "width": 140},
-        {"label": "निकासी प्रज्ञापनपत्र नम्बर", "fieldname": "Export Declaration Number", "fieldtype": "Data", "width": 140},
-        {"label": "निकासी प्रज्ञापनपत्र मिति", "fieldname": "Export Declaration Date", "fieldtype": "Data", "width": 140},
+        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
+        {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
+        {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
+        {"label": _("जम्मा बिक्री / निकासी (रु)"), "fieldname": "total", "fieldtype": "Float", "width": 120},
+        {"label": _("स्थानीय कर छुटको बिक्री  मूल्य (रु)"), "fieldname": "tax_exempt", "fieldtype": "Float", "width": 100},
+        {"label": _("करयोग्य बिक्री मूल्य (रु)"), "fieldname": "taxable_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("करयोग्य बिक्री कर (रु)"), "fieldname": "tax_amount", "fieldtype": "Float", "width": 120},
+        {"label": _("निकासी गरेको वस्तु वा सेवाको मूल्य (रु)"), "fieldname": "Value of Exported Goods or Services", "fieldtype": "Float", "width": 140},
+        {"label": _("निकासी गरेको देश"), "fieldname": "export_country", "fieldtype": "Data", "width": 140},
+        {"label": _("निकासी प्रज्ञापनपत्र नम्बर"), "fieldname": "Export Declaration Number", "fieldtype": "Data", "width": 140},
+        {"label": _("निकासी प्रज्ञापनपत्र मिति"), "fieldname": "Export Declaration Date", "fieldtype": "Data", "width": 140},
     ]
 
 def get_data(filters):
