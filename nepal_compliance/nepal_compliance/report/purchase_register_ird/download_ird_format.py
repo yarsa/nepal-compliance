@@ -2,7 +2,6 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt
 import json
 import openpyxl
 from frappe.utils import get_site_path
@@ -34,18 +33,14 @@ def generate_ird_purchase_register_excel():
     company = filters.get("company")
     company_info = frappe.get_doc("Company", company) if company else None
     company_name = company_info.company_name if company_info else "Company Name"
-
-    address = frappe.db.get_value(
-        "Address",
-        {"is_your_company_address": 1},
-        "address_line1"
-    ) or ""
-
+    # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
     invoice_name = frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
-    invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
-    
-    posting_date = invoice_doc.posting_date
+    try:
+        invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
+        posting_date = invoice_doc.posting_date
+    except frappe.DoesNotExistError:
+        frappe.throw(_("Purchase Invoice {0} not found").format(invoice_name))
 
     fiscal_year = frappe.db.get_value(
         "Fiscal Year",
@@ -92,7 +87,6 @@ def generate_ird_purchase_register_excel():
         ws[f"A{r}"].font = bold_center
         ws[f"A{r}"].alignment = center
 
-    # Top headers
     top_headers = [
         ("बीजक", 5),
         ("जम्मा खरिद मूल्य (रु)", 1),
@@ -144,7 +138,6 @@ def generate_ird_purchase_register_excel():
             cell = ws.cell(row=6, column=col_num, value=value)
             format_cell(cell)
 
-    # Fill data
     for row_idx, inv in enumerate(rows, start=7):
         row_data = [
             inv.get("nepali_date"),
@@ -169,35 +162,29 @@ def generate_ird_purchase_register_excel():
             if isinstance(val, (int, float)):
                 cell.number_format = '#,##0.00'
 
-    # Exclude column 5 (Permanent Account Number) from total calculation
     total_row = len(rows) + 7
     ws.cell(row=total_row, column=1, value="Total")
     format_cell(ws.cell(row=total_row, column=1))
     ws.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=4)
 
-    # Calculate totals for other columns, excluding column 5
     for col in range(1, 14):
         if col == 5:
-            continue  # Skip column 5
+            continue
         col_letter = get_column_letter(col)
         col_total = f"=SUM({col_letter}7:{col_letter}{total_row - 1})"
-        # Skip merged cells: only set total for non-merged cells
         if not any([coord in merged_range for merged_range in ws.merged_cells.ranges for coord in [ws.cell(row=total_row, column=col).coordinate]]):
             cell = ws.cell(row=total_row, column=col, value=col_total)
             cell.border = border
             cell.alignment = center
             cell.number_format = '#,##0.00'
 
-    # Ensure column 5 (Permanent Account Number) stays black and not part of total calculation
     for row_idx in range(7, total_row):
-        ws.cell(row=row_idx, column=5).font = Font(color="000000")  # Black font for column 5
+        ws.cell(row=row_idx, column=5).font = Font(color="000000")
 
-    # Auto-adjust column widths
     for col in ws.columns:
         max_len = max(len(str(cell.value)) if cell.value else 0 for cell in col)
         ws.column_dimensions[get_column_letter(col[0].column)].width = max_len + 4
 
-    # Save the Excel file
     file_name = "IRD_Purchase_Register.xlsx"
     path = get_site_path("public", "files", file_name)
     wb.save(path)

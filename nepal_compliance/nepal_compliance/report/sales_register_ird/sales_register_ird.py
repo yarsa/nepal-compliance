@@ -95,14 +95,7 @@ def get_data(filters):
                     taxable_domestic_nc += amt
 
         total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        total_tax = flt(inv.total_tax)
-
-        # tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0
         tax_domestic_nc = taxable_domestic_nc * 0.13 if total_taxable else 0
-        # tax_import_nc = (taxable_import_nc / total_taxable) * total_tax if total_taxable else 0
-        tax_import_nc = taxable_import_nc * 0.13 if total_taxable else 0
-        # tax_capital = (capital_taxable_amount / total_taxable) * total_tax if total_taxable else 0
-        tax_capital = capital_taxable_amount * 0.13 if total_taxable else 0
 
         data.append({
             "nepali_date": inv.nepali_date or inv.posting_date,

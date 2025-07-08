@@ -29,6 +29,9 @@ def update_tax_and_submit(doc):
             "employee": doc.employee,
             "docstatus": 1
         }, "salary_structure")
+        if not structure:
+            frappe.log_error(f"No active salary structure found for employee {doc.employee}")
+            return
 
         if structure:
             structure_doc = frappe.get_doc("Salary Structure", structure)

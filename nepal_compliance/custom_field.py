@@ -42,7 +42,7 @@ def create_custom_fields():
             {"fieldname": "taxable_salary", "label": "Taxable Salary", "fieldtype": "Currency", "insert_after": "total_deduction"},
         ],
         "Attendance": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "field_type": "Data", "insert_after": "attendance_date"}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "attendance_date"}
         ],
         "Fiscal Year": [
             {"fieldname": "nepali_year_start_date", "label": "Nepali Year Start Date", "fieldtype": "Data", "insert_after": "year_start_date"},
@@ -125,8 +125,8 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "NepalI Date", "fieldtype": "Data", "insert_after": "posting_date"}
         ],
         "Asset": [
-            {"fieldname": "nepali_date", "label": "Nepali Date", "field_type": "Data", "insert_after": "posting_date"},
-            {"fieldname": "posting_date", "label": "Posting Date", "field_type": "Date", "insert_after": "asset_quantity"}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"},
+            {"fieldname": "posting_date", "label": "Posting Date", "fieldtype": "Date", "insert_after": "asset_quantity"}
         ],
         "Asset Repair": [
             {"fieldname": "posting_date", "label": "Posting Date", "fieldtype": "Datetime", "insert_after": "column_break_6"},

@@ -2,7 +2,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt, get_site_path
+from frappe.utils import get_site_path
 import json
 import openpyxl
 from openpyxl.styles import Alignment, Font, Border, Side
@@ -32,7 +32,7 @@ def generate_ird_sales_register_excel():
     company = filters.get("company")
     company_info = frappe.get_doc("Company", company) if company else None
     company_name = company_info.company_name if company_info else "Company Name"
-    address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
+    # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
 
     posting_date = frappe.utils.nowdate()

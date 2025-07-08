@@ -17,9 +17,18 @@ frappe.ui.form.on('Purchase Invoice',{
 frappe.ui.form.on('Journal Entry', {
     refresh(frm) {
         if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
-            const nepali = convertADtoBS(frm.doc.posting_date);
-            frappe.db.set_value('Journal Entry', frm.doc.name, 'nepali_date', nepali)
-                .then(() => frm.reload_doc());
+            try {
+                const nepali = convertADtoBS(frm.doc.posting_date);
+                frappe.db.set_value('Journal Entry', frm.doc.name, 'nepali_date', nepali)
+                    .then(() => frm.reload_doc())
+                    .catch(err => {
+                        console.error('Failed to update nepali_date:', err);
+                        frappe.msgprint(__('Failed to update Nepali date'));
+                    });
+            } catch (err) {
+                console.error('Date conversion error:', err);
+                frappe.msgprint(__('Invalid date format for Nepali conversion'));
+            }
         }
     }
 });
