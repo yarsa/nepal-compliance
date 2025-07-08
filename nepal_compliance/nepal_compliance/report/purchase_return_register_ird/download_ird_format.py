@@ -32,7 +32,7 @@ def generate_ird_purchase_register_excel():
     company_info = frappe.get_doc("Company", company) if company else None
     company_name = company_info.company_name if company_info else "Company Name"
 
-    address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
+    # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
 
     invoice_name = frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
@@ -43,11 +43,6 @@ def generate_ird_purchase_register_excel():
         "year_start_date": ["<=", posting_date],
         "year_end_date": [">=", posting_date]
     }, "name") or "Fiscal Year"
-
-    import openpyxl
-    from frappe.utils import get_site_path
-    from openpyxl.styles import Alignment, Font, Border, Side
-    from openpyxl.utils import get_column_letter
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -62,7 +57,6 @@ def generate_ird_purchase_register_excel():
         cell.font = bold_center
         cell.border = border
 
-    # Header
     ws.merge_cells("A1:P1")
     ws["A1"] = "खरिद फिर्ता खाता"
     ws["A1"].font = Font(bold=True, size=16)
@@ -78,7 +72,6 @@ def generate_ird_purchase_register_excel():
         ws[f"A{r}"].alignment = center
         ws[f"A{r}"].font = bold_center
 
-    # Table Headers
     top_headers = [
         ("बीजक / प्रज्ञापनपत्र नम्बर", 8),
         ("जम्मा फिर्ता मूल्य (रु)", 1),
@@ -116,7 +109,6 @@ def generate_ird_purchase_register_excel():
         cell = ws.cell(row=6, column=col_num, value=header)
         format_cell(cell)
 
-    # Data Rows
     data_start_row = 7
     for i, inv in enumerate(rows):
         row_idx = data_start_row + i
@@ -146,14 +138,13 @@ def generate_ird_purchase_register_excel():
             if isinstance(val, (int, float)):
                 cell.number_format = '#,##0.00'
 
-    # Total Row (no extra row)
     total_row = data_start_row + len(rows)
     ws.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=6)
     total_label_cell = ws.cell(row=total_row, column=1, value="Total")
     format_cell(total_label_cell)
 
     for col in range(7, 17):
-        if col == 8:  # Skip 'एकाई' column
+        if col == 8:
             continue
         col_letter = get_column_letter(col)
         formula = f"=SUM({col_letter}{data_start_row}:{col_letter}{total_row - 1})"
@@ -162,12 +153,10 @@ def generate_ird_purchase_register_excel():
         cell.border = border
         cell.number_format = '#,##0.00'
 
-    # Auto column widths
     for col_cells in ws.columns:
         max_len = max(len(str(c.value)) if c.value else 0 for c in col_cells)
         ws.column_dimensions[get_column_letter(col_cells[0].column)].width = max_len + 4
 
-    # Save file
     file_name = "IRD_Purchase_Return_Register.xlsx"
     path = get_site_path("public", "files", file_name)
     wb.save(path)

@@ -58,7 +58,7 @@ def get_data(filters):
     query = f"""
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.rounded_total, pi.nepali_date, pi.supplier_name, pi.tax_id as pan,
-            pi.total, pi.total_taxes_and_charges as total_tax
+            pi.total, pi.total_taxes_and_charges as total_tax, pi.supplier, pi.posting_date
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
         WHERE {' AND '.join(conditions)}
@@ -69,7 +69,7 @@ def get_data(filters):
     data = []
 
     for inv in invoices:
-        supplier_country = frappe.db.get_value("Supplier", inv.supplier_name, "country") or ""
+        supplier_country = frappe.db.get_value("Supplier", inv.supplier, "country") or ""
         is_import = supplier_country.strip().lower() != "nepal"
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
@@ -95,7 +95,7 @@ def get_data(filters):
                     taxable_domestic_nc += amt
 
         total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        total_tax = flt(inv.total_tax)
+        # total_tax = flt(inv.total_tax)
 
         # tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0
         tax_domestic_nc = taxable_domestic_nc * 0.13 if total_taxable else 0  

@@ -74,7 +74,6 @@ def get_data(filters):
         customer_country = frappe.db.get_value("Customer", inv.customer_name, "territory") or ""
         is_export = customer_country.strip().lower() not in ("", "nepal")
 
-        # Fetch all items for this invoice with necessary fields
         item_filters = {"parent": inv.invoice}
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
             fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name"])
@@ -82,7 +81,6 @@ def get_data(filters):
         item_codes = [item["item_code"] for item in items]
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
 
-        # Calculate and append data per item
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
 
@@ -93,7 +91,6 @@ def get_data(filters):
             else:
                 tax_exempt_item = 0.0
                 if item["item_code"] in asset_items:
-                    # Capital asset: taxable amount and tax assumed zero here as per your business logic
                     taxable_amount_item = 0.0
                     tax_amount_item = 0.0
                 else:

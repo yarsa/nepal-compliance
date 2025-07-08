@@ -22,7 +22,7 @@ frappe.query_reports["Sales Register IRD"] = {
 		},
         {
             fieldname: 'customer',
-            label: __('आपूर्तिकर्ता'),
+            label: __('ग्राहक'),
             fieldtype: 'Link',
             options: 'Customer'
         },
