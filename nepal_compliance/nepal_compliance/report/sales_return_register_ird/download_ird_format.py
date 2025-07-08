@@ -1,3 +1,5 @@
+# openpyxl 3.1.5 - MIT License, (c) 2024, Eric Gazoni, Charlie Clark, See License at https://pypi.org/project/openpyxl/
+
 import frappe
 from frappe import _
 from frappe.utils import flt, get_site_path
