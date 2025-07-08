@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"1_IisBdJfF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span>\",\"col\":12}},{\"id\":\"Av9d5gc5bf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nepal Compliance Settings\",\"col\":3}},{\"id\":\"AxbCeczGAx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CBMS Settings\",\"col\":3}},{\"id\":\"gr238m0dxE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-C_qhFA2jE\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Shortcuts</span>\",\"col\":12}},{\"id\":\"WoPN9MUqpE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fiscal Year\",\"col\":3}},{\"id\":\"b1jTkv26GP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Holiday List\",\"col\":3}},{\"id\":\"5ptJalRP84\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Type\",\"col\":3}},{\"id\":\"7uLhKBLGLN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Component\",\"col\":3}},{\"id\":\"9sYOiCy_Jq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Structure\",\"col\":3}},{\"id\":\"qp_bsiF4JJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"SqK4KcqRYx\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports &amp; Masters</span>\",\"col\":12}},{\"id\":\"v2w-KJGnfW\",\"type\":\"card\",\"data\":{\"card_name\":\"Purchase Reports\",\"col\":4}},{\"id\":\"KJWGTH4Wrx\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"bIz3bV7Dv-\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"0M2ckf9EKT\",\"type\":\"card\",\"data\":{\"card_name\":\"Audit Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"1_IisBdJfF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span>\",\"col\":12}},{\"id\":\"Av9d5gc5bf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nepal Compliance Settings\",\"col\":3}},{\"id\":\"AxbCeczGAx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CBMS Settings\",\"col\":3}},{\"id\":\"gr238m0dxE\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-C_qhFA2jE\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Shortcuts</span>\",\"col\":12}},{\"id\":\"WoPN9MUqpE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fiscal Year\",\"col\":3}},{\"id\":\"b1jTkv26GP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Holiday List\",\"col\":3}},{\"id\":\"5ptJalRP84\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Type\",\"col\":3}},{\"id\":\"7uLhKBLGLN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Component\",\"col\":3}},{\"id\":\"9sYOiCy_Jq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Salary Structure\",\"col\":3}},{\"id\":\"qp_bsiF4JJ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"SqK4KcqRYx\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports &amp; Masters</span>\",\"col\":12}},{\"id\":\"v2w-KJGnfW\",\"type\":\"card\",\"data\":{\"card_name\":\"Purchase Reports\",\"col\":4}},{\"id\":\"KJWGTH4Wrx\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"m9nEsW2VpN\",\"type\":\"card\",\"data\":{\"card_name\":\"IRD Format Reports\",\"col\":4}},{\"id\":\"bIz3bV7Dv-\",\"type\":\"card\",\"data\":{\"card_name\":\"Other Reports\",\"col\":4}},{\"id\":\"0M2ckf9EKT\",\"type\":\"card\",\"data\":{\"card_name\":\"Audit Reports\",\"col\":4}}]",
  "creation": "2025-05-16 12:55:45.685194",
  "custom_blocks": [],
  "docstatus": 0,
@@ -198,9 +198,58 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "IRD Format Reports",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Purchase Register",
+   "link_count": 0,
+   "link_to": "Purchase Register IRD",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Purchase Return Register",
+   "link_count": 0,
+   "link_to": "Purchase Return Register IRD",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Register",
+   "link_count": 0,
+   "link_to": "Sales Register IRD",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Return Register",
+   "link_count": 0,
+   "link_to": "Sales Return Register IRD",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-05-23 14:08:55.253912",
+ "modified": "2025-07-08 13:33:15.431943",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance",
