@@ -29,6 +29,14 @@ class CBMSIntegration:
 
     def prepare_payload(self):
 
+        """
+        Constructs and returns the payload dictionary for submitting a Sales Invoice or Credit Note to the CBMS API.
+        
+        Validates required fields, determines the fiscal year, formats dates, and populates all necessary invoice or credit note fields. Returns None if any required data is missing or invalid, logging errors as appropriate.
+        
+        Returns:
+            dict or None: The prepared payload dictionary for the CBMS API, or None if preparation fails.
+        """
         try:
             if not self.doc.nepali_date:
                 frappe.throw(_("Nepali date is missing in the Sales Invoice."))
@@ -152,6 +160,17 @@ class CBMSIntegration:
 @frappe.whitelist()
 def post_sales_invoice_or_return_to_cbms(doc_name, method=None):
     
+    """
+    Enqueue a Sales Invoice or Return for asynchronous submission to CBMS.
+    
+    Retrieves the specified Sales Invoice, verifies CBMS configuration, and schedules the invoice or return to be sent to the CBMS system in the background. Displays a notification upon successful queuing.
+    
+    Parameters:
+        doc_name (str): The name of the Sales Invoice document to process.
+    
+    Returns:
+        dict: A message indicating the result of the operation, including error details if processing fails.
+    """
     try:
         doc = frappe.get_doc("Sales Invoice", doc_name)
         if not doc:

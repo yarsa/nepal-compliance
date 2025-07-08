@@ -6,11 +6,25 @@ from frappe.utils import flt
 from frappe import _
 
 def execute(filters=None):
+    """
+    Generates the sales return register report columns and data based on provided filters.
+    
+    Parameters:
+        filters (dict, optional): Criteria to filter the report data, such as company, customer, invoice, or date range.
+    
+    Returns:
+        tuple: A pair containing the list of column definitions and the corresponding report data rows.
+    """
     columns = get_columns()
     data = get_data(filters or {})
     return columns, data
 
 def get_columns():
+    """
+    Return the column definitions for the sales return register report.
+    
+    Each column is specified with its label (in Nepali), field name, type, and display width for use in the report.
+    """
     return [
         {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
@@ -26,6 +40,17 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """
+    Fetches and compiles sales return invoice data with tax breakdowns based on provided filters.
+    
+    For each submitted sales return invoice matching the filters, retrieves item-level details and calculates tax-exempt, taxable, and tax amounts according to item tax status and asset classification. Returns a list of dictionaries, each representing an item on a return invoice, with fields for date, invoice number, customer, PAN, item name, quantity, unit, total return value, tax-exempt value, taxable value, and tax amount.
+    
+    Parameters:
+        filters (dict): Dictionary of filter criteria, which may include company, customer, return invoice, and Nepali date range.
+    
+    Returns:
+        list[dict]: List of itemized sales return records with tax calculations for reporting.
+    """
     conditions = ["si.docstatus = 1", "si.is_return = 1"]
     values = {}
 

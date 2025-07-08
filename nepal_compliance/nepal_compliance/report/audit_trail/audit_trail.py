@@ -79,9 +79,23 @@ class BaseAuditTrail:
         pass
 
     def append_rows(self, new_count, modified_count, doctype):
+        """
+        Appends summary data for a DocType, including counts of new and modified records.
+        
+        Parameters:
+            new_count (list): List of new record counts for the specified DocType.
+            modified_count (list): List of modified record counts for the specified DocType.
+            doctype (str): The name of the DocType being summarized.
+        """
         pass
     
     def get_conditions(self):
+        """
+        Builds a list of filter conditions for querying audit trail records based on date, user, and company filters.
+        
+        Returns:
+            conditions (list): A list of condition lists suitable for use in database queries, reflecting the selected date filter (including Nepali date support), user ownership, and company.
+        """
         conditions = []
         date_option = self.filters.get("date_option")
         doctype = self.filters.get("doctype")
@@ -119,6 +133,12 @@ class BaseAuditTrail:
         return conditions
 
     def get_date(self):
+        """
+        Extracts the date filter option and range from the filters and returns a tuple or list representing the date condition.
+        
+        Returns:
+            A list or tuple in the form `["between", date_range]` or `("between", date_range)`, depending on whether a custom date range is specified or a predefined timespan is used.
+        """
         date_option = self.filters.pop("date_option", None)
         date_range = self.filters.pop("date_range", None)
         if date_option == "Custom":
@@ -128,6 +148,11 @@ class BaseAuditTrail:
             return ("between", date_range)
         
     def get_date_field(self, doctype):
+        """
+        Return the most relevant date field for the given DocType.
+        
+        Prefers "posting_date" if present, then "transaction_date"; defaults to "modified" if neither exists.
+        """
         if doctype:
             if self.field_exists(doctype, "posting_date"):
                 return "posting_date"
@@ -136,6 +161,11 @@ class BaseAuditTrail:
         return "modified"
 
     def get_user(self):
+        """
+        Return the user filter condition for report queries.
+        
+        If a specific user is provided in the filters, returns that value; otherwise, returns a condition to include all users.
+        """
         if self.filters.get("user"):
             return self.filters["user"]
         else:
@@ -329,6 +359,11 @@ class ReportSummary(BaseAuditTrail):
         return fields
 
     def append_rows(self, records, doctype):
+        """
+        Processes and formats audit trail records for a given DocType, setting standardized fields and appending them to the report data.
+        
+        Each record's date/time, posting date, party type, party name, and amount fields are set or adjusted based on the DocType category before being added to the report.
+        """
         for row in records:
             row["date_time"] = format_datetime(row["date_time"])
             row["doctype"] = doctype

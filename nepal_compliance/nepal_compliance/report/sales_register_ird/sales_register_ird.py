@@ -6,11 +6,26 @@ from frappe.utils import flt
 from frappe import _
 
 def execute(filters=None):
+    """
+    Generates the sales register report columns and data based on provided filters.
+    
+    Parameters:
+        filters (dict, optional): Criteria to filter the sales invoices included in the report.
+    
+    Returns:
+        tuple: A pair containing the list of report column definitions and the corresponding filtered data rows.
+    """
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """
+    Return the column definitions for the sales register report, including Nepali labels and export-related fields.
+    
+    Returns:
+        List[dict]: A list of dictionaries specifying each report column's label, field name, type, and width.
+    """
     return [
         {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
@@ -27,6 +42,15 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """
+    Fetches and aggregates sales invoice data for the sales register report, applying filters and calculating tax-exempt, taxable, and export-related values.
+    
+    Parameters:
+        filters (dict): Dictionary of filter criteria such as company, customer, document number, and Nepali date range.
+    
+    Returns:
+        list[dict]: List of dictionaries, each representing a sales invoice with computed fields for tax-exempt sales, taxable amounts, tax values, and export details.
+    """
     conditions = ["si.docstatus = 1 and si.is_return = 0"]
     values = {}
 

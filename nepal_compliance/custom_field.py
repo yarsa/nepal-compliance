@@ -4,6 +4,14 @@ from frappe import _
 
 
 def create_custom_fields():
+    """
+    Create custom fields for multiple DocTypes in the Frappe/ERPNext system if they do not already exist.
+    
+    For each specified DocType, checks for the existence of each custom field and creates it with the defined properties if missing. Displays a message for each field indicating whether it was added or already exists.
+    
+    Returns:
+        created_fields (list of dict): List of dictionaries with 'dt' (DocType name) and 'fieldname' for each field that was created.
+    """
     custom_fields = {
         "Company": [
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},

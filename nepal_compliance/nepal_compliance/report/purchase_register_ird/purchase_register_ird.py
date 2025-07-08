@@ -6,11 +6,26 @@ from frappe.utils import flt
 from frappe import _
 
 def execute(filters=None):
+    """
+    Generates the purchase register report columns and data based on provided filters.
+    
+    Parameters:
+        filters (dict, optional): Criteria to filter the report data, such as company, supplier, document number, and date range.
+    
+    Returns:
+        tuple: A pair containing the list of column definitions and the corresponding report data rows.
+    """
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """
+    Return the column definitions for the purchase register report with Nepali tax-related fields.
+    
+    Returns:
+        list: A list of dictionaries specifying each report column's label (in Nepali), field name, type, and width.
+    """
     return [
         {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 120},
         # {"label": "बीजक नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Purchase Invoice", "width": 100},
@@ -29,6 +44,17 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """
+    Fetches and categorizes purchase invoice data for the report based on provided filters.
+    
+    For each submitted, non-return purchase invoice matching the filters, retrieves invoice details and classifies item amounts into tax-exempt, taxable domestic non-capital, taxable import non-capital, and capital taxable categories. Calculates tax amounts for each category at a fixed 13% rate if taxable. Returns a list of dictionaries, each representing a report row with invoice and tax breakdown details.
+    
+    Parameters:
+        filters (dict): Dictionary of filter criteria such as company, supplier, document number, and Nepali date range.
+    
+    Returns:
+        list: List of dictionaries containing invoice details and categorized tax information for the report.
+    """
     conditions = ["pi.docstatus = 1 and pi.is_return = 0"]
     values = {}
 

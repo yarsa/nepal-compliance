@@ -10,7 +10,17 @@ from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 
 def convert_to_nepali_fy_format(fy_name):
-    """Convert Gregorian FY (e.g. 2023-2024) to Nepali format (2080/81)."""
+    """
+    Converts a Gregorian fiscal year string to Nepali fiscal year format.
+    
+    If the input is already in Nepali format (contains "/" and the first part is 4 digits), it is returned unchanged. Otherwise, the function adds 57 years to each part of a "YYYY-YYYY" string and returns the result as "YYYY/YY". If conversion fails, the original input is returned.
+    
+    Parameters:
+        fy_name (str): Fiscal year in Gregorian format (e.g., "2023-2024") or already in Nepali format.
+    
+    Returns:
+        str: Fiscal year in Nepali format (e.g., "2080/81") or the original input if conversion is not possible.
+    """
     if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
         return fy_name
     try:
@@ -23,6 +33,14 @@ def convert_to_nepali_fy_format(fy_name):
 
 @frappe.whitelist()
 def generate_ird_sales_register_excel():
+    """
+    Generates and saves an IRD-compliant sales register Excel report with Nepali fiscal year formatting.
+    
+    The report includes company details, PAN, and fiscal year, and organizes sales register data into a structured, styled Excel sheet with merged headers, sub-headers, and totals. The generated file is saved to the site's public files directory and the relative URL path is returned.
+    
+    Returns:
+        str: Relative URL path to the generated Excel file.
+    """
     from nepal_compliance.nepal_compliance.report.sales_register_ird.sales_register_ird import get_data
 
     filters = frappe._dict(json.loads(frappe.form_dict.get("filters") or "{}"))
@@ -64,6 +82,9 @@ def generate_ird_sales_register_excel():
     )
 
     def format_cell(cell):
+        """
+        Apply bold font, centered alignment, and a thin border to the given Excel cell.
+        """
         cell.alignment = center
         cell.font = bold_center
         cell.border = border

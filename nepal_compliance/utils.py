@@ -8,6 +8,16 @@ def prevent_invoice_deletion(doc, method):
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula, taxable_salary):
+    """
+    Safely evaluates a tax calculation formula using the provided taxable salary.
+    
+    Parameters:
+    	formula (str): The tax formula to evaluate, expressed as a string.
+    	taxable_salary (float or str): The taxable salary value to use in the formula.
+    
+    Returns:
+    	float: The result of the evaluated formula, or 0 if evaluation fails.
+    """
     try:
         taxable_salary = flt(taxable_salary)
         context = {
@@ -22,6 +32,11 @@ def evaluate_tax_formula(formula, taxable_salary):
 
 
 def set_vat_numbers(doc, method):
+    """
+    Assigns VAT numbers to new opening invoice documents based on related party and company records.
+    
+    For new "Purchase Invoice" and "Sales Invoice" documents marked as opening entries, this function populates missing VAT number fields by retrieving values from the associated Supplier, Customer, or Company records.
+    """
     if doc.get("__islocal") and doc.is_opening == "Yes":
   
         if doc.doctype == "Purchase Invoice":

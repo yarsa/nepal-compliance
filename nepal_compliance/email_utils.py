@@ -3,6 +3,16 @@ from frappe import _
 
 @frappe.whitelist()
 def send_invoice_email(docname, doctype, auto_send=False):
+    """
+    Send an invoice email notification with a print format attachment for a submitted Purchase or Sales Invoice.
+    
+    If the invoice is a Purchase Invoice, the email is sent to the supplier; if a Sales Invoice, to the customer. The function constructs a detailed HTML message with invoice information and attaches a PDF print format. If required recipient email or default outgoing email account is missing and `auto_send` is False, a warning is shown and the email is not sent. The email is sent asynchronously via the background queue.
+    
+    Parameters:
+        docname (str): The name of the invoice document to email.
+        doctype (str): The type of the invoice document ("Purchase Invoice" or "Sales Invoice").
+        auto_send (bool, optional): If True, suppresses warnings and shows a confirmation message after queuing the email. Defaults to False.
+    """
     doc = frappe.get_doc(doctype, docname)
     if doc.docstatus != 1:
         frappe.throw(_("Email can only be sent after submission."))
@@ -110,6 +120,12 @@ def send_invoice_email(docname, doctype, auto_send=False):
 
 @frappe.whitelist()
 def check_email_setup(doctype, docname):
+    """
+    Check if both recipient email and default outgoing email account are configured for a given invoice document.
+    
+    Returns:
+        bool: True if both the recipient's email address and a default outgoing email account are set up; False otherwise.
+    """
     doc = frappe.get_doc(doctype, docname)
     email = None
     if doctype == "Purchase Invoice":

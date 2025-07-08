@@ -14,6 +14,11 @@ def execute(filters=None):
 	return columns, data
 
 def get_columns():
+    """
+    Return the list of column definitions for the audit log report.
+    
+    Each column dictionary specifies the label, field type, options, field name, and width for displaying audit log data, including document metadata, operation type, status, and custom date fields.
+    """
     columns = [
         { 
             "label": _("Document Type"), 
@@ -69,6 +74,18 @@ def get_columns():
     return columns
 
 def get_conditions(filters):
+    """
+    Builds SQL WHERE clause conditions for audit log queries based on provided filters.
+    
+    Parameters:
+        filters (dict): Dictionary of filter values to apply to the audit log query.
+    
+    Returns:
+        tuple: A tuple containing the SQL condition string and the list of allowed doctypes.
+    
+    Raises:
+        Exception: If the provided 'ref_doctype' filter is not in the allowed doctypes list.
+    """
     allowed_doctypes = [
     "Sales Invoice", "Purchase Invoice", "Journal Entry", "Payment Entry",
     "Sales Order", "Purchase Order", "Delivery Note", "Purchase Receipt",
@@ -102,6 +119,14 @@ def get_conditions(filters):
 
 def get_audit_log(filters, columns):
     
+    """
+    Fetches and processes audit log entries for the specified document type, applying filters and enriching each entry with operation details, changed fields, and status indicators.
+    
+    This function dynamically builds and executes a SQL query to retrieve audit log data from the Version table, joining with the referenced document type to include additional metadata such as status and Nepali date if available. It parses the audit detail JSON for each entry to determine the type of operation (e.g., Update, Submit, Cancel), tracks changed fields, and generates a summary of changes. The function also dynamically adds columns for any changed fields found in the audit logs and appends a summary column. Additional filtering is applied based on submit status, document status, and operation type if specified.
+    
+    Returns:
+        list[dict]: A list of dictionaries representing processed audit log entries, each including metadata, operation type, changed fields, and a summary of changes.
+    """
     conditions, allowed_doctypes = get_conditions(filters)
     filters_values = filters.copy() if filters else {}
         

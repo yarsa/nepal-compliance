@@ -6,11 +6,23 @@ from frappe.utils import flt
 from frappe import _
 
 def execute(filters=None):
+    """
+    Generate the purchase return register report columns and data based on provided filters.
+    
+    Parameters:
+        filters (dict, optional): Criteria to filter the report data, such as company, supplier, invoice, and Nepali date range.
+    
+    Returns:
+        tuple: A pair containing the list of column definitions and the filtered report data.
+    """
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """
+    Return the column definitions for the purchase return register report in Nepali, specifying labels, field names, data types, and widths for each column.
+    """
     return [
         {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
         # {"label": "बीजक नं./प्रज्ञापनपत्र नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Purchase Invoice", "width": 100},
@@ -32,6 +44,17 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """
+    Retrieve and aggregate purchase return invoice data with tax breakdowns based on provided filters.
+    
+    Filters can include company, supplier, return invoice number, and Nepali date range. For each matching purchase return invoice, the function classifies item amounts into tax-exempt, taxable domestic non-capital, taxable import non-capital, and capital taxable categories, and calculates corresponding tax amounts at a fixed 13% rate. Customs declaration numbers are included only for imported invoices. The result is a list of dictionaries, each representing a purchase return invoice with supplier details, return reasons, quantities, units, totals, and detailed tax information.
+    
+    Parameters:
+        filters (dict): Criteria for filtering purchase return invoices, such as company, supplier, invoice number, and Nepali date range.
+    
+    Returns:
+        list[dict]: Aggregated purchase return invoice data with tax and amount breakdowns for reporting.
+    """
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
 

@@ -12,6 +12,11 @@ function validate_field_value(frm, field_name) {
     return false;
 }
 
+/**
+ * Validates that VAT/PAN numbers on the form are correctly formatted and not duplicated between supplier and customer fields.
+ *
+ * Throws an error if the VAT/PAN number matches either the customer or supplier VAT/PAN number, or if any of the fields contain invalid values.
+ */
 function validate_field(frm) {
     var vat_number = frm.doc.vat_number ? frm.doc.vat_number.toString().trim() : '';
     var customer_vat_number = frm.doc.customer_vat_number ? frm.doc.customer_vat_number.toString().trim() : '';
@@ -27,6 +32,13 @@ function validate_field(frm) {
     }
 }
 
+/**
+ * Fetches the VAT/PAN number from a related document (Supplier, Customer, or Company) and sets it on the current form if not already present.
+ * 
+ * @param {object} frm - The current form object.
+ * @param {string} doc_type - The type of related document ("Supplier", "Customer", or "Company").
+ * @param {string} field_name - The name of the field on the current form to populate.
+ */
 function fetch_vat_number(frm, doc_type, field_name) {
     var doc_field = (doc_type === "Supplier" || doc_type === "Customer") ? doc_type.toLowerCase() : 'company';
     var field_map = doc_type === "Supplier" ? 'supplier_vat_number' : (doc_type === "Customer" ? 'customer_vat_number' : 'company_vat_number');

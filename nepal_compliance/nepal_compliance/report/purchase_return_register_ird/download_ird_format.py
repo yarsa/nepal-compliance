@@ -10,6 +10,11 @@ from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 
 def convert_to_nepali_fy_format(fy_name):
+    """
+    Convert a fiscal year string from AD format ("YYYY-YYYY") to Nepali fiscal year format ("YYYY/YY").
+    
+    If the input is already in the Nepali format or conversion fails, returns the original string.
+    """
     if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
         return fy_name
     try:
@@ -22,6 +27,14 @@ def convert_to_nepali_fy_format(fy_name):
 
 @frappe.whitelist()
 def generate_ird_purchase_register_excel():
+    """
+    Generates and saves an IRD-compliant Purchase Return Register Excel report with Nepali fiscal year formatting.
+    
+    Retrieves purchase return data based on provided filters, fetches company and fiscal year details, and creates a formatted Excel workbook with multi-level headers, data rows, and totals. The report includes company PAN, name, address, and fiscal year in Nepali format, and is saved to the public files directory. Returns the relative URL path to the generated Excel file.
+    
+    Returns:
+        str: Relative URL path to the generated Excel file.
+    """
     from nepal_compliance.nepal_compliance.report.purchase_return_register_ird.purchase_return_register_ird import get_data
 
     filters = frappe._dict(json.loads(frappe.form_dict.get("filters") or "{}"))
@@ -60,6 +73,9 @@ def generate_ird_purchase_register_excel():
     border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
     def format_cell(cell):
+        """
+        Apply center alignment, bold font, and a thin border to the given Excel cell.
+        """
         cell.alignment = center
         cell.font = bold_center
         cell.border = border

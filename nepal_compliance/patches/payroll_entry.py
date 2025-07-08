@@ -3,10 +3,20 @@ from nepal_compliance.utils import evaluate_tax_formula
 from frappe.utils import flt
 
 def execute(doc, method):
+    """
+    Triggers tax update and submission logic for a payroll document if it is linked to a payroll entry.
+    
+    This function is intended to be used as a hook or event handler within the payroll processing workflow.
+    """
     if doc.payroll_entry:
         update_tax_and_submit(doc)
 
 def update_tax_and_submit(doc):
+    """
+    Calculates taxable salary and appends income tax deductions to a payroll document if not already present.
+    
+    This function sums predefined earning and deduction components from the payroll document to determine the taxable salary. If no income tax deduction ("Income Tax Unmarried" or "Income Tax Married") exists, it retrieves the employee's active salary structure, evaluates the tax formula for applicable tax components, and appends the calculated tax deduction to the document. The updated document is then saved with permissions ignored.
+    """
     selected_earning_components = [
         "Basic Salary", "Other Allowance", "Grade Amount", "Blog Allowance", "Earning Adjustment",
         "Overtime", "Gratuity", "Provident Fund Employer", "Employer's Contribution SSF"
