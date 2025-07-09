@@ -11,12 +11,15 @@ def create_custom_fields():
         ],
         "Item": [
             {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_stock_item"},
+            {"fieldname": "hs_code", "label": "H.S. Code", "fieldtype": "Data", "insert_after": "stock_uom", "description": "Harmonized System Code for the item, used for customs and trade purposes."}
         ],
         "Sales Invoice Item": [
             {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
+            {"fieldname": "hs_code", "label": "H.S. Code", "fieldtype": "Data", "insert_after": "uom", "fetch_from": "item_code.hs_code"}
         ],
         "Purchase Invoice Item": [
             {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
+            {"fieldname": "hs_code", "label": "H.S. Code", "fieldtype": "Data", "insert_after": "uom", "fetch_from": "item_code.hs_code"}
         ],
         "User": [
             {"fieldname": "use_ad_date", "label": "Use Ad Date", "fieldtype": "Check", "insert_after": "username",
@@ -74,6 +77,7 @@ def create_custom_fields():
             {"fieldname": "vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "supplier", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1},
+            {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "customer_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no"}
         ],
         "Sales Order":[
@@ -87,7 +91,9 @@ def create_custom_fields():
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "supplier_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "cbms_status", "label": "CBMS Status", "fieldtype": "Select", "options": "\nSuccess\nPending\nFailed", "default": "", "insert_after": "supplier_vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "cbms_response", "label": "CBMS Response", "fieldtype": "Small Text", "insert_after": "cbms_status", "in_list_view": 1, "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "due_date"}
+            {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "cost_center", "allow_on_submit": 1},
+            {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "project", "allow_on_submit": 1},
+            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
