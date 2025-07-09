@@ -69,13 +69,13 @@ doctype_js = {
     "Fiscal Year": "public/js/bs_date.js",
     "Stock Entry": "public/js/hrms_bs_date.js",
     "Material Request": "public/js/hrms_bs_date.js",
-    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "Purchase Invoice": ["public/js/bs_date.js", "public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
     "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
     "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "Sales Invoice": ["public/js/bs_date.js", "public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Payment Entry": "public/js/bs_date.js",
-    "Journal Entry": "public/js/bs_date.js",
+    "Journal Entry": ["public/js/bs_date.js", "public/js/utils.js"],
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
     "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
@@ -90,7 +90,8 @@ doctype_js = {
     "Employee Tax Exemption Proof Submission": "public/js/payroll_bs_date.js", "Employee Benefit Application": "public/js/payroll_bs_date.js", "Employee Benefit Claim": "public/js/hrms_bs_date.js",
     "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js",
     "Upload Attendance": "public/js/hrms_bs_date.js", "Leave Period": "public/js/hrms_bs_date.js", "Leave Policy Assignment": "public/js/hrms_bs_date.js", "Leave Control Panel": "public/js/hrms_bs_date.js", "Leave Encashment": "public/js/hrms_bs_date.js",
-    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js'
+    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js',
+    "Period Closing Voucher": "public/js/bs_date.js", "Invoice Discounting": "public/js/bs_date.js", "Dunning": "public/js/bs_date.js", "Process Deferred Accounting": "public/js/bs_date.js", "POS Invoice": "public/js/bs_date.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
@@ -196,7 +197,7 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # 		"on_update": "method",
 # 		"on_cancel": "method",
 # 		"on_trash": "method"
-# 	}
+# 	} 
 # }
 doc_events = {
 
@@ -205,11 +206,15 @@ doc_events = {
     },
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
-        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "on_submit": "nepal_compliance.qr_code.create_qr_code"
     },
     "Sales Invoice" : {
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
-        ]
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"],
+    },
+    "Salary Slip": {
+        "after_insert": "nepal_compliance.patches.payroll_entry.execute",
     }
 }
 # Scheduled Tasks
@@ -339,4 +344,4 @@ purchase_sales = ["Purchase Invoice", "Sales Invoice"]
 
 doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
                  "Landed Cost Voucher","Payment Entry","Period Closing Voucher","Process Deferred Accounting","Purchase Invoice",
-                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation","Subcontracting Receipt",]
+                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation"]

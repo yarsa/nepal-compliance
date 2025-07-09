@@ -55,15 +55,35 @@ const nepaliDateConfig = {
             }
         }
     },
+    "Sales Invoice": {
+        hide_fields: ['nepali_date'],
+        date_pairs: [['posting_date', 'nepali_date']],
+        refresh_action(frm) {
+            if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
+                const nepali = convertADtoBS(frm.doc.posting_date);
+                frappe.db.set_value('Sales Invoice', frm.doc.name, 'nepali_date', nepali)
+                    .then(() => frm.reload_doc());
+            }
+        }
+    },
+    "Purchase Invoice": {
+        hide_fields: ['nepali_date'],
+        date_pairs: [['posting_date', 'nepali_date']],
+        refresh_action(frm) {
+            if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
+                const nepali = convertADtoBS(frm.doc.posting_date);
+                frappe.db.set_value('Purchase Invoice', frm.doc.name, 'nepali_date', nepali)
+                    .then(() => frm.reload_doc());
+            }
+        }
+    },
     "Leave Allocation": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date_leave_allocation', 'to_nepali_date_leave_allocation'),
     "Leave Application": multipleNepaliDateConfig('from_date', 'to_date', 'from_nepali_date_leave_application', 'to_nepali_date_leave_application'),
     "Holiday List": multipleNepaliDateConfig('from_date', 'to_date', 'nepali_from_date', 'nepali_to_date'),
     "Purchase Order": singleNepaliDateConfig('transaction_date'),
     "Purchase Receipt": singleNepaliDateConfig('posting_date'),
-    "Purchase Invoice": singleNepaliDateConfig('posting_date'),
     "Sales Order": singleNepaliDateConfig('transaction_date'),
     "Delivery Note": singleNepaliDateConfig('posting_date'),
-    "Sales Invoice": singleNepaliDateConfig('posting_date'),
     "Payment Entry": singleNepaliDateConfig('posting_date'),
     "Journal Entry": singleNepaliDateConfig('posting_date'),
     "Request for Quotation": singleNepaliDateConfig('transaction_date'),
@@ -89,7 +109,12 @@ const nepaliDateConfig = {
     "Quality Inspection": singleNepaliDateConfig('report_date_bs_quality_inspection'),
     "Quick Stock Balance": singleNepaliDateConfig('date'),
     "Bulk Salary Structure Assignment": singleNepaliDateConfig('from_date'),
-    "Employee Attendance Tool": singleNepaliDateConfig('date')
+    "Employee Attendance Tool": singleNepaliDateConfig('date'),
+    "Period Closing Voucher": singleNepaliDateConfig('transaction_date'),
+    "Invoice Discounting": singleNepaliDateConfig('posting_date'),
+    "Dunning": singleNepaliDateConfig('posting_date'),
+    "Process Deferred Accounting": singleNepaliDateConfig('posting_date'),
+    "POS Invoice": singleNepaliDateConfig('posting_date')
 };
 
 Object.entries(nepaliDateConfig).forEach(([doctype, config]) => {

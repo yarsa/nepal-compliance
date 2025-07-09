@@ -17,7 +17,7 @@ function validate_field(frm) {
     var customer_vat_number = frm.doc.customer_vat_number ? frm.doc.customer_vat_number.toString().trim() : '';
     var supplier_vat_number = frm.doc.supplier_vat_number ? frm.doc.supplier_vat_number.toString().trim() : '';
 
-    if (vat_number === customer_vat_number || vat_number === supplier_vat_number) {
+    if (vat_number && ((customer_vat_number && vat_number === customer_vat_number) || (supplier_vat_number && vat_number === supplier_vat_number))) {
         frappe.throw(__('Supplier VAT/PAN Number and Customer VAT/PAN Number should not be the same.'));
         frappe.validated = false; 
         return;
@@ -35,8 +35,6 @@ function fetch_vat_number(frm, doc_type, field_name) {
         frappe.db.get_value(doc_type, frm.doc[doc_field], field_map, function(value) {
             if (value && value[field_map]) {
                 frm.set_value(field_name, value[field_map]);
-            } else {
-                frm.set_value(field_name, '');
             }
         });
     }
