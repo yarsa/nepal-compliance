@@ -8,12 +8,28 @@ def prevent_invoice_deletion(doc, method):
     frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
 
 def custom_autoname(doc, method):
-    full_series = doc.naming_series or frappe.get_meta(doc.doctype).get_field("naming_series").options.split("\n")[0]
-    proposed_name = make_autoname(full_series, doc=doc)
-    if not frappe.db.exists(doc.doctype, proposed_name):
-        doc.name = proposed_name
-    else:
-        doc.name = make_autoname(full_series, doc=doc)
+    try:
+        full_series = doc.naming_series
+        if not full_series:
+             naming_field = frappe.get_meta(doc.doctype).get_field("naming_series")
+             if naming_field and naming_field.options:
+                 full_series = naming_field.options.split("\n")[0].strip()
+             else:
+                 frappe.throw(_("No naming series found for {0}").format(doc.doctype))
+        max_attempts = 50
+        for attempt in range(max_attempts):
+            proposed_name = make_autoname(full_series, doc=doc)
+            if not proposed_name:
+                frappe.throw(_("Failed to generate name using series {0}").format(full_series))
+             
+            if not frappe.db.exists(doc.doctype, proposed_name):
+                doc.name = proposed_name
+                return
+
+        frappe.throw(_("Could not generate unique name after {0} attempts").format(max_attempts))
+    except Exception as e:
+        frappe.log_error(f"Custom autoname error: {str(e)}")
+        raise
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula, taxable_salary):
