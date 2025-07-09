@@ -38,14 +38,10 @@ DB_ROOT_PASSWORD=your-db-root-password
 ```
 docker pull yarsalabs/nepal-compliance
 ```
-**Or**, specify a VERSION_TAG. For example, to pull v0.1.0:
+**Or**, specify a VERSION_TAG. For eg:
 ```
-docker pull yarsalabs/nepal-compliance:v0.1.0
+docker pull yarsalabs/nepal-compliance:latest
 ```
-
-For arm64 based macOS, edit first line of `.env` file and set `VERSION_TAG=latest`.
-
-For amd64 based Windows and Ubuntu, set `VERSION_TAG=v0.1.0`.
 
 ## Step 4: Run Nepal Compliance with Docker Compose
 
@@ -67,6 +63,29 @@ Also after setting up the `.env` file, you can check variables and values used b
 docker compose config --environment
 ```
 This command should display all environment variables in `.env` being used in your Docker Compose.
+
+---
+### Environment Variables
+These variables are defined in an `.env` file and used to inject configuration into services via `docker compose`.
+
+| Key                         | Value                     | Description                                               |
+|-----------------------------|---------------------------|-----------------------------------------------------------|
+| `VERSION_TAG`               | `latest`                  | Version of the current Docker image tag. Default `latest` |
+| `DB_HOST`                   | `db`                      | Hostname of the MariaDB container.                        |
+| `DB_PORT`                   | `"3306"`                  | Port for the database (MySQL/MariaDB).                    |
+| `MYSQL_ROOT_PASSWORD`       | `your-mysql-root-password`| Root password for MySQL (if used).                        |
+| `MARIADB_ROOT_PASSWORD`     | `your-db-root-password`   | MariaDB root password (primary for ERPNext setup).        |
+| `DB_ROOT_PASSWORD`          | `your-db-root-password`   | General DB root password (may overlap with MariaDB one).  |
+| `REDIS_CACHE`               | `redis-cache:6379`        | Redis instance for caching.                               |
+| `REDIS_QUEUE`               | `redis-queue:6379`        | Redis instance for task queues.                           |
+| `SOCKETIO_PORT`             | `"9000"`                  | Port used by the WebSocket server.                        |
+| `SOCKETIO`                  | `websocket:9000`          | WebSocket address used by the frontend.                   |
+| `ADMIN_PASSWORD`            | `your-admin-password`     | Administrator password for `bench new-site {site} --admin-password`|
+| `BACKEND`                   | `backend:8000`            | Backend app server address used by frontend.              |
+| `FRAPPE_SITE_NAME_HEADER`   | `frontend`                | Site name. Host header to route requests in multi-site setup.|
+| `UPSTREAM_REAL_IP_ADDRESS`  | `127.0.0.1`               | Upstream proxy IP for real IP resolution.                   |
+| `UPSTREAM_REAL_IP_HEADER`   | `X-Forwarded-For`         | Header to extract the real IP of the client.              |
+| `UPSTREAM_REAL_IP_RECURSIVE`| `"off"`                   | Enables/disables recursive lookup for real IPs.            |
 
 # Next
 * Learn how to [contribute to this project](/CONTRIBUTING.md)
