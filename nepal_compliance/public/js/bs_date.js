@@ -56,15 +56,25 @@ const nepaliDateConfig = {
         }
     },
     "Sales Invoice": {
-        hide_fields: ['nepali_date'],
-        date_pairs: [['posting_date', 'nepali_date']],
-        refresh_action(frm) {
-            if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
-                const nepali = convertADtoBS(frm.doc.posting_date);
-                frappe.db.set_value('Sales Invoice', frm.doc.name, 'nepali_date', nepali)
+    hide_fields: ['nepali_date', 'customs_declaration_date_bs'],
+    date_pairs: [
+        ['posting_date', 'nepali_date'],
+        ['customs_declaration_date', 'customs_declaration_date_bs']
+    ],
+    refresh_action(frm) {
+        const syncIfMissing = (adField, bsField) => {
+            if (!frm.doc[bsField] && frm.doc[adField]) {
+                const bs = convertADtoBS(frm.doc[adField]);
+                frappe.db.set_value('Sales Invoice', frm.doc.name, bsField, bs)
                     .then(() => frm.reload_doc());
             }
+        };
+
+        if (!frm.is_new()) {
+            syncIfMissing('posting_date', 'nepali_date');
+            syncIfMissing('customs_declaration_date', 'customs_declaration_date_bs');
         }
+    }
     },
     "Purchase Invoice": {
         hide_fields: ['nepali_date'],
