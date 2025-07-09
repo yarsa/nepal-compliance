@@ -210,6 +210,7 @@ doc_events = {
         "on_submit": "nepal_compliance.qr_code.create_qr_code"
     },
     "Sales Invoice" : {
+        "autoname": "nepal_compliance.utils.custom_autoname",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
         "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"],
     },

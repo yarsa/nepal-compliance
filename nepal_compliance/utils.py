@@ -2,9 +2,18 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 from frappe.utils.safe_exec import safe_eval
+from frappe.model.naming import make_autoname
 
 def prevent_invoice_deletion(doc, method):
     frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
+
+def custom_autoname(doc, method):
+    full_series = doc.naming_series or frappe.get_meta(doc.doctype).get_field("naming_series").options.split("\n")[0]
+    proposed_name = make_autoname(full_series, doc=doc)
+    if not frappe.db.exists(doc.doctype, proposed_name):
+        doc.name = proposed_name
+    else:
+        doc.name = make_autoname(full_series, doc=doc)
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula, taxable_salary):
