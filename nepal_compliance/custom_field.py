@@ -91,9 +91,9 @@ def create_custom_fields():
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "supplier_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "cbms_status", "label": "CBMS Status", "fieldtype": "Select", "options": "\nSuccess\nPending\nFailed", "default": "", "insert_after": "supplier_vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "cbms_response", "label": "CBMS Response", "fieldtype": "Small Text", "insert_after": "cbms_status", "in_list_view": 1, "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "due_date", "depends_on": "eval:doc.supplier_country != 'Nepal'"},
-            {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "customs_declaration_number", "depends_on": "eval:doc.supplier_country != 'Nepal'"},
-            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "depends_on": "eval:doc.supplier_country != 'Nepal'"}
+            {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "cost_center", "allow_on_submit": 1},
+            {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "project", "allow_on_submit": 1},
+            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date"}
