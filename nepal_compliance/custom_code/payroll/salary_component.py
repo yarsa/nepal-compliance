@@ -125,7 +125,7 @@ def get_salary_components_config() -> List[Dict[str, Any]]:
         },
         {
             "name": "Overtime",
-            "abbr": "OT",
+            "abbr": "TO",
             "type": "Earning",
             "description": "Overtime Free Field"
         },

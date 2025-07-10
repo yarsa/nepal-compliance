@@ -5,17 +5,22 @@ from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname
 
 def prevent_invoice_deletion(doc, method):
-    frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
+    if (doc.docstatus == 1):
+        frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
 
 def custom_autoname(doc, method):
     try:
         full_series = doc.naming_series
         if not full_series:
-             naming_field = frappe.get_meta(doc.doctype).get_field("naming_series")
-             if naming_field and naming_field.options:
-                 full_series = naming_field.options.split("\n")[0].strip()
-             else:
-                 frappe.throw(_("No naming series found for {0}").format(doc.doctype))
+            naming_field = frappe.get_meta(doc.doctype).get_field("naming_series")
+            if naming_field and naming_field.options:
+                options = [opt.strip() for opt in naming_field.options.split("\n") if opt.strip()]
+                if options:
+                    full_series = options[0]
+                else:
+                    frappe.throw(_("No valid naming series found for {0}").format(doc.doctype))
+            else:
+                frappe.throw(_("No naming series found for {0}").format(doc.doctype))
         max_attempts = 50
         for attempt in range(max_attempts):
             proposed_name = make_autoname(full_series, doc=doc)
