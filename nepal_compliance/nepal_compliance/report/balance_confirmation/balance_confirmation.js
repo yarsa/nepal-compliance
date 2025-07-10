@@ -12,30 +12,13 @@ frappe.query_reports["Balance Confirmation"] = {
             "reqd": 1
         },
         {
-            "fieldname": "from_date",
-            "label": __("From Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -12),
-            "reqd": 1
-        },
-        {
-            "fieldname": "to_date",
-            "label": __("To Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.get_today(),
-            "reqd": 1
-        },
-        {
-            "fieldname": "from_nepali_date",
-            "label": __("From Nepali Date"),
-            "fieldtype": "Data",
-            "reqd": 0,
-        },
-        {
-            "fieldname": "to_nepali_date",
-            "label": __("To Nepali Date"),
-            "fieldtype": "Data",
-            "reqd": 0
+            "fieldname": "nepali_month",
+            "label": __("Nepali Month"),
+            "fieldtype": "Select",
+            "options": [
+                "", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin",
+                "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
+            ]
         },
         {
             "fieldname": "party_type",
@@ -58,8 +41,5 @@ frappe.query_reports["Balance Confirmation"] = {
             value = "<div style='text-align: right'>" + value + "</div>";
         }
         return value;
-    },
-    onload: function(report) {
-        DatePickerConfig.initializePickers(report);
-    },
+    }
 };

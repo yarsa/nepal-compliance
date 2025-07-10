@@ -5,11 +5,22 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate, formatdate
+from datetime import datetime, timedelta
+from nepali_datetime import date as nepali_date
+
 
 def execute(filters=None):
     if not filters:
         filters = {}
 
+    nepali_month = filters.get("nepali_month")
+    if nepali_month:
+        from_date, to_date = get_english_date_range_from_nepali_month(nepali_month)
+        filters["from_date"] = from_date
+        filters["to_date"] = to_date
+    else:
+        filters["from_date"], filters["to_date"] = get_dynamic_date_range()
+        
     columns = get_columns()
     data = get_data(filters)
 
@@ -108,10 +119,11 @@ def get_conditions(filters):
     return " AND ".join(conditions)
 
 def get_gl_entries(conditions, filters):
+
     date_field = "posting_date"
     from_date = filters.get("from_date")
     to_date = filters.get("to_date")
-    
+
     return frappe.db.sql("""
         WITH OpeningBalance AS (
             SELECT 
@@ -137,12 +149,12 @@ def get_gl_entries(conditions, filters):
         SELECT 
             ob.party_type,
             ob.party,
-            ob.opening_debit,
-            ob.opening_credit,
+            COALESCE(ob.opening_debit, 0) as opening_debit,
+            COALESCE(ob.opening_credit, 0) as opening_credit,
             COALESCE(ct.debit, 0) as debit,
             COALESCE(ct.credit, 0) as credit,
-            (ob.opening_debit + COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)) as closing_debit,
-            (ob.opening_credit + COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)) as closing_credit
+            (COALESCE(ob.opening_debit, 0) + COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)) as closing_debit,
+            (COALESCE(ob.opening_credit, 0) + COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)) as closing_credit
         FROM OpeningBalance ob
         LEFT JOIN CurrentTransactions ct
         ON ob.party_type = ct.party_type AND ob.party = ct.party
@@ -156,29 +168,58 @@ def get_gl_entries(conditions, filters):
         **filters
     }, as_dict=1)
 
-def get_pan_number(party_type, party):
-    if party_type == "Supplier":
-        return frappe.db.get_value("Supplier", party, "tax_id")
-    elif party_type == "Customer":
-        return frappe.db.get_value("Customer", party, "tax_id")
-    return ""
+def get_dynamic_date_range():
 
-def get_party_address(party_type, party):
-    address = frappe.db.sql("""
-        SELECT 
-            addr.address_line1,
-            addr.city,
-            addr.country
-        FROM `tabAddress` addr
-        INNER JOIN `tabDynamic Link` dl
-        ON dl.parent = addr.name
-        WHERE 
-            dl.link_doctype = %s
-            AND dl.link_name = %s
-            AND addr.is_primary_address = 1
-        LIMIT 1
-    """, (party_type, party), as_dict=1)
+    try:
+        result = frappe.db.sql("""
+            SELECT MIN(posting_date) as min_date, MAX(posting_date) as max_date
+            FROM `tabGL Entry`
+            WHERE is_cancelled = 0
+        """, as_dict=1)
+
+        if result and result[0].min_date and result[0].max_date:
+            return result[0].min_date, result[0].max_date
+        else:
+            return "2020-01-01", "2999-12-31"
+    except Exception as e:
+        frappe.log_error(f"Error in get_dynamic_date_range: {str(e)}")
+        return "2020-01-01", "2999-12-31"
+
+def get_english_date_range_from_nepali_month(nepali_month_name):
+    if not nepali_month_name or not isinstance(nepali_month_name, str):
+        return ("1900-01-01", "2999-12-31")
+    nepali_months = [
+        "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin",
+        "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
+    ]
+    try:
+        today = datetime.today()
+        today_nepali = nepali_date.from_datetime_date(today.date())
+        nepali_year = today_nepali.year
+    except Exception as e:
+        frappe.log_error(f"Error getting today's Nepali date: {str(e)}")
+        return ("1900-01-01", "2999-12-31")
     
-    if address:
-        return f"{address[0].address_line1}, {address[0].city}, {address[0].country}"
-    return ""
+    if nepali_month_name not in nepali_months:
+        return ("1900-01-01", "2999-12-31")
+
+    try:
+        month_index = nepali_months.index(nepali_month_name) + 1
+        nepali_start_date = nepali_date(nepali_year, month_index, 1)
+
+        if month_index == 12:
+            next_month_index = 1
+            next_year = nepali_year + 1
+        else:
+            next_month_index = month_index + 1
+            next_year = nepali_year
+
+        nepali_next_month_start = nepali_date(next_year, next_month_index, 1)
+        eng_start_date = nepali_start_date.to_datetime_date()
+        eng_end_date = nepali_next_month_start.to_datetime_date() - timedelta(days=1)
+    
+    except Exception as e:
+        frappe.log_error(f"Error converting Nepali month to English date range: {str(e)}")
+        return ("1900-01-01", "2999-12-31")
+
+    return (eng_start_date.strftime("%Y-%m-%d"), eng_end_date.strftime("%Y-%m-%d"))
