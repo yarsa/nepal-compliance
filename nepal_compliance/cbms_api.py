@@ -14,7 +14,6 @@ class CBMSIntegration:
         self.invoice_payload = None
 
     def is_cbms_configured(self):
-
         try:
             self.cbms_settings = frappe.get_doc("CBMS Settings")
             return all([
@@ -26,10 +25,38 @@ class CBMSIntegration:
             ])
         except frappe.DoesNotExistError:
             return False
+    
+    def convert_to_nepali_fy_format(self, fy_name):
+        if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
+            return fy_name
+        try:
+            start, end = [int(x) for x in fy_name.split("-")]
+            nep_start = start + 57
+            nep_end = end + 57
+            return f"{nep_start}/{str(nep_end)[-2:]}"
+        except Exception:
+            return fy_name
+
+    def get_buyer_pan(self):
+        vat = getattr(self.doc, "vat_number", None)
+        tax = getattr(self.doc, "tax_id", None)
+
+        if vat and vat.strip():
+            return vat.strip()
+        elif tax and tax.strip():
+            return tax.strip()
+        else:
+            return ""
 
     def prepare_payload(self):
-
         try:
+            if not self.cbms_settings:
+                self.cbms_settings = frappe.get_doc("CBMS Settings")
+            
+            if not self.cbms_settings:
+                frappe.log_error("CBMS Settings not found", "CBMS API Error")
+                return None
+            
             if not self.doc.nepali_date:
                 frappe.throw(_("Nepali date is missing in the Sales Invoice."))
 
@@ -41,6 +68,8 @@ class CBMSIntegration:
             if not fiscal_year:
                 frappe.log_error(f"Fiscal Year not found for posting date: {self.doc.posting_date}", "CBMS API Error")
                 return None
+            
+            fiscal_year = self.convert_to_nepali_fy_format(fiscal_year)
 
             try:
                 date_obj = datetime.strptime(self.doc.nepali_date, "%Y-%m-%d")
@@ -61,7 +90,7 @@ class CBMSIntegration:
                 "username": self.cbms_settings.user_name,
                 "password": self.cbms_settings.get_password("password"),
                 "seller_pan": self.cbms_settings.panvat_no,
-                "buyer_pan": self.doc.vat_number if self.doc.vat_number else "",  
+                "buyer_pan": self.get_buyer_pan(),  
                 "fiscal_year": fiscal_year,
                 "total_sales": self.doc.grand_total if not self.doc.is_return else abs(self.doc.grand_total), 
                 "taxable_sales_vat": abs(self.doc.net_total) if self.doc.is_return else (self.doc.net_total if self.doc.discount_amount else abs(self.doc.total)),
@@ -113,7 +142,7 @@ class CBMSIntegration:
                 raise Exception(_("Failed to prepare payload."))
 
             headers = {"Content-Type": "application/json"}
-            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+            response = requests.post(api_url, json=payload, headers=headers, timeout=60)
 
             if response.status_code == 200:
                 doc.reload()
@@ -178,20 +207,30 @@ def post_sales_invoice_or_return_to_cbms(doc_name, method=None):
 
 @frappe.whitelist()
 def sync_failed_cbms_invoices():
-    failed_invoices = frappe.get_all("Sales Invoice", filters={"docstatus": 1, "cbms_status": ["in", ["Failed"]]}, pluck="name")
-    
+    failed_invoices = frappe.get_all(
+        "Sales Invoice",
+        filters={"docstatus": 1, "cbms_status": ["!=", "Success"]},
+        pluck="name"
+    )
+
     if not failed_invoices:
-        frappe.msgprint(_("No failed invoices found.")) 
+        frappe.msgprint(_("No invoices with failed status found.")) 
         return {"message": 0} 
 
     for inv_name in failed_invoices:
-        doc = frappe.get_doc("Sales Invoice", inv_name)
-        cbms = CBMSIntegration(doc)
-        enqueue(
-            method=cbms.send_to_cbms,
-            queue="short",
-            timeout=60,
-            is_async=True,
-            doc=doc
-        )
-    frappe.msgprint(_("{} failed invoice(s) queued for sync.").format(len(failed_invoices)))
+        try:
+            doc = frappe.get_doc("Sales Invoice", inv_name)
+            cbms = CBMSIntegration(doc)
+
+            enqueue(
+                method=cbms.send_to_cbms,
+                queue="short",
+                timeout=60,
+                is_async=True,
+                doc=doc
+            )
+            frappe.logger().info(f"Invoice {inv_name} queued for CBMS sync.")
+        except Exception as e:
+            frappe.log_error(f"Error processing invoice {inv_name} for CBMS sync: {str(e)}", "CBMS Sync Retry")
+
+    frappe.msgprint(_("{} invoice(s) queued for CBMS sync.").format(len(failed_invoices)))
