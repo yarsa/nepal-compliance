@@ -229,7 +229,7 @@ def sync_failed_cbms_invoices():
                 is_async=True,
                 doc=doc
             )
-            frappe.log_error(f"Invoice {inv_name} queued for CBMS sync.", "CBMS Sync Retry")
+            frappe.logger().info(f"Invoice {inv_name} queued for CBMS sync.")
         except Exception as e:
             frappe.log_error(f"Error processing invoice {inv_name} for CBMS sync: {str(e)}", "CBMS Sync Retry")
 
