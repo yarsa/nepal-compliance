@@ -89,6 +89,7 @@ def allocate_monthly_leave_bs_scheduled():
     """
     Scheduled task wrapper to call allocate_monthly_leave_bs() without user context.
     """
+    user = frappe.session.user
     try:
         # Run as system user
         frappe.set_user("Administrator")
@@ -97,4 +98,4 @@ def allocate_monthly_leave_bs_scheduled():
     except Exception as e:
         frappe.log_error(f"[Nepal Compliance] Scheduled BS leave allocation failed: {str(e)}")
     finally:
-        frappe.set_user("Guest")  # reset context
+        frappe.set_user(user)  # reset context
