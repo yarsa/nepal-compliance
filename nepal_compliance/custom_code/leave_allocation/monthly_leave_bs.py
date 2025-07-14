@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import getdate
 from hrms.hr.doctype.leave_allocation.leave_allocation import create_leave_ledger_entry
 from nepal_compliance.custom_code.leave_allocation.bs_leave_allocation import get_bs_today_date
@@ -49,7 +50,7 @@ def allocate_monthly_leave_bs(force=False):
 
     user_roles = frappe.get_roles(frappe.session.user)
     if "HR User" not in user_roles and "HR Manager" not in user_roles:
-        frappe.throw("You are not authorized to perform leave allocation.")
+        frappe.throw(_("You are not authorized to perform leave allocation."))
 
     if not force and bs_today.day != 1:
         frappe.msgprint(f"Today is not BS 1st Day: {bs_today}. Skipping allocation.")
@@ -57,7 +58,7 @@ def allocate_monthly_leave_bs(force=False):
 
     allocation_key = f"bs_monthly_allocation_{bs_today.year}_{bs_today.month}"
     if frappe.cache().get_value(allocation_key):
-        frappe.msgprint("Monthly allocation already completed for this BS month.")
+        frappe.msgprint(_("Monthly allocation already completed for this BS month."))
         return
 
     ad_today = getdate()
@@ -82,7 +83,7 @@ def allocate_monthly_leave_bs(force=False):
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(f"Monthly BS leave allocation failed: {str(e)}")
-        frappe.throw("Failed to complete monthly leave allocation. Please try again.")
+        frappe.throw(_("Failed to complete monthly leave allocation. Please try again."))
 
 def allocate_monthly_leave_bs_scheduled():
     """

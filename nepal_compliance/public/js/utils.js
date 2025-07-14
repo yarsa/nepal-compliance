@@ -50,13 +50,13 @@ frappe.listview_settings['Leave Allocation'] = {
                                         allocateBSLeave(listview, true);
                                     },
                                     () => {
-                                        frappe.msgprint("Leave allocation canceled.");
+                                        frappe.msgprint(__("Leave allocation canceled."));
                                     }
                                 );
                             } else if (is_first_day) {
                                 allocateBSLeave(listview);
                             } else {
-                                frappe.msgprint("You can only allocate leave on the 1st day of the Nepali month.");
+                                frappe.msgprint(__("You can only allocate leave on the 1st day of the Nepali month."));
                             }
                         }
                     }
