@@ -221,11 +221,6 @@ doc_events = {
 }
 # Scheduled Tasks
 # ---------------
-scheduler_events = {
-    "daily": [
-        "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.allocate_monthly_leave_bs_scheduled"
-    ]
-}
 # scheduler_events = {
 # 	"all": [
 # 		"nepal_compliance.tasks.all"

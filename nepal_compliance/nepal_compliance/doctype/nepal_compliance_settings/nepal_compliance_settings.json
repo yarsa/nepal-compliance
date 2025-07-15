@@ -65,19 +65,21 @@
    "description": "This will be updated as per Leave Allocated by HR",
    "fieldname": "bs_year",
    "fieldtype": "Int",
-   "label": "BS Year"
+   "label": "BS Year",
+   "read_only": 1
   },
   {
    "description": "This will be updated as per Leave Allocated by HR",
    "fieldname": "bs_month",
    "fieldtype": "Int",
-   "label": "BS Month"
+   "label": "BS Month",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-15 12:25:43.751476",
+ "modified": "2025-07-15 13:26:29.728650",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
