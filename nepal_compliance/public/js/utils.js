@@ -56,7 +56,7 @@ frappe.listview_settings['Leave Allocation'] = {
                     frappe.confirm(
                         `Today is BS ${bs.year}-${bs.month}-${bs.day}, not the 1st. Do you still want to allocate leave?`,
                         () => allocateBSLeave(listview, bs.year, bs.month, true),
-                        () => frappe.msgprint("Cancelled.")
+                        () => frappe.msgprint(__("Cancelled."))
                     );
                 } else if (is_first_day) {
                     allocateBSLeave(listview, bs.year, bs.month);
