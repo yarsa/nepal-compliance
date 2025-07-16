@@ -32,3 +32,56 @@ frappe.ui.form.on('Journal Entry', {
         }
     }
 });
+
+frappe.listview_settings['Leave Allocation'] = {
+    onload(listview) {
+        if (frappe.user.has_role("HR Manager") || frappe.user.has_role("HR User")) {
+            listview.page.add_inner_button(__('Allocate Monthly Leave (BS)'), () => {
+                const today = new Date();
+                let bs;
+                try {
+                    bs = NepaliFunctions.AD2BS({
+                        year: today.getFullYear(),
+                        month: today.getMonth() + 1,
+                        day: today.getDate()
+                    });
+                } catch (err) {
+                    console.error('BS date conversion failed:', err);
+                    frappe.msgprint(__('Failed to convert date to Bikram Sambat calendar'));
+                    return;
+                }
+                const is_first_day = bs.day === 1;
+
+                if (!is_first_day && frappe.user.has_role("HR Manager")) {
+                    frappe.confirm(
+                        `Today is BS ${bs.year}-${bs.month}-${bs.day}, not the 1st. Do you still want to allocate leave?`,
+                        () => allocateBSLeave(listview, bs.year, bs.month, true),
+                        () => frappe.msgprint(__("Cancelled."))
+                    );
+                } else if (is_first_day) {
+                    allocateBSLeave(listview, bs.year, bs.month);
+                } else {
+                    frappe.msgprint(__("Only HR Managers can override BS 1st day restriction."));
+                }
+            });
+
+            function allocateBSLeave(listview, bsYear, bsMonth, force = false) {
+                frappe.call({
+                    method: "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.allocate_monthly_leave_bs",
+                    args: {
+                        bs_year: bsYear,
+                        bs_month: bsMonth,
+                        force: force
+                    },
+                    callback: function(r) {
+                        if (!r.exc) {
+                            frappe.msgprint(__('Monthly BS Leave Allocated Successfully'));
+                            listview.refresh();
+                        }
+                    }
+                });
+            }
+        }
+    }
+};
+

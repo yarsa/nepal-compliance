@@ -8,6 +8,9 @@
   "settings_section",
   "prevent_out_of_sequence_doctype_submission",
   "max_backdate_days_allowed",
+  "column_break_qnkm",
+  "bs_year",
+  "bs_month",
   "section_break_gjyo",
   "allowed_role",
   "column_break_ftxd",
@@ -53,12 +56,30 @@
    "fieldtype": "Table",
    "label": "Restricted DocTypes",
    "options": "Nepal Compliance Doctype"
+  },
+  {
+   "fieldname": "column_break_qnkm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "This will be updated as per Leave Allocated by HR",
+   "fieldname": "bs_year",
+   "fieldtype": "Int",
+   "label": "BS Year",
+   "read_only": 1
+  },
+  {
+   "description": "This will be updated as per Leave Allocated by HR",
+   "fieldname": "bs_month",
+   "fieldtype": "Int",
+   "label": "BS Month",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-04-21 12:43:55.231814",
+ "modified": "2025-07-15 13:26:29.728650",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
@@ -75,6 +96,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

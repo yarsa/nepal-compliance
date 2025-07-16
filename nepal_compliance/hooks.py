@@ -95,7 +95,8 @@ doctype_js = {
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
-    "Salary Component": "public/js/custom_button.js"
+    "Salary Component": "public/js/custom_button.js",
+    "Leave Allocation": "public/js/utils.js"
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -220,7 +221,6 @@ doc_events = {
 }
 # Scheduled Tasks
 # ---------------
-
 # scheduler_events = {
 # 	"all": [
 # 		"nepal_compliance.tasks.all"
