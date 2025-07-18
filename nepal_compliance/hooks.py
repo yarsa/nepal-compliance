@@ -145,7 +145,6 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # ------------
 
 # before_uninstall = "nepal_compliance.uninstall.before_uninstall"
-before_uninstall = "nepal_compliance.uninstall.before_uninstall"
 # after_uninstall = "nepal_compliance.uninstall.after_uninstall"
 
 # Integration Setup
