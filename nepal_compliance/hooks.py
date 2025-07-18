@@ -145,6 +145,7 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # ------------
 
 # before_uninstall = "nepal_compliance.uninstall.before_uninstall"
+before_uninstall = "nepal_compliance.uninstall.before_uninstall"
 # after_uninstall = "nepal_compliance.uninstall.after_uninstall"
 
 # Integration Setup
@@ -188,6 +189,9 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # override_doctype_class = {
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
+override_doctype_class = {
+    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice"
+}
 
 # Document Events
 # ---------------
@@ -213,7 +217,7 @@ doc_events = {
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"],
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"]
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",

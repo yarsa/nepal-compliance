@@ -41,12 +41,13 @@ class CBMSIntegration:
         vat = getattr(self.doc, "vat_number", None)
         tax = getattr(self.doc, "tax_id", None)
 
-        if vat and vat.strip():
-            return vat.strip()
-        elif tax and tax.strip():
-            return tax.strip()
+        pan = vat or tax or ""
+        pan = pan.strip()
+    
+        if pan and pan.isdigit():
+            return float(pan)
         else:
-            return ""
+            return None
 
     def prepare_payload(self):
         try:
