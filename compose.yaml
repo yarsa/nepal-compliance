@@ -18,6 +18,9 @@ services:
       DB_PORT: ${DB_PORT}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
 
   configurator:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -88,7 +91,7 @@ services:
     networks:
       - frappe_network
     healthcheck:
-      test: mysqladmin ping -h localhost --password=admin
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost --password=${MARIADB_ROOT_PASSWORD}"]
       interval: 1s
       retries: 20
     deploy:
@@ -105,12 +108,14 @@ services:
     volumes:
       - db-data:/var/lib/mysql
 
+
   frontend:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
     networks:
       - frappe_network
     depends_on:
       - websocket
+      - backend
     deploy:
       restart_policy:
         condition: on-failure
@@ -146,6 +151,9 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
 
   queue-short:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -162,6 +170,9 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
 
   redis-queue:
     image: redis:6.2-alpine
@@ -196,6 +207,9 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
 
   websocket:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -210,6 +224,13 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      configurator:
+        condition: service_completed_successfully
 
 volumes:
   db-data:
