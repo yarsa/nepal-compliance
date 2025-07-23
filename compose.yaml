@@ -1,6 +1,17 @@
 # This file is based on frappe_docker repository specific to Frappe Framework, licensed under the MIT License.
 # Copyright (c) 2017 Frappe Technologies Pvt. Ltd. See LICENSE at https://github.com/frappe/frappe_docker
 
+x-config-ready: &config_ready
+  configurator:
+    condition: service_completed_successfully
+
+x-redis-and-config-ready: &redis_and_config_ready
+  redis-cache:
+    condition: service_started
+  redis-queue:
+    condition: service_started
+  configurator:
+    condition: service_completed_successfully
 
 services:
   backend:
@@ -18,9 +29,7 @@ services:
       DB_PORT: ${DB_PORT}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-    depends_on:
-      configurator:
-        condition: service_completed_successfully
+    depends_on: *config_ready
 
   configurator:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -91,7 +100,7 @@ services:
     networks:
       - frappe_network
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost --password=${MARIADB_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL","mysqladmin ping -h localhost --password='${MARIADB_ROOT_PASSWORD}'"]
       interval: 1s
       retries: 20
     deploy:
@@ -114,8 +123,10 @@ services:
     networks:
       - frappe_network
     depends_on:
-      - websocket
-      - backend
+      websocket:
+        condition: service_started
+      backend:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -151,9 +162,7 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-    depends_on:
-      configurator:
-        condition: service_completed_successfully
+    depends_on: *config_ready
 
   queue-short:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -170,9 +179,7 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-    depends_on:
-      configurator:
-        condition: service_completed_successfully
+    depends_on: *config_ready
 
   redis-queue:
     image: redis:6.2-alpine
@@ -207,9 +214,7 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-    depends_on:
-      configurator:
-        condition: service_completed_successfully
+    depends_on: *config_ready
 
   websocket:
     image: yarsalabs/nepal-compliance:${VERSION_TAG}
@@ -224,13 +229,7 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-    depends_on:
-      redis-cache:
-        condition: service_started
-      redis-queue:
-        condition: service_started
-      configurator:
-        condition: service_completed_successfully
+    depends_on: *redis_and_config_ready
 
 volumes:
   db-data:
