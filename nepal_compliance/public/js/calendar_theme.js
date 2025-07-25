@@ -1,25 +1,9 @@
-const THEMES = {
-    DARK: 'dark',
-    LIGHT: 'light'
-};
-
 function applyCalendarTheme(theme) {
-    if (!theme || typeof theme !== 'string') {
-        theme = THEMES.LIGHT;
-const THEMES = {
-    DARK: 'dark',
-    LIGHT: 'light'
-};
-
-function applyCalendarTheme(theme) {
-    if (!theme || typeof theme !== 'string') {
-        theme = THEMES.LIGHT;
-    }
-
     const root = document.documentElement;
+
     const set = (key, value) => root.style.setProperty(key, value);
 
-    if (theme === THEMES.DARK) {
+    if (theme === 'dark') {
         set('--calendar-bg', '#1e1e2f');
         set('--calendar-text', '#ffffff');
         set('--calendar-border', '#444');
@@ -51,14 +35,6 @@ function applyCalendarTheme(theme) {
         set('--calendar-hover-bg', '#e0e0e0');
     }
 }
-        set('--calendar-day-text', '#000000');
-        set('--calendar-selected-bg', '#171717');
-        set('--calendar-selected-text', '#ffffff');
-        set('--calendar-current-bg', '#f5f5f5');
-        set('--calendar-current-text', '#000000');
-        set('--calendar-hover-bg', '#e0e0e0');
-    }
-}
 
 frappe.after_ajax(() => {
     const theme = frappe.boot?.user?.theme?.toLowerCase() || "light";
@@ -67,5 +43,5 @@ frappe.after_ajax(() => {
 
 frappe.router.on('change', () => {
     const theme = frappe.boot?.user?.theme?.toLowerCase() || "light";
-    applyCalendarTheme(getCurrentTheme() || theme);
+    applyCalendarTheme(theme);
 });
