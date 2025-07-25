@@ -57,7 +57,9 @@ frappe.ui.form.on("Sales Invoice", {
         fetch_vat_number(frm, 'Company', 'supplier_vat_number')
     },
     onload: function(frm){
-        fetch_vat_number(frm, 'Company', 'supplier_vat_number');
+        if (frm.is_new()) {
+            fetch_vat_number(frm, 'Company', 'supplier_vat_number');
+        }
     }
 });
 
@@ -72,7 +74,9 @@ frappe.ui.form.on("Purchase Invoice", {
         fetch_vat_number(frm, 'Company', 'customer_vat_number')
     },
     onload: function(frm){
-        fetch_vat_number(frm, 'Company', 'customer_vat_number');
+        if(frm.is_new()) {
+            fetch_vat_number(frm, 'Company', 'customer_vat_number');
+        }
     }
 });
 
