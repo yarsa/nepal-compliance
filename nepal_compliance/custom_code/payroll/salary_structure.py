@@ -114,7 +114,7 @@ def create_salary_structure_for_company(company_name):
     salary_structure_married_ssf_name = f"Salary Structure Married - SSF - {company_name}"
 
     def create_structure(name, ssf, deduction_type):
-        if not frappe.db.exists("Salary Structure", {"company": company_name, "name": name}):
+        if not frappe.db.exists("Salary Structure", name):
             doc = frappe.new_doc("Salary Structure")
             doc.name = name
             doc.company = company_name

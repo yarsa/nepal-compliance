@@ -29,14 +29,20 @@ function validate_field(frm) {
 
 function fetch_vat_number(frm, doc_type, field_name) {
     var doc_field = (doc_type === "Supplier" || doc_type === "Customer") ? doc_type.toLowerCase() : 'company';
-    var field_map = doc_type === "Supplier" ? 'supplier_vat_number' : (doc_type === "Customer" ? 'customer_vat_number' : 'company_vat_number');
-    
-    if (frm.doc[doc_field] && !frm.doc[field_name]) {
+    var field_map = doc_type === "Supplier" ? 'supplier_vat_number' :
+                    doc_type === "Customer" ? 'customer_vat_number' :
+                    'company_vat_number';
+
+    if (frm.doc[doc_field]) {
         frappe.db.get_value(doc_type, frm.doc[doc_field], field_map, function(value) {
             if (value && value[field_map]) {
                 frm.set_value(field_name, value[field_map]);
+            } else {
+                frm.set_value(field_name, '');
             }
         });
+    } else {
+        frm.set_value(field_name, '');
     }
 }
 
@@ -46,6 +52,9 @@ frappe.ui.form.on("Sales Invoice", {
     },
     customer: function(frm) {
         fetch_vat_number(frm, 'Customer', 'vat_number');
+    },
+    company: function(frm) {
+        fetch_vat_number(frm, 'Company', 'supplier_vat_number')
     },
     onload: function(frm){
         fetch_vat_number(frm, 'Company', 'supplier_vat_number');
@@ -58,6 +67,9 @@ frappe.ui.form.on("Purchase Invoice", {
     },
     supplier: function(frm) {
         fetch_vat_number(frm, 'Supplier', 'vat_number');
+    },
+    company: function (frm) {
+        fetch_vat_number(frm, 'Company', 'customer_vat_number')
     },
     onload: function(frm){
         fetch_vat_number(frm, 'Company', 'customer_vat_number');

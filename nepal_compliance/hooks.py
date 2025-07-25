@@ -27,7 +27,8 @@ app_license = "GNU General Public License (v3)"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
 app_include_css = ["/assets/nepal_compliance/css/calendar.css",
-                   "assets/nepal_compliance/css/date.css",
+                   "/assets/nepal_compliance/css/date.css",
+                   "/assets/nepal_compliance/css/calendar_theme.css",
                    "/assets/nepal_compliance/css/doctype.css"]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
 app_include_js = [
@@ -35,7 +36,8 @@ app_include_js = [
                  "/assets/nepal_compliance/js/nepali_date.js",
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
-                 "/assets/nepal_compliance/js/icon_patch.js"
+                 "/assets/nepal_compliance/js/icon_patch.js",
+                 "/assets/nepal_compliance/js/calendar_theme.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
@@ -140,11 +142,11 @@ after_install = "nepal_compliance.install.install"
 after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
               "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
 # after_install = "nepal_compliance.install.after_install"
-
 # Uninstallation
 # ------------
 
 # before_uninstall = "nepal_compliance.uninstall.before_uninstall"
+before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # after_uninstall = "nepal_compliance.uninstall.after_uninstall"
 
 # Integration Setup
