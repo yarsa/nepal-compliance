@@ -342,7 +342,7 @@ function calculate_selected_earnings(frm) {
     let total_deductions = 0;
     
     const selected_components = [
-        "Basic Salary", "Other Allowance", "Grade Amount", "Blog Allowance", "Earning Adjustment","Overtime", "Gratuity", 
+        "Basic Salary", "Other Allowance", "Employee Grade Amount", "Blog Allowance", "Earning Adjustment","Overtime", "Gratuity", 
         "Provident Fund Employer", "Employer's Contribution SSF", 
     ];
     

@@ -4,11 +4,13 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate, formatdate
+from datetime import datetime
+
 
 def execute(filters=None):
-    if not filters:
-        filters = {}
+    filters = filters or {}
+
+    filters["from_date"], filters["to_date"] = get_dynamic_date_range()
 
     columns = get_columns()
     data = get_data(filters)
@@ -69,13 +71,14 @@ def get_columns():
         },
     ]
 
+
 def get_data(filters):
     conditions = get_conditions(filters)
     gl_entries = get_gl_entries(conditions, filters)
+
     data = []
-    
     for gle in gl_entries:
-        row = {
+        data.append({
             "party_type": gle.party_type,
             "party": gle.party,
             "opening_debit": gle.opening_debit,
@@ -84,22 +87,20 @@ def get_data(filters):
             "credit": gle.credit,
             "closing_debit": gle.closing_debit,
             "closing_credit": gle.closing_credit,
-        }
-        data.append(row)
-    
+        })
+
     return data
+
 
 def get_conditions(filters):
     conditions = []
-    
+
     if filters.get("company"):
         conditions.append("company = %(company)s")
     if filters.get("from_date"):
         conditions.append("posting_date >= %(from_date)s")
     if filters.get("to_date"):
         conditions.append("posting_date <= %(to_date)s")
-    elif filters.get("from_date") and filters.get("to_date"):
-        conditions.append("posting_date BETWEEN %(from_date)s AND %(to_date)s")
     if filters.get("party_type"):
         conditions.append("party_type = %(party_type)s")
     if filters.get("party"):
@@ -107,18 +108,15 @@ def get_conditions(filters):
 
     return " AND ".join(conditions)
 
+
 def get_gl_entries(conditions, filters):
-    date_field = "posting_date"
-    from_date = filters.get("from_date")
-    to_date = filters.get("to_date")
-    
-    return frappe.db.sql("""
+    return frappe.db.sql(f"""
         WITH OpeningBalance AS (
             SELECT 
                 party_type,
                 party,
-                SUM(IF({date_field} < %(from_date)s AND is_cancelled = 0, debit, 0)) as opening_debit,
-                SUM(IF({date_field} < %(from_date)s AND is_cancelled = 0, credit, 0)) as opening_credit
+                SUM(IF(posting_date < %(from_date)s AND is_cancelled = 0, debit, 0)) as opening_debit,
+                SUM(IF(posting_date < %(from_date)s AND is_cancelled = 0, credit, 0)) as opening_credit
             FROM `tabGL Entry`
             WHERE {conditions}
             GROUP BY party_type, party
@@ -130,55 +128,38 @@ def get_gl_entries(conditions, filters):
                 SUM(IF(is_cancelled = 0, debit, 0)) as debit,
                 SUM(IF(is_cancelled = 0, credit, 0)) as credit
             FROM `tabGL Entry`
-            WHERE {date_field} BETWEEN %(from_date)s AND %(to_date)s
+            WHERE posting_date BETWEEN %(from_date)s AND %(to_date)s
             AND {conditions}
             GROUP BY party_type, party
         )
         SELECT 
             ob.party_type,
             ob.party,
-            ob.opening_debit,
-            ob.opening_credit,
+            COALESCE(ob.opening_debit, 0) as opening_debit,
+            COALESCE(ob.opening_credit, 0) as opening_credit,
             COALESCE(ct.debit, 0) as debit,
             COALESCE(ct.credit, 0) as credit,
-            (ob.opening_debit + COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)) as closing_debit,
-            (ob.opening_credit + COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)) as closing_credit
+            (COALESCE(ob.opening_debit, 0) + COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)) as closing_debit,
+            (COALESCE(ob.opening_credit, 0) + COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)) as closing_credit
         FROM OpeningBalance ob
         LEFT JOIN CurrentTransactions ct
-        ON ob.party_type = ct.party_type AND ob.party = ct.party
+            ON ob.party_type = ct.party_type AND ob.party = ct.party
         ORDER BY ob.party_type, ob.party
-    """.format(
-        conditions=conditions,
-        date_field=date_field
-    ), {
-        "from_date": from_date,
-        "to_date": to_date,
-        **filters
-    }, as_dict=1)
+    """, filters, as_dict=1)
 
-def get_pan_number(party_type, party):
-    if party_type == "Supplier":
-        return frappe.db.get_value("Supplier", party, "tax_id")
-    elif party_type == "Customer":
-        return frappe.db.get_value("Customer", party, "tax_id")
-    return ""
 
-def get_party_address(party_type, party):
-    address = frappe.db.sql("""
-        SELECT 
-            addr.address_line1,
-            addr.city,
-            addr.country
-        FROM `tabAddress` addr
-        INNER JOIN `tabDynamic Link` dl
-        ON dl.parent = addr.name
-        WHERE 
-            dl.link_doctype = %s
-            AND dl.link_name = %s
-            AND addr.is_primary_address = 1
-        LIMIT 1
-    """, (party_type, party), as_dict=1)
-    
-    if address:
-        return f"{address[0].address_line1}, {address[0].city}, {address[0].country}"
-    return ""
+def get_dynamic_date_range():
+    try:
+        result = frappe.db.sql("""
+            SELECT MIN(posting_date) as min_date, MAX(posting_date) as max_date
+            FROM `tabGL Entry`
+            WHERE is_cancelled = 0
+        """, as_dict=1)
+
+        if result and result[0].min_date and result[0].max_date:
+            return result[0].min_date, result[0].max_date
+
+    except Exception as e:
+        frappe.log_error("Balance Confirmation Report: " + str(e))
+
+    return "2020-01-01", "2999-12-31"

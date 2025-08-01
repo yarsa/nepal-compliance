@@ -1,7 +1,15 @@
-<h1 align="center">Nepal Compliance</h1>
+<h1 align="center"><a href="https://erpnepal.org">Nepal Compliance</a></h1>
 <p align="center">
   Open source ERP Solution for Nepalese businesses with HR, Payroll & Accounting compliance.
   <br/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/yarsa/nepal-compliance/blob/master/LICENSE">
+    <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue"></a>
+     <a href="https://github.com/yarsa/nepal-compliance/pulse"><img src="https://img.shields.io/github/commit-activity/m/yarsa/nepal-compliance" alt="Commits-per-month"></a>
+     <a href="https://github.com/yarsa/nepal-compliance/blob/master/CONTRIBUTING.md#become-a-contributor"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+     <a href="https://deepwiki.com/yarsa/nepal-compliance"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
 <p align="center">

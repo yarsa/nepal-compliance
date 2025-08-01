@@ -27,7 +27,8 @@ app_license = "GNU General Public License (v3)"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
 app_include_css = ["/assets/nepal_compliance/css/calendar.css",
-                   "assets/nepal_compliance/css/date.css",
+                   "/assets/nepal_compliance/css/date.css",
+                   "/assets/nepal_compliance/css/calendar_theme.css",
                    "/assets/nepal_compliance/css/doctype.css"]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
 app_include_js = [
@@ -35,7 +36,8 @@ app_include_js = [
                  "/assets/nepal_compliance/js/nepali_date.js",
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
-                 "/assets/nepal_compliance/js/icon_patch.js"
+                 "/assets/nepal_compliance/js/icon_patch.js",
+                 "/assets/nepal_compliance/js/calendar_theme.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
@@ -95,7 +97,8 @@ doctype_js = {
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
-    "Salary Component": "public/js/custom_button.js"
+    "Salary Component": "public/js/custom_button.js",
+    "Leave Allocation": "public/js/utils.js"
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -139,11 +142,11 @@ after_install = "nepal_compliance.install.install"
 after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
               "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
 # after_install = "nepal_compliance.install.after_install"
-
 # Uninstallation
 # ------------
 
 # before_uninstall = "nepal_compliance.uninstall.before_uninstall"
+before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # after_uninstall = "nepal_compliance.uninstall.after_uninstall"
 
 # Integration Setup
@@ -187,6 +190,9 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # override_doctype_class = {
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
+override_doctype_class = {
+    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice"
+}
 
 # Document Events
 # ---------------
@@ -212,7 +218,7 @@ doc_events = {
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"],
+        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"]
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",
@@ -220,7 +226,6 @@ doc_events = {
 }
 # Scheduled Tasks
 # ---------------
-
 # scheduler_events = {
 # 	"all": [
 # 		"nepal_compliance.tasks.all"
@@ -329,7 +334,7 @@ fixtures = [
         "filters": [
             ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
                             "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
+                            "Employee Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
                             "Provident Fund Employer Deduction", "Gratuity Deduction"]]
         ]
     },

@@ -74,18 +74,16 @@ def send_invoice_email(docname, doctype, auto_send=False):
 
     if not recipient_email :
         if not auto_send:
-            frappe.msgprint(
-            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype."),
-            indicator="orange"
+            frappe.log_error(
+            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype.")
         )
         return
 
     email_account = frappe.get_value("Email Account", {"default_outgoing": 1}, "email_id")
     if not email_account:
         if not auto_send:
-            frappe.msgprint(
-            _("No default email account found. Configure one in Email Account settings."),
-            indicator="orange"
+            frappe.log_error(
+            _("No default email account found. Configure one in Email Account settings.")
         )
         return
 
@@ -120,18 +118,14 @@ def check_email_setup(doctype, docname):
     email_account = frappe.get_value("Email Account", {"default_outgoing": 1}, "email_id")
 
     if not email:
-        frappe.msgprint(
-            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype."),
-            indicator="orange",
-            alert=True
+        frappe.log_error(
+            _("No email address found for this Supplier/Customer. Configure it in Supplier/Customer Doctype.")
         )
         return False
 
     if not email_account:
-        frappe.msgprint(
-            _("No default email account found. Configure one in Email Account settings."),
-            indicator="orange",
-            alert=True
+        frappe.log_error(
+            _("No default email account found. Configure one in Email Account settings.")
         )
         return False
 

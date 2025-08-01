@@ -8,10 +8,14 @@ const hideFields = (frm, fields = []) => {
 const createDateFieldTriggers = (datePairs = []) => {
     return datePairs.reduce((triggers, [adField, bsField]) => {
         triggers[adField] = frm => {
-            frappe.model.set_value(frm.doctype, frm.docname, bsField, convertADtoBS(frm.doc[adField]));
+            if (frm.doc[adField]) {
+                frm.set_value(bsField, convertADtoBS(frm.doc[adField]));
+            }
         };
         triggers[bsField] = frm => {
-            frappe.model.set_value(frm.doctype, frm.docname, adField, convertBStoAD(frm.doc[bsField]));
+            if (frm.doc[bsField]) {
+                frm.set_value(adField, convertBStoAD(frm.doc[bsField]));
+            }
         };
         return triggers;
     }, {});
@@ -19,6 +23,24 @@ const createDateFieldTriggers = (datePairs = []) => {
 
 const setupFieldTriggers = (doctype, config) => {
     frappe.ui.form.on(doctype, {
+        onload(frm) {
+            if (frm.doc.__islocal && config.date_pairs) {
+                config.date_pairs.forEach(([_, bsField]) => {
+                    if (frm.doc[bsField]) {
+                        frm.set_value(bsField, null);
+                    }
+                });
+            }
+        },
+        onload_post_render(frm) {
+            if (frm.doc.__islocal && config.date_pairs) {
+                config.date_pairs.forEach(([adField, bsField]) => {
+                    if (frm.doc[adField] && !frm.doc[bsField]) {
+                        frm.set_value(bsField, convertADtoBS(frm.doc[adField]));
+                    }
+                });
+            }
+        },
         refresh(frm) {
             if (config.hide_fields) hideFields(frm, config.hide_fields);
             if (config.auto_trigger && frm.doc[config.auto_trigger]) {
@@ -56,25 +78,18 @@ const nepaliDateConfig = {
         }
     },
     "Sales Invoice": {
-    hide_fields: ['nepali_date', 'customs_declaration_date_bs'],
-    date_pairs: [
-        ['posting_date', 'nepali_date'],
-        ['customs_declaration_date', 'customs_declaration_date_bs']
-    ],
-    refresh_action(frm) {
-        const syncIfMissing = (adField, bsField) => {
-            if (!frm.doc[bsField] && frm.doc[adField]) {
-                const bs = convertADtoBS(frm.doc[adField]);
-                frappe.db.set_value('Sales Invoice', frm.doc.name, bsField, bs)
+        hide_fields: ['nepali_date', 'customs_declaration_date_bs'],
+        date_pairs: [
+            ['posting_date', 'nepali_date'],
+            ['customs_declaration_date', 'customs_declaration_date_bs']
+        ],
+        refresh_action(frm) {
+            if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
+                const nepali = convertADtoBS(frm.doc.posting_date);
+                frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali)
                     .then(() => frm.reload_doc());
             }
-        };
-
-        if (!frm.is_new()) {
-            syncIfMissing('posting_date', 'nepali_date');
-            syncIfMissing('customs_declaration_date', 'customs_declaration_date_bs');
         }
-    }
     },
     "Purchase Invoice": {
         hide_fields: ['nepali_date'],
@@ -82,7 +97,7 @@ const nepaliDateConfig = {
         refresh_action(frm) {
             if (!frm.is_new() && frm.doc.posting_date && !frm.doc.nepali_date) {
                 const nepali = convertADtoBS(frm.doc.posting_date);
-                frappe.db.set_value('Purchase Invoice', frm.doc.name, 'nepali_date', nepali)
+                frappe.db.set_value(frm.doc.doctype, frm.doc.name, 'nepali_date', nepali)
                     .then(() => frm.reload_doc());
             }
         }
