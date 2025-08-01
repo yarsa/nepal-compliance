@@ -44,8 +44,8 @@ class CBMSIntegration:
         pan = vat or tax or ""
         pan = pan.strip()
     
-        if pan and pan.isdigit():
-            return float(pan)
+        if pan and pan.isdigit() or pan.replace('.', '').isdigit():
+            return pan
         else:
             return None
 
