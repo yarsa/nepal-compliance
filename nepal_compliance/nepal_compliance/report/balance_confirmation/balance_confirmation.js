@@ -11,16 +11,7 @@ frappe.query_reports["Balance Confirmation"] = {
             "default": frappe.defaults.get_user_default("Company"),
             "reqd": 1
         },
-        {
-            "fieldname": "nepali_month",
-            "label": __("Nepali Month"),
-            "fieldtype": "Select",
-            "options": [
-                "", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin",
-                "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
-            ]
-        },
-        {
+        { 
             "fieldname": "party_type",
             "label": __("Party Type"),
             "fieldtype": "Link",
@@ -34,7 +25,6 @@ frappe.query_reports["Balance Confirmation"] = {
             "options": "party_type"
         }
     ],
-
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         if (column.fieldtype == "Currency") {
