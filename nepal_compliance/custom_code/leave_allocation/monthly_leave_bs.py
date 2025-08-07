@@ -27,7 +27,6 @@ def update_allocation(doc, amount_to_add):
     doc.save()
 
 @frappe.whitelist()
-@frappe.whitelist()
 def get_bs_eligible_leave_types():
     user_roles = frappe.get_roles(frappe.session.user)
     if "HR User" not in user_roles and "HR Manager" not in user_roles:
@@ -53,7 +52,7 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False):
     last_bs_month = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_month") or 0)
 
     if not force and bs_year == last_bs_year and bs_month == last_bs_month:
-        frappe.throw(_("🚫 Leave already allocated for BS {0}-{1}.").format(bs_year, bs_month))
+        frappe.throw(_("Leave already allocated for BS {0}-{1}.").format(bs_year, bs_month))
 
     if not leave_types:
         frappe.throw(_("No leave types selected for allocation."))
@@ -81,7 +80,7 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False):
         frappe.db.set_single_value("Nepal Compliance Settings", "bs_month", bs_month)
 
         frappe.db.commit()
-        frappe.msgprint(f"✅ Leave Allocation Done for BS {bs_year}-{bs_month}. Total Allocations: {allocated_count}")
+        frappe.msgprint(f"Leave Allocation Done for BS {bs_year}-{bs_month}. Total Allocations: {allocated_count}")
 
     except Exception as e:
         frappe.db.rollback()
