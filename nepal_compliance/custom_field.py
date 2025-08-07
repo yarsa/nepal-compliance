@@ -62,6 +62,10 @@ def create_custom_fields():
             {"fieldname": "from_nepali_date_leave_allocation", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "allow_on_submit": 1},
             {"fieldname": "to_nepali_date_leave_allocation", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "allow_on_submit": 1}
         ],
+        "Leave Type": [
+            {"fieldname": "allocate_leave_on_start_of_bs_month", "label": "Allocate Leave on Start of BS Month", "fieldtype": "Check", "insert_after": "max_continuous_days_allowed", "description": "Make sure Is Earned Leave is unchecked if you check it.", "allow_on_submit": 1},
+            {"fieldname": "bs_monthly_allocation_amount", "label": "BS Monthly Allocation Amount", "fieldtype": "Float", "insert_after": "allocate_leave_on_start_of_bs_month", "depends_on": "eval:doc.allocate_leave_on_start_of_bs_month == 1", "mandatory_depends_on": "eval:doc.allocate_leave_on_start_of_bs_month == 1", "description": "Amount of leave to be allocated at the start of each BS month eg: 0.5 for half day, 1.0 for full day.", "allow_on_submit": 1}
+        ],
         "Leave Application": [
             {"fieldname": "from_nepali_date_leave_application", "label": "From Date BS", "fieldtype": "Data", "insert_after": "from_date", "allow_on_submit": 1},
             {"fieldname": "to_nepali_date_leave_application", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "allow_on_submit": 1},
