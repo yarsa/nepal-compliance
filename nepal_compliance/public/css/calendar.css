@@ -52,18 +52,20 @@ div#ndp-nepali-box td.ndp-selected,div.ndp-nepali-box td.ndp-selected {
 }
 
 div#ndp-nepali-box td.ndp-current,div.ndp-nepali-box td.ndp-current {
-	padding: 2px;
+	padding: 0;
     border: 1px solid #000000;
-    background: #f5f8f9;
+    background: gainsboro;
     text-align: center;
     font-weight: 700;
     border-radius: 10px;
 }
 
 div#ndp-nepali-box td.ndp-current a,div.ndp-nepali-box td.ndp-current a {
-	color: #000000;
+    color: #000000;
     display: block;
-    font-size: 2em;
+    font-size: 1.25em;
+    border: none;
+    box-sizing: border-box;
 }
 
 div#ndp-nepali-box td.ndp-date a,div#ndp-nepali-box td.ndp-selected a,div.ndp-nepali-box td.ndp-date a,div.ndp-nepali-box td.ndp-selected a {
