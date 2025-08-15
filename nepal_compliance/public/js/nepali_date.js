@@ -93,6 +93,7 @@ function extend_with_bs_date_picker() {
                         this.$input.val(bs_date);
                         this.set_model_value(ad_date);
                         this.show_equivalent_date(`AD Date: ${ad_date}`);
+                        this.$input.trigger('change');
                     } catch (err) {
                         console.error("BS to AD conversion failed", err);
                     }
