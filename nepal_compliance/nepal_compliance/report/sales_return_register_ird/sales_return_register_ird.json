@@ -1,5 +1,5 @@
 {
- "add_total_row": 1,
+ "add_total_row": 0,
  "add_translate_data": 0,
  "columns": [],
  "creation": "2025-07-04 13:09:48.253834",
@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "",
  "letterhead": null,
- "modified": "2025-07-04 13:09:48.253834",
+ "modified": "2025-08-22 15:14:00.771004",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Sales Return Register IRD",
