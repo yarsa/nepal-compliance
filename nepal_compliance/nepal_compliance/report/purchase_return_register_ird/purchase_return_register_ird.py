@@ -108,7 +108,7 @@ def get_data(filters):
         total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
         total_tax = flt(inv.total_tax)
 
-        if total_tax == 0:
+        if total_tax == 0 or total_taxable == 0:
             tax_domestic_nc = tax_import_nc = tax_capital = 0
         else:
             tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0

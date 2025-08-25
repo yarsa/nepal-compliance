@@ -105,6 +105,7 @@ def get_data(filters):
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
             qty = flt(item.get("qty") or 0)
+            item_tax_template = item.get("item_tax_template")
             is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
             is_fixed_asset = item["item_code"] in asset_items
 
