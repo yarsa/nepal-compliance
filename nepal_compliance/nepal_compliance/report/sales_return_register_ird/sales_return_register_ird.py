@@ -70,32 +70,51 @@ def get_data(filters):
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
-    for inv in invoices:
-        customer_country = frappe.db.get_value("Customer", inv.customer_name, "territory") or ""
-        is_export = customer_country.strip().lower() not in ("", "nepal")
+    grand_qty = grand_total = grand_tax_exempt = grand_taxable = grand_tax = 0.0
 
+    for inv in invoices:
         item_filters = {"parent": inv.invoice}
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name", "item_tax_template"])
 
         item_codes = [item["item_code"] for item in items]
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
 
+        total_invoice = tax_exempt_total = taxable_total = total_qty = 0.0
+        taxable_item_net_amounts = []
+
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
+            item_tax_template = item.get("item_tax_template")
+            is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
+            qty = flt(item.get("qty") or 0)
 
-            if item.get("is_nontaxable_item"):
-                tax_exempt_item = amt
-                taxable_amount_item = 0.0
-                tax_amount_item = 0.0
+            total_qty += abs(qty)
+
+            if is_nontaxable or item["item_code"] in asset_items:
+                tax_exempt_total += amt
             else:
-                tax_exempt_item = 0.0
-                if item["item_code"] in asset_items:
-                    taxable_amount_item = 0.0
-                    tax_amount_item = 0.0
-                else:
-                    taxable_amount_item = amt
-                    tax_amount_item = taxable_amount_item * 0.13  # 13% tax rate
+                taxable_total += amt
+                taxable_item_net_amounts.append((item, amt))
+
+        total_tax = flt(inv.total_tax)
+        for item, amt in taxable_item_net_amounts:
+            share = (amt / taxable_total) if taxable_total else 0
+            item["calculated_tax"] = share * total_tax
+
+        for item in items:
+            amt = flt(item.get("net_amount") or item.get("amount"))
+            qty = flt(item.get("qty") or 0)
+            is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
+            is_fixed_asset = item["item_code"] in asset_items
+
+            tax_exempt_item = taxable_amount_item = tax_amount_item = 0.0
+            if is_nontaxable or is_fixed_asset:
+                tax_exempt_item = amt
+            else:
+                taxable_amount_item = amt
+                tax_amount_item = next(
+                    (i[0]["calculated_tax"] for i in taxable_item_net_amounts if i[0] == item), 0.0)
 
             data.append({
                 "nepali_date": inv.nepali_date or inv.posting_date,
@@ -103,12 +122,46 @@ def get_data(filters):
                 "customer_name": inv.customer_name,
                 "pan": inv.pan,
                 "name": item.get("item_name") or item.get("item_code"),
-                "qty": abs(flt(item.get("qty"))),
+                "qty": abs(qty),
                 "uom": item.get("uom") or "",
-                "total": abs(flt(inv.rounded_total)),
+                "total": abs(flt(amt)),
                 "tax_exempt": abs(flt(tax_exempt_item)),
                 "taxable_amount": abs(flt(taxable_amount_item)),
-                "tax_amount": abs(flt(tax_amount_item))
+                "tax_amount": abs(flt(tax_amount_item)),
             })
+
+        data.append({
+            "nepali_date": "",
+            "invoice": "",
+            "customer_name": "जम्मा",
+            "pan": "",
+            "name": "",
+            "qty": abs(total_qty),
+            "uom": "",
+            "total": abs(flt(inv.rounded_total)),
+            "tax_exempt": abs(flt(tax_exempt_total)),
+            "taxable_amount": abs(flt(taxable_total)),
+            "tax_amount": abs(flt(total_tax))
+        })
+
+        grand_qty += abs(total_qty)
+        grand_total += abs(flt(inv.rounded_total))
+        grand_tax_exempt += abs(flt(tax_exempt_total))
+        grand_taxable += abs(flt(taxable_total))
+        grand_tax += abs(flt(total_tax))
+
+    data.append({
+        "nepali_date": "",
+        "invoice": "",
+        "customer_name": "कुल जम्मा",
+        "pan": "",
+        "name": "",
+        "qty": grand_qty,
+        "uom": "",
+        "total": grand_total,
+        "tax_exempt": grand_tax_exempt,
+        "taxable_amount": grand_taxable,
+        "tax_amount": grand_tax
+    })
 
     return data

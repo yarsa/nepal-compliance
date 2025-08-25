@@ -55,7 +55,7 @@ def get_data(filters):
 
     query = f"""
         SELECT
-            si.name as invoice, si.rounded_total, si.nepali_date, si.customer_name, si.tax_id as pan,
+            si.name as invoice, si.rounded_total, si.nepali_date, si.customer_name, si.tax_id as invoice_pan, si.customer,
             si.total, si.net_total, si.total_taxes_and_charges as total_tax, si.customs_declaration_number, si.customs_declaration_date_bs
         FROM `tabSales Invoice` si
         WHERE {' AND '.join(conditions)}
@@ -68,13 +68,15 @@ def get_data(filters):
     for inv in invoices:
         customer_country = frappe.db.get_value("Customer", inv.customer_name, "territory") or ""
         is_export = customer_country.strip().lower() not in ("", "nepal")
+
+        pan = inv.invoice_pan or frappe.db.get_value("Customer", inv.customer, "tax_id")
         
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
 
         item_filters = {"parent": inv.invoice}
         
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_tax_template"])
         
         item_codes = [item["item_code"] for item in items]
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
@@ -82,7 +84,12 @@ def get_data(filters):
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
 
-            if item.get("is_nontaxable_item"):
+            item_tax_template = item.get("item_tax_template")
+
+            is_nontaxable = (
+                item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template))
+
+            if is_nontaxable:
                 tax_exempt += amt
                 continue
 
@@ -95,13 +102,18 @@ def get_data(filters):
                     taxable_domestic_nc += amt
 
         total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        tax_domestic_nc = taxable_domestic_nc * 0.13 if total_taxable else 0
+        total_tax = flt(inv.total_tax)
+
+        if total_tax == 0 or total_taxable == 0:
+            tax_domestic_nc = tax_import_nc = tax_capital = 0
+        else:
+            tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax
 
         data.append({
             "nepali_date": inv.nepali_date or inv.posting_date,
             "invoice": inv.invoice,
             "customer_name": inv.customer_name,
-            "pan": inv.pan,
+            "pan": pan,
             "total": inv.rounded_total,
             "tax_exempt": tax_exempt,
             "taxable_amount": taxable_domestic_nc,

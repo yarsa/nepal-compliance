@@ -32,7 +32,6 @@ def generate_ird_sales_register_excel():
     company = filters.get("company")
     company_info = frappe.get_doc("Company", company) if company else None
     company_name = company_info.company_name if company_info else "Company Name"
-    # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
 
     posting_date = frappe.utils.nowdate()
@@ -58,14 +57,17 @@ def generate_ird_sales_register_excel():
     ws.merge_cells("A1:K1")
     ws["A1"] = "बिक्री फिर्ता खाता"
     ws["A1"].font = Font(bold=True, size=16)
+
     ws.merge_cells("A2:K2")
     ws["A2"] = "(नियम २३ को उपनियम (१) को खण्ड  (छ) संग सम्बन्धित )"
+
     ws.merge_cells("A3:K3")
     ws["A3"] = ""
+
     ws.merge_cells("A4:K4")
     ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {convert_to_nepali_fy_format(fiscal_year)}"
-    ws["A4"].font = bold_center
     ws["A4"].alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    ws["A4"].font = bold_center
 
     for r in range(1, 5):
         ws[f"A{r}"].alignment = center
@@ -104,41 +106,47 @@ def generate_ird_sales_register_excel():
 
     data_start_row = 7
     for row_idx, inv in enumerate(rows, start=data_start_row):
-        row_data = [
-            inv.get("nepali_date"), inv.get("invoice"), inv.get("customer_name"), inv.get("pan"),
-            inv.get("name"), inv.get("qty"), inv.get("uom"),
-            inv.get("total"), inv.get("tax_exempt"),
-            inv.get("taxable_amount"), inv.get("tax_amount")
-        ]
-        for col_idx, val in enumerate(row_data, 1):
+        is_grand_total_row = inv.get("customer_name") == "कुल जम्मा"
+
+        if is_grand_total_row:
+            ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+            total_label_cell = ws.cell(row=row_idx, column=1, value="कुल जम्मा")
+            format_cell(total_label_cell)
+
+            values = [
+                inv.get("name"), inv.get("qty"), inv.get("uom"),
+                inv.get("total"), inv.get("tax_exempt"),
+                inv.get("taxable_amount"), inv.get("tax_amount")
+            ]
+            start_col = 5
+        else:
+            values = [
+                inv.get("nepali_date"), inv.get("invoice"), inv.get("customer_name"), inv.get("pan"),
+                inv.get("name"), inv.get("qty"), inv.get("uom"),
+                inv.get("total"), inv.get("tax_exempt"),
+                inv.get("taxable_amount"), inv.get("tax_amount")
+            ]
+            start_col = 1
+
+        for offset, val in enumerate(values):
+            col_idx = start_col + offset
             cell = ws.cell(row=row_idx, column=col_idx, value=val)
             cell.alignment = center
             cell.border = border
             if isinstance(val, (int, float)):
                 cell.number_format = '#,##0.00'
+            if is_grand_total_row:
+                cell.font = Font(bold=True)
 
-    total_row = data_start_row + len(rows)
-    ws.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=5)
-    total_label_cell = ws.cell(row=total_row, column=1, value="Total")
-    format_cell(total_label_cell)
-
-    for col in [6, 8, 9, 10, 11]:
-        if col == 7: 
-            continue
-        col_letter = get_column_letter(col)
-        formula = f"=SUM({col_letter}{data_start_row}:{col_letter}{total_row - 1})"
-        cell = ws.cell(row=total_row, column=col, value=formula)
-        cell.alignment = center
-        cell.border = border
-        cell.number_format = '#,##0.00'
-
+    last_data_row = data_start_row + len(rows)
     for col in range(1, 12):
         max_len = 0
-        for row in range(1, total_row + 1):
+        for row in range(1, last_data_row):
             val = ws.cell(row=row, column=col).value
             if val:
                 max_len = max(max_len, len(str(val)))
         ws.column_dimensions[get_column_letter(col)].width = max_len + 4
 
-    wb.save(get_site_path("public", "files", "IRD_Sales_Return_Register.xlsx"))
+    filepath = get_site_path("public", "files", "IRD_Sales_Return_Register.xlsx")
+    wb.save(filepath)
     return "/files/IRD_Sales_Return_Register.xlsx"

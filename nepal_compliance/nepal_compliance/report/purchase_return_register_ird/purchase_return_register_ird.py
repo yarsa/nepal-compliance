@@ -13,7 +13,6 @@ def execute(filters=None):
 def get_columns():
     return [
         {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
-        # {"label": "बीजक नं./प्रज्ञापनपत्र नं.", "fieldname": "invoice", "fieldtype": "Link", "options": "Purchase Invoice", "width": 100},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
         {"label": _("प्रज्ञापनपत्र नं."), "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
         {"label": _("आपूर्तिकर्ताको नाम"), "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
@@ -61,7 +60,7 @@ def get_data(filters):
 
     query = f"""
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.nepali_date, pi.supplier_name, pi.tax_id as pan,
+            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.nepali_date, pi.supplier_name, pi.tax_id as invoice_pan,
             pi.total, pi.total_taxes_and_charges as total_tax
         FROM `tabPurchase Invoice` pi
         WHERE {' AND '.join(conditions)}
@@ -75,17 +74,26 @@ def get_data(filters):
         supplier_country = frappe.db.get_value("Supplier", inv.supplier_name, "country") or ""
         is_import = supplier_country.strip().lower() != "nepal"
 
+        pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
+
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
 
         item_filters = {"parent": inv.invoice}
 
         items = frappe.get_all("Purchase Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_tax_template"])
 
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
 
-            if item.get("is_nontaxable_item"):
+            item_tax_template = item.get("item_tax_template")
+
+            is_nontaxable = (
+                item.get("is_nontaxable_item") or 
+                (flt(inv.total_tax) == 0 and not item_tax_template)
+            )
+
+            if is_nontaxable:
                 tax_exempt += amt
                 continue
 
@@ -98,21 +106,21 @@ def get_data(filters):
                     taxable_domestic_nc += amt
 
         total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        # total_tax = flt(inv.total_tax)
+        total_tax = flt(inv.total_tax)
 
-        # tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0
-        tax_domestic_nc = taxable_domestic_nc * 0.13 if total_taxable else 0
-        # tax_import_nc = (taxable_import_nc / total_taxable) * total_tax if total_taxable else 0
-        tax_import_nc = taxable_import_nc * 0.13 if total_taxable else 0
-        # tax_capital = (capital_taxable_amount / total_taxable) * total_tax if total_taxable else 0
-        tax_capital = capital_taxable_amount * 0.13 if total_taxable else 0
+        if total_tax == 0:
+            tax_domestic_nc = tax_import_nc = tax_capital = 0
+        else:
+            tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0
+            tax_import_nc = (taxable_import_nc / total_taxable) * total_tax if total_taxable else 0
+            tax_capital = (capital_taxable_amount / total_taxable) * total_tax if total_taxable else 0
 
         data.append({
             "nepali_date": inv.nepali_date or inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
-            "pan": inv.pan,
+            "pan": pan,
             "reason": inv.reason or "",
 			"qty": abs(sum(item.qty for item in items if item.qty)) if items else 0.0, 
             "uom": item.uom if items else "",
