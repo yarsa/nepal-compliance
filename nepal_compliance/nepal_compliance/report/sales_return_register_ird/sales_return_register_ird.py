@@ -56,9 +56,11 @@ def get_data(filters):
         SELECT
             si.name as invoice,
             si.rounded_total,
+            si.grand_total,
             si.nepali_date,
             si.customer_name,
             si.tax_id as pan,
+            si.customer,
             si.total,
             si.total_taxes_and_charges as total_tax,
             si.posting_date
@@ -121,7 +123,7 @@ def get_data(filters):
                 "nepali_date": inv.nepali_date or inv.posting_date,
                 "invoice": inv.invoice,
                 "customer_name": inv.customer_name,
-                "pan": inv.pan,
+                "pan": inv.pan or frappe.db.get_value("Customer", inv.customer, "tax_id"),
                 "name": item.get("item_name") or item.get("item_code"),
                 "qty": abs(qty),
                 "uom": item.get("uom") or "",
@@ -139,14 +141,14 @@ def get_data(filters):
             "name": "",
             "qty": abs(total_qty),
             "uom": "",
-            "total": abs(flt(inv.rounded_total)),
+            "total": abs(flt(inv.rounded_total or inv.grand_total)),
             "tax_exempt": abs(flt(tax_exempt_total)),
             "taxable_amount": abs(flt(taxable_total)),
             "tax_amount": abs(flt(total_tax))
         })
 
         grand_qty += abs(total_qty)
-        grand_total += abs(flt(inv.rounded_total))
+        grand_total += abs(flt(inv.rounded_total or inv.grand_total))
         grand_tax_exempt += abs(flt(tax_exempt_total))
         grand_taxable += abs(flt(taxable_total))
         grand_tax += abs(flt(total_tax))

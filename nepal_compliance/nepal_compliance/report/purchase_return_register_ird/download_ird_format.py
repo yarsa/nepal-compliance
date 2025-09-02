@@ -9,16 +9,17 @@ from frappe.utils import get_site_path
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 
-def convert_to_nepali_fy_format(fy_name):
-    if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
-        return fy_name
+def convert_to_nepali_fy_format(year_start_date, year_end_date):
     try:
-        start, end = [int(x) for x in fy_name.split("-")]
-        nep_start = start + 57
-        nep_end = end + 57
+        start_year = year_start_date.year
+        end_year = year_end_date.year
+
+        nep_start = start_year + 57
+        nep_end = end_year + 57
+
         return f"{nep_start}/{str(nep_end)[-2:]}"
-    except Exception:
-        return fy_name
+    except Exception as e:
+        return f"{year_start_date.year}-{year_end_date.year}"
 
 @frappe.whitelist()
 def generate_ird_purchase_register_excel():
@@ -38,13 +39,29 @@ def generate_ird_purchase_register_excel():
     pan = company_info.tax_id or "N/A"
 
     invoice_name = frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
-    invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
-    posting_date = invoice_doc.posting_date
+    try:
+        invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
+        posting_date = invoice_doc.posting_date
+    except frappe.DoesNotExistError:
+        frappe.throw(_("Purchase Invoice {0} not found").format(invoice_name))
 
-    fiscal_year = frappe.db.get_value("Fiscal Year", {
+    fiscal_years = frappe.db.get_all("Fiscal Year", filters={
         "year_start_date": ["<=", posting_date],
-        "year_end_date": [">=", posting_date]
-    }, "name") or "Fiscal Year"
+        "year_end_date": [">=", posting_date],
+    }, fields=["name", "year_start_date", "year_end_date"])
+    if not fiscal_years:
+        frappe.throw(_("No Fiscal Year found for posting date {0}.").format(posting_date))
+    if len(fiscal_years) > 1:
+        frappe.log_error(
+            _("Multiple Fiscal Years match posting date {0}: {1}").format(
+                posting_date,
+                ", ".join(fy["name"] for fy in fiscal_years)
+            ),
+            "Fiscal Year Overlap"
+        )
+    year_start_date = fiscal_years[0]["year_start_date"]
+    year_end_date = fiscal_years[0]["year_end_date"]
+    fiscal_year_nepali = convert_to_nepali_fy_format(year_start_date, year_end_date)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -68,7 +85,7 @@ def generate_ird_purchase_register_excel():
     ws.merge_cells("A3:P3")
     ws["A3"] = ""
     ws.merge_cells("A4:P4")
-    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {convert_to_nepali_fy_format(fiscal_year)}"
+    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {fiscal_year_nepali}"
 
     for r in range(1, 5):
         ws[f"A{r}"].alignment = center
