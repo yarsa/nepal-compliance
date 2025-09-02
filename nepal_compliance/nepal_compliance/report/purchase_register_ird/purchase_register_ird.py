@@ -56,7 +56,7 @@ def get_data(filters):
 
     query = f"""
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.rounded_total, pi.nepali_date,
+            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.nepali_date,
             pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax,
             pi.supplier, pi.posting_date
         FROM `tabPurchase Invoice` pi
@@ -118,7 +118,7 @@ def get_data(filters):
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
             "pan": pan,
-            "total": inv.rounded_total,
+            "total": inv.rounded_total or inv.grand_total,
             "tax_exempt": tax_exempt,
             "taxable_amount": taxable_domestic_nc,
             "tax_amount": tax_domestic_nc,
