@@ -8,17 +8,17 @@ from frappe.utils import get_site_path
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 
-def convert_to_nepali_fy_format(fy_name):
-    """Convert Gregorian FY (e.g. 2023-2024) to Nepali format (2080/81)."""
-    if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
-        return fy_name
+def convert_to_nepali_fy_format(year_start_date, year_end_date):
     try:
-        start, end = [int(x) for x in fy_name.split("-")]
-        nep_start = start + 57
-        nep_end = end + 57
+        start_year = year_start_date.year
+        end_year = year_end_date.year
+
+        nep_start = start_year + 57
+        nep_end = end_year + 57
+
         return f"{nep_start}/{str(nep_end)[-2:]}"
-    except Exception:
-        return fy_name
+    except Exception as e:
+        return f"{year_start_date.year}-{year_end_date.year}"
 
 @frappe.whitelist()
 def generate_ird_sales_register_excel():
@@ -35,16 +35,31 @@ def generate_ird_sales_register_excel():
     company_name = company_info.company_name if company_info else "Company Name"
     # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
-    posting_date = frappe.utils.nowdate()
-    fiscal_year = frappe.db.get_value(
+    if not rows or len(rows) == 0:
+        frappe.throw(_("No data found for the selected filters."))
+
+    invoice_name = rows[0].get("invoice")
+    if not invoice_name:
+        frappe.throw(_("Missing invoice number in report rows."))
+    posting_date = frappe.db.get_value("Sales Invoice", invoice_name, "posting_date")
+    if not posting_date:
+        frappe.throw(_("Sales Invoice {0} not found").format(invoice_name))
+    fy = frappe.db.get_value(
         "Fiscal Year",
         {
             "year_start_date": ["<=", posting_date],
-            "year_end_date": [">=", posting_date]
+            "year_end_date":   [">=", posting_date]
         },
-        "name"
-    ) or "Fiscal Year"
+        ["name", "year_start_date", "year_end_date"],
+        as_dict=True,
+    )
+    if not fy:
+        frappe.throw(_("No Fiscal Year found for posting date {0}.").format(posting_date))
 
+    year_start_date = fy.year_start_date
+    year_end_date   = fy.year_end_date
+
+    fiscal_year_nepali = convert_to_nepali_fy_format(year_start_date, year_end_date)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Sales Register"
@@ -70,7 +85,7 @@ def generate_ird_sales_register_excel():
     ws.merge_cells("A3:L3")
     ws["A3"] = ""
     ws.merge_cells("A4:L4")
-    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {convert_to_nepali_fy_format(fiscal_year)}"
+    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {fiscal_year_nepali}"
 
     for r in range(1, 5):
         top_cell = ws.cell(row=r, column=1)

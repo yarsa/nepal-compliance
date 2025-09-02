@@ -8,17 +8,17 @@ from frappe.utils import get_site_path
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 
-def convert_to_nepali_fy_format(fy_name):
-    if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
-        return fy_name
+def convert_to_nepali_fy_format(year_start_date, year_end_date):
     try:
-        start, end = [int(x) for x in fy_name.split("-")]
-        nep_start = start + 57
-        nep_end = end + 57
-        return f"{nep_start}/{str(nep_end)[-2:]}"
-    except Exception:
-        return fy_name
+        start_year = year_start_date.year
+        end_year = year_end_date.year
 
+        nep_start = start_year + 57
+        nep_end = end_year + 57
+
+        return f"{nep_start}/{str(nep_end)[-2:]}"
+    except Exception as e:
+        return f"{year_start_date.year}-{year_end_date.year}"
 
 @frappe.whitelist()
 def generate_ird_purchase_register_excel():
@@ -42,15 +42,23 @@ def generate_ird_purchase_register_excel():
     except frappe.DoesNotExistError:
         frappe.throw(_("Purchase Invoice {0} not found").format(invoice_name))
 
-    fiscal_year = frappe.db.get_value(
+    fy_rows = frappe.db.get_all(
         "Fiscal Year",
-        {
+        filters={
             "year_start_date": ["<=", posting_date],
-            "year_end_date": [">=", posting_date]
+            "year_end_date": [">=", posting_date],
         },
-        "name"
-    ) or "Fiscal Year"
+        fields=["name", "year_start_date", "year_end_date"],
+        order_by="year_start_date desc",
+        limit=1,
+    )
+    if not fy_rows:
+        frappe.throw(_("No Fiscal Year found covering posting date {0}.").format(posting_date))
+    fy = fy_rows[0]
+    year_start_date = fy["year_start_date"]
+    year_end_date = fy["year_end_date"]
 
+    fiscal_year_nepali = convert_to_nepali_fy_format(year_start_date, year_end_date)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Purchase Register"
@@ -79,7 +87,7 @@ def generate_ird_purchase_register_excel():
     ws["A3"] = ""
 
     ws.merge_cells("A4:M4")
-    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {convert_to_nepali_fy_format(fiscal_year)}"
+    ws["A4"] = f"करदाता दर्ता नं (PAN): {pan}        करदाताको नाम: {company_name}         आर्थिक वर्ष: {fiscal_year_nepali}"
     ws["A4"].font = bold_center
     ws["A4"].alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
