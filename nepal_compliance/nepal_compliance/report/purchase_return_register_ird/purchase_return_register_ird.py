@@ -60,7 +60,7 @@ def get_data(filters):
 
     query = f"""
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.nepali_date, pi.supplier_name, pi.tax_id as invoice_pan,
+            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.nepali_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
             pi.total, pi.total_taxes_and_charges as total_tax
         FROM `tabPurchase Invoice` pi
         WHERE {' AND '.join(conditions)}
@@ -124,7 +124,7 @@ def get_data(filters):
             "reason": inv.reason or "",
 			"qty": abs(sum(item.qty for item in items if item.qty)) if items else 0.0, 
             "uom": item.uom if items else "",
-            "total": abs(inv.rounded_total),
+            "total": abs(inv.rounded_total or inv.grand_total),
             "tax_exempt": abs(tax_exempt),
             "taxable_amount": abs(taxable_domestic_nc),
             "tax_amount": abs(tax_domestic_nc),

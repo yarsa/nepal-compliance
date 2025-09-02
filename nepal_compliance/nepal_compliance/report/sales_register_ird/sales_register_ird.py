@@ -56,7 +56,7 @@ def get_data(filters):
     query = f"""
         SELECT
             si.name as invoice, si.rounded_total, si.nepali_date, si.customer_name, si.tax_id as invoice_pan, si.customer,
-            si.total, si.net_total, si.total_taxes_and_charges as total_tax, si.customs_declaration_number, si.customs_declaration_date_bs
+            si.total, si.net_total, si.grand_total, si.total_taxes_and_charges as total_tax, si.customs_declaration_number, si.customs_declaration_date_bs
         FROM `tabSales Invoice` si
         WHERE {' AND '.join(conditions)}
         ORDER BY si.posting_date
@@ -114,7 +114,7 @@ def get_data(filters):
             "invoice": inv.invoice,
             "customer_name": inv.customer_name,
             "pan": pan,
-            "total": inv.rounded_total,
+            "total": inv.rounded_total or inv.grand_total,
             "tax_exempt": tax_exempt,
             "taxable_amount": taxable_domestic_nc,
             "tax_amount": tax_domestic_nc,
