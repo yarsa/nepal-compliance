@@ -7,7 +7,7 @@ from frappe.utils import cint
 class CustomSalarySlip(SalarySlip):
     def on_submit(self):
         if self.net_pay < 0:
-            frappe.msgprint("Warning: Submitted salary slip with negative Net Pay.")
+            frappe.msgprint(_("Warning: Submitted salary slip with negative Net Pay."))
 
         self.set_status()
         self.update_status(self.name)
