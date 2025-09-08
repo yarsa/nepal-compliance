@@ -25,6 +25,7 @@ from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry
 from hrms.payroll.doctype.payroll_entry.payroll_entry import (
     show_payroll_submission_status
 )
+from hrms.payroll.doctype.salary_withholding.salary_withholding import link_bank_entry_in_salary_withholdings
 
 class CustomPayrollEntry(PayrollEntry):
     @frappe.whitelist()
