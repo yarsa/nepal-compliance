@@ -191,7 +191,9 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 override_doctype_class = {
-    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice"
+    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
+    "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
+    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry"
 }
 
 # Document Events

@@ -1,6 +1,5 @@
 [
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -31,7 +30,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -62,7 +60,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -93,7 +90,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -124,7 +120,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -155,7 +150,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -186,7 +180,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -217,7 +210,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -248,7 +240,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": "basic_salary <= basic_salary/3",
@@ -279,7 +270,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -310,7 +300,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -341,7 +330,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -372,7 +360,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -403,7 +390,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -434,7 +420,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -465,7 +450,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -496,7 +480,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 0,
   "condition": null,
@@ -527,7 +510,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
@@ -558,7 +540,6 @@
   "variable_based_on_taxable_salary": 0
  },
  {
-  "accounts": [],
   "amount": 0.0,
   "amount_based_on_formula": 1,
   "condition": null,
