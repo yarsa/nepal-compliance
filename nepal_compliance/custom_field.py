@@ -26,7 +26,7 @@ def create_custom_fields():
             "description": "<b>Disclaimer:</b> Checking this means you prefer using the default date picker (AD format) as your preferred format."},
         ],
         "Employee": [
-            {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 1, "allow_on_submit": 1},
+            {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "allow_on_submit": 1},
         ],
         "Expense Claim": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", 'allow_on_submit': 1},
