@@ -26,7 +26,7 @@ def create_custom_fields():
             "description": "<b>Disclaimer:</b> Checking this means you prefer using the default date picker (AD format) as your preferred format."},
         ],
         "Employee": [
-            {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 1, "allow_on_submit": 1},
+            {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 0, "allow_on_submit": 1},
         ],
         "Expense Claim": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", 'allow_on_submit': 1},
@@ -38,6 +38,9 @@ def create_custom_fields():
         "Customer": [
             {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Data", "insert_after": "customer_group", "allow_on_submit": 1},
             {"fieldname": "customer_email_address", "label": "Customer Email Address", "fieldtype": "Data", "insert_after": "customer_vat_number"}
+        ],
+        "Salary Component":[
+            {"fieldname": "include_in_taxable_salary", "label": "Include In Taxable Salary", "fieldtype": "Check", "insert_after": "is_income_tax_component", "allow_on_submit": 1, "description": "Check this if this component is to be included in taxable salary calculation of Nepal Compliance."},
         ],
         "Salary Slip": [
             {"fieldname": "nepali_start_date", "label": "Nepali Start Date", "fieldtype": "Data", "insert_after": "start_date", "allow_on_submit": 1},
