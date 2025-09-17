@@ -322,32 +322,6 @@ doc_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-fixtures = [
-     {
-        "dt": "Custom Field",
-        "filters": [
-            [
-               "module", "in", ["nepal_compliance"]
-            ]
-        ]
-    },
-    {
-        "doctype": "Salary Component",
-        "filters": [
-            ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
-                            "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Employee Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
-                            "Provident Fund Employer Deduction", "Gratuity Deduction"]]
-        ]
-    },
-    {
-        "doctype": "Leave Type",
-        "filters": [
-            ["name", "in", ["Annual Sick Leave", "Home Leave"]]
-        ]
-    }
-]
-
 purchase_sales = ["Purchase Invoice", "Sales Invoice"]
 
 doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
