@@ -191,7 +191,9 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 override_doctype_class = {
-    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice"
+    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
+    "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
+    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry"
 }
 
 # Document Events
@@ -319,32 +321,6 @@ doc_events = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
-fixtures = [
-     {
-        "dt": "Custom Field",
-        "filters": [
-            [
-               "module", "in", ["nepal_compliance"]
-            ]
-        ]
-    },
-    {
-        "doctype": "Salary Component",
-        "filters": [
-            ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
-                            "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Employee Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
-                            "Provident Fund Employer Deduction", "Gratuity Deduction"]]
-        ]
-    },
-    {
-        "doctype": "Leave Type",
-        "filters": [
-            ["name", "in", ["Annual Sick Leave", "Home Leave"]]
-        ]
-    }
-]
 
 purchase_sales = ["Purchase Invoice", "Sales Invoice"]
 
