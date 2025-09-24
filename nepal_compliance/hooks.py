@@ -37,7 +37,8 @@ app_include_js = [
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
                  "/assets/nepal_compliance/js/icon_patch.js",
-                 "/assets/nepal_compliance/js/calendar_theme.js"
+                 "/assets/nepal_compliance/js/calendar_theme.js",
+                 "/assets/nepal_compliance/js/employee_benefit_claim.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
@@ -192,6 +193,8 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # }
 override_doctype_class = {
     "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
+    "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
+    "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
     "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry"
 }
