@@ -63,7 +63,7 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
 
         if existing:
             frappe.throw(
-                _("Festival allowance has already been claimed by employee {0} foo this Payroll Period.").format(
+                _("Festival allowance has already been claimed by employee {0} for this Payroll Period.").format(
                     self.employee,
                     formatdate(payroll_period.start_date),
                     formatdate(payroll_period.end_date),
@@ -71,11 +71,11 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
             )
 
     def set_max_amount_eligible(self, employee, claim_date):
-        if not self.employee:
+        if not employee:
             self.max_amount_eligible = 0
             return self.max_amount_eligible
 
-        emp = frappe.get_doc("Employee", self.employee)
+        emp = frappe.get_doc("Employee", employee)
 
         if not emp.date_of_joining:
             self.max_amount_eligible = 0
@@ -87,7 +87,7 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
             return self.max_amount_eligible
 
         doj = getdate(emp.date_of_joining)
-        claim_dt = getdate(self.claim_date) if self.claim_date else date.today()
+        claim_dt = getdate(claim_date) if self.claim_date else date.today()
 
         if doj > claim_dt:
             self.max_amount_eligible = 0

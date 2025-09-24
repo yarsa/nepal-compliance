@@ -30,9 +30,6 @@ def get_max_amount_eligible(employee, claim_date):
 
     if months_worked < 0:
         months_worked = 0
-        months_worked -= 1
-    if months_worked < 0:
-        months_worked = 0
 
     if months_worked >= 12:
         return flt(base_salary * 0.6)

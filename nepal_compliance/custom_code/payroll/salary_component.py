@@ -105,7 +105,7 @@ def create_multiple_salary_components():
             {
                 "amount_based_on_formula": 1,
                 "exempted_from_income_tax": 0,
-                "formula": "0.01/12*(annual_taxable_amount if annual_taxable_amount <= 500000 else 500000) if marital_status != 'Married' else 0.01/12 * (annual_taxable_amount if annual_taxable_amount <= 600000 else 600000) if marita_status == 'Married' else 0",
+                "formula": "0.01/12*(annual_taxable_amount if annual_taxable_amount <= 500000 else 500000) if marital_status != 'Married' else 0.01/12 * (annual_taxable_amount if annual_taxable_amount <= 600000 else 600000) if marital_status == 'Married' else 0",
                 "name": "Social Security Tax",
                 "salary_component": "Social Security Tax",
                 "salary_component_abbr": "social_security_tax",
@@ -117,7 +117,7 @@ def create_multiple_salary_components():
                 "create_separate_payment_entry_against_benefit_claim": 1,
                 "name": "Festival Allowance",
                 "salary_component": "Festival Allowance",
-                "Salary_component_abbr": "festival_allowance",
+                "salary_component_abbr": "festival_allowance",
                 "type": "Earning"
             },
             {

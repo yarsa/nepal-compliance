@@ -4,6 +4,9 @@ from frappe.utils import cint, flt
 from hrms.payroll.doctype.salary_structure.salary_structure import SalaryStructure as HRMSSalaryStructure
 
 class CustomSalaryStructure(HRMSSalaryStructure):
+    def validate(self):
+        super().validate()
+
     def validate_max_benefits_with_flexi(self):
         have_a_flexi = False
         if self.earnings:

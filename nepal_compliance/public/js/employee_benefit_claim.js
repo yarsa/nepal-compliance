@@ -53,7 +53,9 @@ frappe.ui.form.on('Employee Benefit Claim', {
             });
         } else {
             frm.set_value('max_amount_eligible', 0);
-            frm.set_value('claimed_amount', 0);
+            if(frm.doc.claim_festival_allowance){
+                frm.set_value('claimed_amount', 0);
         }
     }
+}
 });
