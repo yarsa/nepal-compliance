@@ -76,3 +76,7 @@ def set_vat_numbers(doc, method):
                 company_vat = frappe.db.get_value("Company", doc.company, "company_vat_number")
                 if company_vat:
                     doc.supplier_vat_number = company_vat
+
+def load_nepali_date(doc, method):
+    if hasattr(doc, "nepali_date"):
+        doc.nepali_date = None
