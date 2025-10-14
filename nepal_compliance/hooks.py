@@ -223,8 +223,9 @@ doc_events = {
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
-        "before_insert": "nepal_compliance.utils.set_vat_numbers",
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"]
+        "before_insert": ["nepal_compliance.utils.set_vat_numbers", "nepal_compliance.utils.load_nepali_date"],
+        "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
+        "validate": "nepal_compliance.qr_code.create_qr_code"
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",
