@@ -196,7 +196,8 @@ override_doctype_class = {
     "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
     "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
-    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry"
+    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
+    "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment"
 }
 
 # Document Events
