@@ -99,7 +99,8 @@ doctype_js = {
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
     "Salary Component": "public/js/custom_button.js",
-    "Leave Allocation": "public/js/utils.js"
+    "Leave Allocation": "public/js/utils.js",
+    "Sales Invoice" : "public/js/bulk_update_nepali_date.js"
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
