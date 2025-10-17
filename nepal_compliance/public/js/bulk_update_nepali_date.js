@@ -3,7 +3,7 @@ function setup_nepali_date_fixer({ listview, doctype, ad_field, bs_field, label 
     const bs_fields = Array.isArray(bs_field) ? bs_field : [bs_field];
 
     if (ad_fields.length !== bs_fields.length) {
-        frappe.msgprint("Field mapping mismatch between AD and BS fields.");
+        frappe.msgprint(__("Field mapping mismatch between AD and BS fields."));
         return;
     }
 
@@ -52,7 +52,7 @@ function setup_nepali_date_fixer({ listview, doctype, ad_field, bs_field, label 
             );
 
             frappe.confirm(
-                `Fix ${records.length} missing Nepali Dates for <b>${doctype}</b>?`,
+                __("Fix {0} missing Nepali Dates for <b>{1}</b>?", [records.length, doctype]),
                 () => {
                     frappe.show_progress(__('Updating...'), 0, records.length);
                     let completed = 0;
@@ -62,7 +62,11 @@ function setup_nepali_date_fixer({ listview, doctype, ad_field, bs_field, label 
                         if (completed >= records.length) {
                             frappe.hide_progress();
                             if (failed.length > 0) {
-                                frappe.msgprint(__(`Updated ${completed - failed.length} records. ${failed.length} failed: ${failed.join(', ')}`));
+                                frappe.msgprint(__("Updated {0} records. {1} failed: {2}", [
+                                    completed - failed.length,
+                                    failed.length,
+                                    failed.join(", ")
+                                ]));
                             } else {
                                 frappe.msgprint(__('Nepali Dates updated successfully.'));
                             }
