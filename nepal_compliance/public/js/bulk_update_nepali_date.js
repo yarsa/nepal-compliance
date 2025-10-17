@@ -21,8 +21,7 @@ function setup_nepali_date_fixer({ listview, doctype, ad_field, bs_field, label 
                     limit_start: limit_start,
                     limit_page_length: batch_size,
                     order_by: 'modified desc'
-                },
-                async: 0
+                }
             });
 
             const docs = res.message || [];
