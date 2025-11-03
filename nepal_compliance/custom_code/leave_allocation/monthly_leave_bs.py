@@ -58,13 +58,13 @@ def update_allocation(doc, amount_to_add):
     max_allowed = leave_type_doc.max_leaves_allowed or 0
 
     if max_allowed <= 0:
-        frappe.msgprint(_(f"Skipping {doc.leave_type} allocation: max_leaves_allowed not set."))
+        frappe.msgprint(_("Skipping {0} allocation: max_leaves_allowed not set.").format(doc.leave_type))
         return False
 
     current_allocated = doc.total_leaves_allocated or 0
 
     if current_allocated >= max_allowed:
-        frappe.msgprint(_(f"{doc.leave_type}: Max {max_allowed} days already allocated for {doc.employee}."))
+        frappe.msgprint(_("{0}: Max {1} days already allocated for {2}.").format(doc.leave_type, max_allowed, doc.employee))
         return False
 
     allowable_to_add = min(amount_to_add, max_allowed - current_allocated)
