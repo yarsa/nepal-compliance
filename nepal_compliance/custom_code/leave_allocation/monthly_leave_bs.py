@@ -84,7 +84,7 @@ def update_allocation(doc, amount_to_add):
         "doctype": "Leave Ledger Entry"
     })
 
-    doc.save()
+    doc.db_set("total_leaves_allocated", doc.total_leaves_allocated, update_modified=False)
     return True
 
 

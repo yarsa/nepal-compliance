@@ -87,7 +87,8 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
             return self.max_amount_eligible
 
         doj = getdate(emp.date_of_joining)
-        claim_dt = getdate(claim_date) if self.claim_date else date.today()
+        source_date = claim_date or getattr(self, "claim_date", None)
+        claim_dt = getdate(source_date) if source_date else date.today()
 
         if doj > claim_dt:
             self.max_amount_eligible = 0
