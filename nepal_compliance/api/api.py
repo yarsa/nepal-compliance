@@ -18,7 +18,6 @@ def attendance(employee, status, shift, attendance_date, log_type, datetime, lat
         employee_check_in.datetime = datetime
         attendance_doc_name = None
         employee_check_in.insert()
-        frappe.db.commit()
         if log_type in ['Check In', 'Check Out']:
             attendance_doc = frappe.new_doc("Attendance")
             attendance_doc.employee = employee
@@ -27,9 +26,13 @@ def attendance(employee, status, shift, attendance_date, log_type, datetime, lat
             attendance_doc.attendance_date = attendance_date
             attendance_doc.docstatus = 1
             attendance_doc.insert()
-            frappe.db.commit()
             attendance_doc_name = attendance_doc.name
         if attendance_doc_name:
             employee_check_in.db_set("attendance", attendance_doc_name)
+        frappe.db.commit()
     except Exception as e:
-        print( f" {e} ")
+        frappe.log_error(
+            title="Attendance Creation Failed",
+            message=f"Employee: {employee}, Log Type: {log_type}, Error: {str(e)}"
+        )
+        return {"success": False, "error": str(e)}
