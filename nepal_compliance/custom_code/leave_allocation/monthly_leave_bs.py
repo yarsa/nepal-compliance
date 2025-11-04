@@ -28,11 +28,6 @@ class LeavePolicyAssignment(BaseLeavePolicyAssignment):
                 alloc_doc = frappe.get_doc("Leave Allocation", alloc.name)
 
                 if alloc_doc.total_leaves_allocated > monthly_amt:
-                    leaves_taken = frappe.db.sql("""SELECT SUM(leaves) FROM `tabLeave Ledger Entry` WHERE transaction_name = %s AND is_carry_forward = 0 """, (alloc_doc.name,))[0][0] or 0
-                    if abs(leaves_taken) >= monthly_amt:
-                        frappe.msgprint(_("Cannot reduce {0} allocation for {1}: employee has already used {2} days.").format(alloc_doc.leave_type, alloc_doc.employee, abs(leaves_taken)))
-                        continue
-  
                     reduce_by = alloc_doc.total_leaves_allocated - monthly_amt
 
                     create_leave_ledger_entry(alloc_doc, {
