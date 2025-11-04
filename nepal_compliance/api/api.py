@@ -16,7 +16,7 @@ def attendance(employee, status, shift, attendance_date, log_type, datetime, lat
         employee_check_in.employee = employee
         employee_check_in.log_type = log_type
         employee_check_in.datetime = datetime
-        employee_check_in.attendance = attendance.name
+        attendance_doc_name = None
         employee_check_in.insert()
         frappe.db.commit()
         if log_type in ['Check In', 'Check Out']:
@@ -28,5 +28,8 @@ def attendance(employee, status, shift, attendance_date, log_type, datetime, lat
             attendance_doc.docstatus = 1
             attendance_doc.insert()
             frappe.db.commit()
+            attendance_doc_name = attendance_doc.name
+        if attendance_doc_name:
+            employee_check_in.db_set("attendance", attendance_doc_name)
     except Exception as e:
         print( f" {e} ")
