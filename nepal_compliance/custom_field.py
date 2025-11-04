@@ -237,7 +237,9 @@ def create_custom_fields():
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "allow_on_submit": 1}
         ],
         "Employee Benefit Claim":[
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "allow_on_submit": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "payroll_period", "allow_on_submit": 1},
+            {"fieldname": "claim_festival_allowance", "label": "Claim as Festival Allowance", "fieldtype": "Check", "insert_after": "company", "description": "Amount Eligible for and to Claim will be auto set as per Employee Revised/Gross Salary. It is claimed once a year"}
+
         ],
         "Compensatory Leave Request": [
             {"fieldname": "work_from_date_bs", "label": "Work From Date BS", "fieldtype": "Data", "insert_after": "work_from_date", "allow_on_submit": 1},

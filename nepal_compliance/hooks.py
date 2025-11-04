@@ -37,7 +37,8 @@ app_include_js = [
                  "/assets/nepal_compliance/js/formatter.js",
                  "/assets/nepal_compliance/js/report_filter.js",
                  "/assets/nepal_compliance/js/icon_patch.js",
-                 "/assets/nepal_compliance/js/calendar_theme.js"
+                 "/assets/nepal_compliance/js/calendar_theme.js",
+                 "/assets/nepal_compliance/js/employee_benefit_claim.js"
                  ]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
@@ -98,7 +99,8 @@ doctype_js = {
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 doctype_list_js = {
     "Salary Component": "public/js/custom_button.js",
-    "Leave Allocation": "public/js/utils.js"
+    "Leave Allocation": "public/js/utils.js",
+    "Sales Invoice" : "public/js/bulk_update_nepali_date.js"
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -192,8 +194,11 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # }
 override_doctype_class = {
     "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
+    "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
+    "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
-    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry"
+    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
+    "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment"
 }
 
 # Document Events
@@ -219,8 +224,9 @@ doc_events = {
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
-        "before_insert": "nepal_compliance.utils.set_vat_numbers",
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code"]
+        "before_insert": ["nepal_compliance.utils.set_vat_numbers", "nepal_compliance.utils.load_nepali_date"],
+        "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
+        "validate": "nepal_compliance.qr_code.create_qr_code"
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",

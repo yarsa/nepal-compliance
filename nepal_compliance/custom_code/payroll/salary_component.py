@@ -6,13 +6,8 @@ def create_salary_component(component_data: dict) -> bool:
     if not isinstance(component_data, dict) or not component_data.get("name"):
         frappe.logger().error("Invalid component_data: must be a dict with 'name' field")
         return False
+
     try:
-        salary_component = frappe.get_all("Salary Component", filters={"name": component_data["name"]}, limit_page_length=1)
-
-        if salary_component:
-            frappe.logger().info(f"Salary Component '{component_data['name']}' already exists. Skipping creation.")
-            return
-
         default_values = {
             "amount": 0.0,
             "amount_based_on_formula": 0,
@@ -23,8 +18,12 @@ def create_salary_component(component_data: dict) -> bool:
             "do_not_include_in_total": 0,
             "formula": None,
             "is_flexible_benefit": 0,
-            "is_tax_applicable": 0,
-            "is_income_tax_component": 0,
+            "pay_against_benefit_claim": 0,
+            "create_separate_payment_entry_against_benefit_claim": 0,
+            "only_tax_impact": 0,
+            "is_tax_applicable": 1,
+            "exempted_from_income_tax": 1,
+            "is_income_tax_component": 1,
             "remove_if_zero_valued": 1,
             "round_to_the_nearest_integer": 0,
             "salary_component": None,
@@ -33,54 +32,54 @@ def create_salary_component(component_data: dict) -> bool:
             "type": "Earning",
             "variable_based_on_taxable_salary": 0,
         }
-        
         for key, value in default_values.items():
             component_data.setdefault(key, value)
 
         if "revised_salary" in component_data and component_data["revised_salary"] is None:
             component_data["revised_salary"] = component_data.get("ctc", 0)
 
-        frappe.logger().info(f"Creating Salary Component: {component_data['name']} with the following data: {component_data}")
+        existing_component = frappe.get_all(
+            "Salary Component",
+            filters={"name": component_data["name"]},
+            limit_page_length=1
+        )
 
-        new_salary_component = frappe.get_doc({
-            "doctype": "Salary Component",
-            "name": component_data["name"],
-            "amount": component_data["amount"],
-            "amount_based_on_formula": component_data["amount_based_on_formula"],
-            "condition": component_data["condition"],
-            "depends_on_payment_days": component_data["depends_on_payment_days"],
-            "description": component_data["description"],
-            "disabled": component_data["disabled"],
-            "do_not_include_in_total": component_data["do_not_include_in_total"],
-            "formula": component_data["formula"],
-            "is_flexible_benefit": component_data["is_flexible_benefit"],
-            "is_income_tax_component": component_data["is_income_tax_component"],
-            "is_tax_applicable": component_data["is_tax_applicable"],
-            "remove_if_zero_valued": component_data["remove_if_zero_valued"],
-            "round_to_the_nearest_integer": component_data["round_to_the_nearest_integer"],
-            "salary_component": component_data["salary_component"],
-            "salary_component_abbr": component_data["salary_component_abbr"],
-            "statistical_component": component_data["statistical_component"],
-            "type": component_data["type"],
-            "variable_based_on_taxable_salary": component_data["variable_based_on_taxable_salary"]
-        })
+        if existing_component:
+            existing_doc = frappe.get_doc("Salary Component", component_data["name"])
+            has_changes = False
 
-        new_salary_component.insert(ignore_permissions=True)
-        frappe.logger().info(f"Salary Component '{component_data['name']}' created successfully.")
+            for key, value in component_data.items():
+                if hasattr(existing_doc, key) and getattr(existing_doc, key) != value:
+                    setattr(existing_doc, key, value)
+                    has_changes = True
+
+            if has_changes:
+                existing_doc.save(ignore_permissions=True)
+                frappe.logger().info(f"Updated Salary Component: {component_data['name']}")
+            else:
+                frappe.logger().info(f"No changes detected for Salary Component: {component_data['name']}. Skipping update.")
+        else:
+            new_salary_component = frappe.get_doc({
+                "doctype": "Salary Component",
+                **component_data
+            })
+            new_salary_component.insert(ignore_permissions=True)
+            frappe.logger().info(f"Created Salary Component: {component_data['name']}")
+
+        return True
 
     except Exception as e:
-        frappe.logger().error(f"Error while creating Salary Component '{component_data['name']}': {str(e)}")
-
+        frappe.logger().error(f"Error while creating/updating Salary Component '{component_data.get('name', 'Unknown')}': {str(e)}")
+        return False
 
 def create_multiple_salary_components():
     try:
         frappe.logger().info("Started creating multiple salary components...")
-
         salary_components = [
             {
                 "amount_based_on_formula": 1,
                 "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <=600000 else (((600000 * 0.01) + (((taxable_salary) * 12) - 600000) * 0.1)/12) if ((taxable_salary) * 12) <= 800000 else (((600000*0.01) + (200000*0.1) + (((taxable_salary)*12) - 800000) * 0.2)/12) if ((taxable_salary)*12) <= 1100000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + ((taxable_salary)*12 - 1100000) *0.3)/12) if ((taxable_salary)*12)<=2000000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + (900000*0.3) + ((taxable_salary)*12 - 2000000)*0.36)/12) if ((taxable_salary)*12)<=5000000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + (900000*0.3) + (3000000*0.36) + ((taxable_salary)*12 - 5000000)*0.39)/12) if ((taxable_salary)*12)>5000000 else -1",
-                "is_income_tax_component": 1,
+                "exempted_from_income_tax": 0,
                 "name": "Income Tax Married",
                 "salary_component": "Income Tax Married",
                 "salary_component_abbr": "income_tax_married",
@@ -89,11 +88,37 @@ def create_multiple_salary_components():
             {
                 "amount_based_on_formula": 1,
                 "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <=500000 else (((500000 * 0.01) + (((taxable_salary) * 12) - 500000) * 0.1)/12) if ((taxable_salary) * 12) <= 700000 else (((500000*0.01) + (200000*0.1) + (((taxable_salary)*12) - 700000) * 0.2)/12) if ((taxable_salary)*12) <= 1000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + ((taxable_salary)*12 - 1000000) *0.3)/12) if ((taxable_salary)*12)<=2000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + ((taxable_salary)*12 - 2000000)*0.36)/12) if ((taxable_salary)*12)<=5000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + (3000000*0.36) + ((taxable_salary)*12 - 5000000)*0.39)/12) if ((taxable_salary)*12)>5000000 else -1",
-                "is_income_tax_component": 1,
+                "exempted_from_income_tax": 0,
                 "name": "Income Tax Unmarried",
                 "salary_component": "Income Tax Unmarried",
                 "salary_component_abbr": "income_tax_unmarried",
                 "type": "Deduction"
+            },
+            {
+                "variable_based_on_taxable_salary": 1,
+                "exempted_from_income_tax": 0,
+                "name": "TDS",
+                "salary_component": "TDS",
+                "salary_component_abbr": "tds",
+                "type": "Deduction"
+            },
+            {
+                "amount_based_on_formula": 1,
+                "exempted_from_income_tax": 0,
+                "formula": "0.01/12*(annual_taxable_amount if annual_taxable_amount <= 500000 else 500000) if marital_status != 'Married' else 0.01/12 * (annual_taxable_amount if annual_taxable_amount <= 600000 else 600000) if marital_status == 'Married' else 0",
+                "name": "Social Security Tax",
+                "salary_component": "Social Security Tax",
+                "salary_component_abbr": "social_security_tax",
+                "type": "Deduction"
+            },
+            {
+                "is_flexible_benefit": 1,
+                "pay_against_benefit_claim": 1,
+                "create_separate_payment_entry_against_benefit_claim": 1,
+                "name": "Festival Allowance",
+                "salary_component": "Festival Allowance",
+                "salary_component_abbr": "festival_allowance",
+                "type": "Earning"
             },
             {
                 "amount_based_on_formula": 1,
