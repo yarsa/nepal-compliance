@@ -98,9 +98,9 @@ def generate_test_masters(docname=None):
         frappe.db.commit()
 
         if masters_created:
-            frappe.msgprint("Test masters created successfully. Now, generate test transactions.")
+            frappe.msgprint(_("Test masters created successfully. Now, generate test transactions."))
         else:
-            frappe.msgprint("Test masters already exist.")
+            frappe.msgprint(_("Test masters already exist."))
 
     except Exception as e:
         frappe.db.rollback()
@@ -224,9 +224,9 @@ def generate_test_transactions(docname=None):
         frappe.db.commit()
 
         if transactions_created:
-            frappe.msgprint("Test transactions created successfully.")
+            frappe.msgprint(_("Test transactions created successfully."))
         else:
-            frappe.msgprint("Test transactions already exist.")
+            frappe.msgprint(_("Test transactions already exist."))
 
     except Exception as e:
         frappe.db.rollback()
