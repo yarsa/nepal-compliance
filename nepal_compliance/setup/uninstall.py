@@ -9,13 +9,17 @@ def clear_test_data(docname=None):
     if not frappe.db.exists("IRD Certification", docname):
         frappe.throw(_("IRD Certification document {0} not found.").format(docname))
 
-    settings = frappe.get_doc("IRD Certification", docname)
-    company_name = settings.company or "Test Pvt Ltd"
+    try:
+        settings = frappe.get_doc("IRD Certification", docname)
+        company_name = settings.company or "Test Pvt Ltd"
 
-    cleanup_test_data(company_name)
-
-    frappe.msgprint(_("All test masters and transactions for {0} have been deleted successfully.").format(company_name))
-
+        cleanup_test_data(company_name, docname)
+        frappe.db.commit()
+        frappe.msgprint(_("All test masters and transactions for {0} have been deleted successfully.").format(company_name))
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "Error in clear_test_data")
+        frappe.throw(_("Failed to clear test data: {0}").format(str(e)))
 
 def safe_delete(doctype, name):
     try:
@@ -33,7 +37,7 @@ def safe_delete(doctype, name):
         return False
 
 
-def cleanup_test_data(company_name):
+def cleanup_test_data(company_name, docname=None):
     customer_name = "Test Customer One"
     supplier_name = "Test Supplier One"
     item_code = "Test Item 1"
@@ -71,8 +75,8 @@ def cleanup_test_data(company_name):
         if company_name == "Test Pvt Ltd":
             safe_delete("Company", company_name)
         
-        if frappe.db.exists("IRD Certification"):
-            settings = frappe.get_doc("IRD Certification")
+        if docname and frappe.db.exists("IRD Certification", docname):
+            settings = frappe.get_doc("IRD Certification", docname)
             settings.test_data_created = 0
             settings.save(ignore_permissions=True)
 

@@ -112,9 +112,8 @@ def generate_test_transactions(docname=None):
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
     try:
-        doc = frappe.get_doc("IRD Certification", docname) if docname else None
-        settings = frappe.get_doc("IRD Certification", docname)
-        company_name = settings.company or "Test Pvt Ltd"
+        doc = frappe.get_doc("IRD Certification", docname)
+        company_name = doc.company or "Test Pvt Ltd"
 
         abbr = frappe.db.get_value("Company", company_name, "abbr")
         if not abbr:
@@ -135,7 +134,6 @@ def generate_test_transactions(docname=None):
                 for tax in vat_rows[1:]:
                     tax_template.taxes.remove(tax)
                 tax_template.save()
-                frappe.db.commit()
                 frappe.msgprint(f"Removed duplicate VAT rows from {doctype} '{tax_template_name}'.")
 
         cleanup_duplicate_vat_rows(sales_tax_template, "Sales Taxes and Charges Template")
@@ -236,6 +234,12 @@ def generate_test_transactions(docname=None):
 
 @frappe.whitelist()
 def check_test_data_status(docname=None):
+    if not docname:
+        frappe.throw(_("Missing IRD Certification document name."))
+    
+    if not frappe.db.exists("IRD Certification", docname):
+        frappe.throw(_("IRD Certification document {0} not found.").format(docname))
+        
     settings = frappe.get_doc("IRD Certification", docname)
     company_name = settings.company or "Test Pvt Ltd"
     customer_name = "Test Customer One"
