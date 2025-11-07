@@ -101,7 +101,8 @@ frappe.ui.form.on('IRD Certification', {
                 attached_to_name: frm.doc.name
             },
             fields: ["name", "file_name", "file_url", "attached_to_field", "creation"],
-            order_by: "creation desc"
+            order_by: "creation desc",
+            limit_page_length: 0
         }).then(files => {
             const fileMap = {};
             (files || []).forEach(f => {
@@ -187,8 +188,8 @@ frappe.ui.form.on('IRD Certification', {
                                         frappe.call({
                                             method: "frappe.client.delete",
                                             args: { doctype: "File", name: f.name },
-                                            error: () => {
-                                                console.error(`Failed to delete old file: ${f.name}`, r);
+                                            error: (err) => {
+                                                console.error(`Failed to delete old file: ${f.name}`, err);
                                             }
                                         })
                                     );

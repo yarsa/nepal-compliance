@@ -23,7 +23,8 @@ def _get_sorted_ird_files(docname):
             "attached_to_doctype": "IRD Certification",
             "attached_to_name": docname
         },
-        fields=["name", "file_name", "file_url", "attached_to_field"]
+        fields=["name", "file_name", "file_url", "attached_to_field"],
+        limit_page_length=0
     )
     if not files:
         frappe.throw(_("No attached files found for this record."))
