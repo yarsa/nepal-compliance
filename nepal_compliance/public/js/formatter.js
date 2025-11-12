@@ -13,10 +13,8 @@
                     : frappe.boot?.user?.use_ad_date ?? true;
 
             if (use_ad_date) {
-                // Show AD (default)
                 return frappe.datetime.str_to_user(value);
             } else {
-                // Convert AD → BS for display
                 const bs_date = NepaliFunctions.AD2BS(value, "YYYY-MM-DD", "YYYY-MM-DD");
                 return bs_date;
             }
