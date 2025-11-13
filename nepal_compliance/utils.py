@@ -86,3 +86,10 @@ def load_nepali_date(doc, method):
 
     if nepali_date_str and posting_date_str != nepali_date_str:
         doc.nepali_date = None
+
+def bill_no_required(doc, method):
+    if doc.doctype != "Purchase Invoice":
+        return
+    
+    if not doc.get("bill_no") or not str(doc.bill_no).strip():
+        frappe.throw(_("<b>Supplier Invoice No</b> is mandatory before submitting a Purchase Invoice. This is required for auditing."))

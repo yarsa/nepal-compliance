@@ -46,6 +46,21 @@ function fetch_vat_number(frm, doc_type, field_name) {
     }
 }
 
+function expand_section_and_focus(frm, fieldname) {
+    const field = frm.fields_dict[fieldname];
+    if (!field) return;
+    const section = field.layout_section;
+    if (section && section.df && section.df.collapsible) {
+        if (section.wrapper && section.wrapper.hasClass('collapsed')) {
+            section.wrapper.find('.section-head').trigger('click');
+        }
+    }
+    setTimeout(() => {
+        frm.scroll_to_field(fieldname);
+        if (field.$input) field.$input.focus();
+    }, 300);
+}
+
 frappe.ui.form.on("Sales Invoice", {
     validate: function(frm) {
         validate_field(frm);
@@ -77,7 +92,21 @@ frappe.ui.form.on("Purchase Invoice", {
         if(frm.is_new()) {
             fetch_vat_number(frm, 'Company', 'customer_vat_number');
         }
-    }
+    },
+    before_submit: function(frm) {
+        if (frappe.flags.in_import || frappe.flags.in_install || frappe.flags.in_migrate) {
+            return;
+        }
+        if (!frm.doc.bill_no) {
+            frappe.msgprint({
+                title: __('Missing Bill Number'),
+                indicator: 'red',
+                message: __('Please fill in the <b>Bill No</b> (Supplier Invoice No) before submitting. This is required for auditing.')
+            });
+            expand_section_and_focus(frm, 'bill_no');
+            frappe.validated = false;
+        }
+    },
 });
 
 frappe.ui.form.on("Company", {
