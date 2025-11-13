@@ -97,7 +97,7 @@ frappe.ui.form.on("Purchase Invoice", {
         if (frappe.flags.in_import || frappe.flags.in_install || frappe.flags.in_migrate) {
             return;
         }
-        if (!frm.doc.bill_no) {
+        if (!frm.doc.bill_no || !frm.doc.bill_no.toString().trim()) {
             frappe.msgprint({
                 title: __('Missing Bill Number'),
                 indicator: 'red',
