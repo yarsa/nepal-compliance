@@ -1,25 +1,20 @@
-frappe.after_ajax(() => {
-    fetch_user_date_preference().then(use_ad_date => {
-        window.use_ad_date = use_ad_date;
-        override_with_nepali_date_picker(use_ad_date);
-    });
-});
+(function waitForFrappeReady() {
+    if (typeof frappe === "undefined" || !frappe.boot || !frappe.ui?.form?.ControlDate) {
+        return setTimeout(waitForFrappeReady, 200);
+    }
 
-function fetch_user_date_preference() {
-    return new Promise((resolve) => {
-        frappe.call({
-            method: "frappe.client.get_value",
-            args: {
-                doctype: "User",
-                filters: { name: frappe.session.user },
-                fieldname: "use_ad_date"
-            },
-            callback: (r) => {
-                resolve(r.message?.use_ad_date ?? true);
-            }
-        });
-    });
-}
+    if (window._date_picker_overridden) return;
+    window._date_picker_overridden = true;
+
+    const use_ad_date =
+        (frappe.boot?.use_ad_date !== undefined)
+            ? frappe.boot.use_ad_date
+            : frappe.boot?.user?.use_ad_date ?? true;
+
+    window.use_ad_date = use_ad_date;
+
+    override_with_nepali_date_picker(use_ad_date);
+})();
 
 function override_with_nepali_date_picker(use_ad_date) {
     if (use_ad_date) {
@@ -65,7 +60,6 @@ function extend_with_bs_date_picker() {
     frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
         make_input() {
             super.make_input();
-
             this.destroy_existing_datepicker();
             this.setup_nepali_date_picker();
         }
@@ -110,7 +104,6 @@ function extend_with_bs_date_picker() {
 
         set_formatted_input(value) {
             if (!value) return;
-
             try {
                 const bs_date = NepaliFunctions.AD2BS(value, "YYYY-MM-DD", "YYYY-MM-DD");
                 this.$input?.val(bs_date);
@@ -157,7 +150,6 @@ function extend_with_bs_date_picker() {
 function display_equivalent_date(wrapper, text) {
     const $target = wrapper.find('.static-input');
     const existing = $target.length ? $target : wrapper;
-
     const $equivalent = existing.find('.equivalent-date');
     if ($equivalent.length) {
         $equivalent.text(text);
