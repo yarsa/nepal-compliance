@@ -220,7 +220,8 @@ doc_events = {
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
-        "on_submit": "nepal_compliance.qr_code.create_qr_code"
+        "on_submit": "nepal_compliance.qr_code.create_qr_code",
+        "before_submit": "nepal_compliance.utils.bill_no_required"
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
