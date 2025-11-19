@@ -9,10 +9,17 @@ from PIL import Image
 import io, os, zipfile
 from frappe import _
 
-
 class IRDCertification(Document):
     pass
 
+def _safe_file_path(file_url):
+    site_base = os.path.abspath(frappe.get_site_path())
+    requested_path = os.path.realpath(os.path.join(site_base, file_url.lstrip("/")))
+
+    if not requested_path.startswith(site_base + os.sep):
+        frappe.throw(_("Invalid file path"))
+
+    return requested_path
 
 def _get_sorted_ird_files(docname):
     frappe.get_doc("IRD Certification", docname).check_permission("read")
@@ -46,10 +53,12 @@ def download_all_ird_files_stream(docname):
 
     zip_buffer = io.BytesIO()
     files_added = 0
+
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in files:
             file_doc = frappe.get_doc("File", f.name)
-            file_path = frappe.get_site_path(file_doc.file_url.lstrip("/"))
+            file_path = _safe_file_path(file_doc.file_url)
+
             if os.path.exists(file_path):
                 zf.write(file_path, f.file_name)
                 files_added += 1
@@ -67,7 +76,6 @@ def download_all_ird_files_stream(docname):
     frappe.local.response.type = "download"
     frappe.local.response.content_type = "application/zip"
 
-
 @frappe.whitelist(allow_guest=False)
 def generate_combined_ird_pdf_stream(docname):
     files = _get_sorted_ird_files(docname)
@@ -75,11 +83,13 @@ def generate_combined_ird_pdf_stream(docname):
     merger = PdfMerger()
     files_merged = 0
     merged_bytes = None
+
     try:
         for f in files:
             fdoc = frappe.get_doc("File", f.name)
-            path = frappe.get_site_path(fdoc.file_url.lstrip("/"))
+            path = _safe_file_path(fdoc.file_url)
             ext = os.path.splitext(f.file_name)[1].lower()
+
             try:
                 if ext == ".pdf":
                     merger.append(path)
