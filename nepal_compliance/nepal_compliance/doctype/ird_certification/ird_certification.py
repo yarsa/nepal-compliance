@@ -13,7 +13,7 @@ class IRDCertification(Document):
     pass
 
 def _safe_file_path(file_url):
-    site_base = os.path.abspath(frappe.get_site_path())
+    site_base = os.path.realpath(frappe.get_site_path())
     requested_path = os.path.realpath(os.path.join(site_base, file_url.lstrip("/")))
 
     if not requested_path.startswith(site_base + os.sep):
@@ -101,7 +101,7 @@ def generate_combined_ird_pdf_stream(docname):
                     img_bytes.seek(0)
                     merger.append(img_bytes)
                     files_merged += 1
-            except Exception as e:
+            except (OSError, IOError, ValueError) as e:
                 frappe.logger().error(f"Error processing {f.file_name}: {e}")
         
         if files_merged == 0:
@@ -116,7 +116,10 @@ def generate_combined_ird_pdf_stream(docname):
         
     filename = f"IRD_Combined_{now_datetime().strftime('%Y%m%d_%H%M%S')}.pdf"
 
+    if not merged_bytes:
+        frappe.throw(_("Failed to generate combined PDF"))
+
     frappe.local.response.filename = filename
-    frappe.local.response.filecontent = merged_bytes.read() if merged_bytes else b""
+    frappe.local.response.filecontent = merged_bytes.read()
     frappe.local.response.type = "download"
     frappe.local.response.content_type = "application/pdf"
