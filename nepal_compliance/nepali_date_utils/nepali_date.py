@@ -78,6 +78,8 @@ def load_calendar() -> None:
             _throw(f"Failed to read calendar file {path}: {e}")
 
         years = sorted(parsed.keys())
+        if not years:
+            _throw(f"No BS years found in calendar file {path}")
         for i in range(1, len(years)):
             if years[i] != years[i - 1] + 1:
                 _throw(f"Missing BS year in calendar: {years[i - 1] + 1}")
@@ -134,7 +136,8 @@ def ad_to_bs(ad: Union[str, date, datetime]):
     delta = (ad_date - BASE_AD).days
     y, m, d = BASE_BS_YEAR, BASE_BS_MONTH, BASE_BS_DAY
 
-    for year in range(BASE_BS_YEAR, max(_bs_months) + 1):
+    max_year = max(_bs_months)
+    for year in range(BASE_BS_YEAR, max_year + 1):
         days_in_year = sum(_bs_months[year])
         if delta >= days_in_year:
             delta -= days_in_year
@@ -142,6 +145,8 @@ def ad_to_bs(ad: Union[str, date, datetime]):
         else:
             break
 
+    if delta and y > max_year:
+        _throw("Exceeded available BS calendar data.")
     while delta:
         dim = _bs_months[y][m - 1]
         d += 1
