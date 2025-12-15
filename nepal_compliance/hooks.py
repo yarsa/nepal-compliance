@@ -26,14 +26,17 @@ app_license = "GNU General Public License (v3)"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
-app_include_css = ["/assets/nepal_compliance/css/nepali_calendar.css"]
+app_include_css = ["/assets/nepal_compliance/css/nepali_calendar.css",
+                   "/assets/nepal_compliance/css/date.css"
+                   ]
 # app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
 app_include_js = [
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
     "/assets/nepal_compliance/js/nepali_date_lib.js",
     "/assets/nepal_compliance/js/nepali_calendar_lib.js",
-    "/assets/nepal_compliance/js/nepali_date_override.js"]
+    "/assets/nepal_compliance/js/nepali_date_override.js",
+    "/assets/nepal_compliance/js/formatter.js"]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
 
