@@ -1,202 +1,239 @@
+window.NepaliFunctions = {
+    AD2BS(adString) {
+        if (!adString || typeof adString !== "string") return null;
+
+        let parts = adString.split("-");
+        if (parts.length !== 3) return null;
+
+        let [y, m, d] = parts.map(Number);
+        if (![y, m, d].every(Number.isFinite)) return null;
+
+        let date = new Date(Date.UTC(y, m - 1, d));
+        if (isNaN(date.getTime())) return null;
+
+        let bs = NepaliDateLib.adToBs(date);
+        if (!bs || !bs.year) return null;
+
+        return `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+    },
+
+    BS2AD(bsString) {
+        if (!bsString || typeof bsString !== "string") return null;
+
+        let parts = bsString.split("-");
+        if (parts.length !== 3) return null;
+
+        let [y, m, d] = parts.map(Number);
+        if (![y, m, d].every(Number.isFinite)) return null;
+
+        let ad = NepaliDateLib.bsToAd(y, m - 1, d);
+        if (!(ad instanceof Date) || isNaN(ad.getTime())) return null;
+
+        let y2 = ad.getUTCFullYear();
+        let m2 = ad.getUTCMonth() + 1;
+        let d2 = ad.getUTCDate();
+
+        return `${y2}-${String(m2).padStart(2, "0")}-${String(d2).padStart(2, "0")}`;
+    },
+
+    getToday() {
+        let bs = NepaliDateLib.adToBs(new Date());
+        return `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+    }
+};
+
+
 (function waitForFrappeReady() {
-  if (
-    typeof frappe === "undefined" ||
-    !frappe.boot ||
-    !frappe.ui?.form?.ControlDate
-  ) {
-    return setTimeout(waitForFrappeReady, 200);
-  }
+    if (
+        typeof frappe === "undefined" ||
+        !frappe.boot ||
+        !frappe.ui?.form?.ControlDate
+    ) {
+        return setTimeout(waitForFrappeReady, 200);
+    }
 
-  if (window._bs_date_picker_overridden) return;
-  window._bs_date_picker_overridden = true;
+    if (window._date_picker_overridden) return;
+    window._date_picker_overridden = true;
 
-  if (!NepaliCalendarLib || !NepaliDateLib) {
-    console.error(
-      "NepaliCalendarLib or NepaliDateLib missing. Make sure it is loaded via hooks.py.",
-    );
-    return;
-  }
+    const use_ad_date =
+        (frappe.boot?.use_ad_date !== undefined)
+            ? frappe.boot.use_ad_date
+            : frappe.boot?.user?.use_ad_date ?? true;
 
-  const use_ad_date =
-    frappe.boot?.use_ad_date !== undefined
-      ? frappe.boot.use_ad_date
-      : (frappe.boot?.user?.use_ad_date ?? true);
-  window.use_ad_date = use_ad_date;
-
-  override_with_nepali_date_picker(use_ad_date);
+    override_with_nepali_date_picker(use_ad_date);
 })();
 
 function override_with_nepali_date_picker(use_ad_date) {
-  if (use_ad_date) {
-    extend_with_ad_date_picker();
-  } else {
-    extend_with_bs_date_picker();
-  }
+    if (use_ad_date) {
+        extend_with_ad_date_picker();
+    } else {
+        extend_with_bs_date_picker();
+    }
 }
 
 function extend_with_ad_date_picker() {
-  const originalSetFormattedInput =
-    frappe.ui.form.ControlDate.prototype.set_formatted_input;
-  const originalRefresh = frappe.ui.form.ControlDate.prototype.refresh;
+    const originalSetFormattedInput = frappe.ui.form.ControlDate.prototype.set_formatted_input;
+    const originalRefresh = frappe.ui.form.ControlDate.prototype.refresh;
 
-  frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
-    set_formatted_input(value) {
-      originalSetFormattedInput.call(this, value);
-      if (value) this.render_equivalent_date(value);
-    }
+    frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 
-    refresh() {
-      originalRefresh.call(this);
-      if (this.get_value()) this.render_equivalent_date(this.get_value());
-    }
+        set_formatted_input(value) {
+            originalSetFormattedInput.call(this, value);
+            if (value) this.render_equivalent_date(value);
+        }
 
-    render_equivalent_date(value) {
-      try {
-        const bs_date = NepaliFunctions.AD2BS(
-          value,
-          "YYYY-MM-DD",
-          "YYYY-MM-DD",
-        );
-        this.show_equivalent_date(`BS Date: ${bs_date}`);
-      } catch (err) {
-        console.error("Failed to convert AD to BS", err);
-      }
-    }
+        refresh() {
+            originalRefresh.call(this);
+            if (this.get_value()) this.render_equivalent_date(this.get_value());
+        }
 
-    show_equivalent_date(text) {
-      display_equivalent_date(this.$wrapper, text);
-    }
-  };
+        render_equivalent_date(value) {
+            try {
+                const bs_date = NepaliFunctions.AD2BS(value, "YYYY-MM-DD", "YYYY-MM-DD");
+                this.show_equivalent_date(`BS Date: ${bs_date}`);
+            } catch (err) {
+                console.error("Failed AD → BS", err);
+            }
+        }
+
+        show_equivalent_date(text) {
+            display_equivalent_date(this.$wrapper, text);
+        }
+    };
 }
 
 function extend_with_bs_date_picker() {
-  const OriginalControlDate = frappe.ui.form.ControlDate;
-  const originalRefresh = OriginalControlDate.prototype.refresh;
+    const originalRefresh = frappe.ui.form.ControlDate.prototype.refresh;
 
-  frappe.ui.form.ControlDate = class ControlNepaliDate extends (
-    OriginalControlDate
-  ) {
-    make_input() {
-      super.make_input();
-      this.remove_default_datepicker();
-      this.$input.attr("type", "text");
-      this.$input.on("focus", () => this.open_popover());
-    }
+    frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 
-    remove_default_datepicker() {
-      if (this.datepicker) {
-        this.datepicker.destroy();
-        this.datepicker = null;
-      }
-      this.$wrapper.find(".datepicker-icon").remove();
-    }
+        make_input() {
+            super.make_input();
 
-    refresh() {
-      originalRefresh.call(this);
-      const { NepaliDate } = NepaliDateLib;
-      let modelValue = this.get_value();
+            if (this.datepicker) {
+                this.datepicker.destroy();
+                this.datepicker = null;
+            }
 
-      if (!modelValue) {
-        const today = new NepaliDate();
-        const bsString = today.format({ format: "YYYY-MM-DD", calendar: "BS" });
-        const adString = today.format({ format: "YYYY-MM-DD", calendar: "AD" });
+            this.$wrapper.find(".datepicker-icon").remove();
 
-        this.$input?.val(bsString);
-        this.set_model_value(bsString);
-        this.show_equivalent_date(`AD: ${adString}`);
-        return;
-      }
-
-      try {
-        const nepaliDate = NepaliDate.fromBS(modelValue);
-        const bsString = nepaliDate.format({
-          format: "YYYY-MM-DD",
-          calendar: "BS",
-        });
-        const adString = nepaliDate.format({
-          format: "YYYY-MM-DD",
-          calendar: "AD",
-        });
-        this.$input.val(bsString);
-        this.show_equivalent_date(`AD: ${adString}`);
-      } catch (err) {
-        console.error("AD -> BS conversion error", modelValue, err);
-      }
-    }
-    open_popover() {
-      if (this._popover) return;
-
-      const rect = this.$input[0].getBoundingClientRect();
-      const pop = document.createElement("div");
-      pop.classList.add("nepali-calendar-popover");
-      Object.assign(pop.style, {
-        position: "absolute",
-        top: rect.bottom + window.scrollY + "px",
-        left: rect.left + window.scrollX + "px",
-        zIndex: 99999,
-      });
-
-      document.body.appendChild(pop);
-      this._popover = pop;
-
-      const close = () => {
-        if (!this._popover) return;
-        if (NepaliCalendarLib.unmount) {
-          NepaliCalendarLib.unmount(this._popover);
+            if (this.$input) {
+                this.$input.attr("type", "text");
+                this.$input.on("focus", () => this.open_popover());
+            }
         }
 
-        this._popover.remove();
-        this._popover = null;
-        document.removeEventListener("mousedown", outsideHandler);
-      };
-
-      const outsideHandler = (e) => {
-        if (!this._popover) return;
-        if (!this._popover.contains(e.target) && e.target !== this.$input[0]) {
-          close();
+        safe_set_input(value) {
+            if (this.$input && this.$input.length) {
+                this.$input.val(value);
+            } else {
+                const staticField = this.$wrapper.find(".static-input");
+                if (staticField.length) staticField.text(value);
+            }
         }
-      };
 
-      document.addEventListener("mousedown", outsideHandler);
+        refresh() {
+            originalRefresh.call(this);
 
-      const selectedBS = this.get_value() || undefined;
-      NepaliCalendarLib.render(pop, {
-        selectedDateBS: selectedBS,
-        onSelect: (selected) => {
-          const bs = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
-          const ad = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
+            const valueAD = this.get_value();
+            if (!valueAD) return;
 
-          this.$input.val(bs);
-          this.set_model_value(bs);
-          this.$input.trigger("change");
+            try {
+                const bs = NepaliFunctions.AD2BS(valueAD);
+                this.safe_set_input(bs);
+                this.show_equivalent_date(`AD Date: ${valueAD}`);
+            } catch (err) {
+                console.error("Refresh AD→BS failed", err);
+            }
+        }
 
-          this.show_equivalent_date(`AD: ${ad}`);
+        open_popover() {
+            if (this._popover || !this.$input) return;
 
-          close();
-        },
-      });
-    }
+            const rect = this.$input[0].getBoundingClientRect();
+            const pop = document.createElement("div");
+            pop.classList.add("nepali-calendar-popover");
 
-    show_equivalent_date(text) {
-      const container = this.$wrapper.find(".static-input").length
-        ? this.$wrapper.find(".static-input")
-        : this.$wrapper;
+            Object.assign(pop.style, {
+                position: "absolute",
+                top: rect.bottom + window.scrollY + "px",
+                left: rect.left + window.scrollX + "px",
+                zIndex: 99999,
+            });
 
-      const existing = container.find(".equivalent-date");
+            document.body.appendChild(pop);
+            this._popover = pop;
 
-      if (existing.length) {
-        existing.text(text);
-      } else {
-        container.append(`<div class="equivalent-date">${text}</div>`);
-      }
-    }
+            const onClose = () => {
+                NepaliCalendarLib.unmount?.(pop);
+                pop.remove();
+                this._popover = null;
+                document.removeEventListener("mousedown", outsideClick);
+            };
 
-    parse(value) {
-      return value;
-    }
+            const outsideClick = (e) => {
+                if (!pop.contains(e.target) && e.target !== this.$input[0]) onClose();
+            };
 
-    format_for_input(value) {
-      return value;
-    }
-  };
+            document.addEventListener("mousedown", outsideClick);
+
+            const ad = this.get_value();
+            const bs = ad ? NepaliFunctions.AD2BS(ad) : undefined;
+
+            NepaliCalendarLib.render(pop, {
+                selectedDateBS: bs,
+                onSelect: (selected) => {
+                    const bsDate = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
+                    const adDate = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
+
+                    this.safe_set_input(bsDate);
+                    this.set_model_value(adDate);
+                    this.$input?.trigger("change");
+
+                    this.show_equivalent_date(`AD Date: ${adDate}`);
+
+                    onClose();
+                }
+            });
+        }
+
+        format_for_input(valueAD) {
+            try {
+                return NepaliFunctions.AD2BS(valueAD);
+            } catch {
+                return valueAD;
+            }
+        }
+
+        set_formatted_input(valueAD) {
+            try {
+                const bs = NepaliFunctions.AD2BS(valueAD);
+                this.safe_set_input(bs);
+                this.show_equivalent_date(`AD Date: ${valueAD}`);
+            } catch {
+                this.safe_set_input(valueAD);
+            }
+        }
+
+        parse(valueBS) {
+            try {
+                return NepaliFunctions.BS2AD(valueBS);
+            } catch {
+                return valueBS;
+            }
+        }
+
+        show_equivalent_date(text) {
+            display_equivalent_date(this.$wrapper, text);
+        }
+    };
+}
+
+function display_equivalent_date(wrapper, text) {
+    const $target = wrapper.find('.static-input');
+    const container = $target.length ? $target : wrapper;
+
+    const $eq = container.find('.equivalent-date');
+    if ($eq.length) $eq.text(text);
+    else container.append(`<div class="equivalent-date">${text}</div>`);
 }
