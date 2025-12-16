@@ -1,5 +1,5 @@
-const convertADtoBS = date => NepaliFunctions.AD2BS(date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
-const convertBStoAD = date => NepaliFunctions.BS2AD(date.split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+const convertADtoBS = date => NepaliFunctions.AD2BS(date.split(" ")[0]);
+const convertBStoAD = date => NepaliFunctions.BS2AD(date.split(" ")[0]);
 
 const hideFields = (frm, fields = []) => {
     fields.forEach(field => frm.set_df_property(field, 'hidden', 1));

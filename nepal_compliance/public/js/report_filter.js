@@ -16,10 +16,10 @@ const DatePickerConfig = {
 
     initializePickers(listview) {
         this.listview = listview;
-        this.initializePickers();
+        this._initializePickerInputs();
     },
 
-    initializePickers() {
+    _initializePickerInputs() {
         this.FIELDS.forEach(fieldname => {
             const input = $(`input[data-fieldname="${fieldname}"]`);
             if (!input.length) return;
@@ -98,7 +98,10 @@ const DatePickerConfig = {
                     const bs = dateObj.format({ format: "YYYY-MM-DD", calendar: "BS" });
                     const ad = dateObj.format({ format: "YYYY-MM-DD", calendar: "AD" });
 
-                    $input.val(bs).trigger("change");
+                    // $input.val(bs).trigger("change");
+                    const parsed = bs.split("-").map(Number);
+                    const bsDisplay = NepaliFunctions?.AD2BS?.(ad) || bs;
+                    $input.val(bsDisplay).trigger("change");
                     $input.data("ad-value", ad);
 
                     close();
@@ -109,17 +112,17 @@ const DatePickerConfig = {
 
     attachEvents(listview) {
         $(document).on("change", "input.nepali-picker-initialized", (e) => {
+            // const fieldName = $inp.attr("data-fieldname");
+            const $inp = $(e.target);
             const fieldName = $inp.attr("data-fieldname");
+            const adValue = $inp.data("ad-value");
+            if (!adValue) return;
             const adFieldName = fieldName.endsWith("_bs") 
                 ? fieldName.slice(0, -3) 
                 : fieldName;
 
             listview.filter_area?.add([
                 [listview.doctype, adFieldName, "=", adValue]
-            ]);
-
-            listview.filter_area?.add([
-                [listview.doctype, fieldName.replace("_bs", ""), "=", adValue]
             ]);
 
             listview.refresh();

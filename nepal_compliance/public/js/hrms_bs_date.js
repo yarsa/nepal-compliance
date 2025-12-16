@@ -1,17 +1,19 @@
 function convertADtoBS(frm, fieldname, targetField) {
-    const date = frm.doc[fieldname] ? frm.doc[fieldname].split(" ")[0] : null;
-    if (date) {
-        const convertedDate = NepaliFunctions.AD2BS(date, "YYYY-MM-DD", "YYYY-MM-DD");
-        frappe.model.set_value(frm.doctype, frm.docname, targetField, convertedDate);
-    }
+    const date = frm.doc[fieldname]?.split(" ")[0];
+    if (!date) return;
+
+    const convertedDate = NepaliFunctions.AD2BS(date);
+
+    frappe.model.set_value(frm.doctype, frm.docname, targetField, convertedDate);
 }
 
 function convertBStoAD(frm, fieldname, targetField) {
-    const date = frm.doc[fieldname] ? frm.doc[fieldname].split(" ")[0] : null;
-    if (date) {
-        const convertedDate = NepaliFunctions.BS2AD(date, "YYYY-MM-DD", "YYYY-MM-DD");
-        frappe.model.set_value(frm.doctype, frm.docname, targetField, convertedDate);
-    }
+    const date = frm.doc[fieldname]?.split(" ")[0];
+    if (!date) return;
+
+    const convertedDate = NepaliFunctions.BS2AD(date);
+
+    frappe.model.set_value(frm.doctype, frm.docname, targetField, convertedDate);
 }
 
 function initializeDatePickers(frm) {

@@ -2,8 +2,6 @@ function getUserDateFormat() {
     return frappe?.boot?.nepal_compliance?.date_format || "YYYY-MM-DD";
 }
 
-const USER_DATE_FORMAT = getUserDateFormat();
-
 function formatDate(y, m, d, format) {
     const map = {
         YYYY: y,
@@ -51,14 +49,14 @@ window.NepaliFunctions = {
         const isoBS = `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
 
         if (forDisplay) {
-            return formatDate(bs.year, bs.monthIndex + 1, bs.day, USER_DATE_FORMAT);
+            return formatDate(bs.year, bs.monthIndex + 1, bs.day, getUserDateFormat());
         } else {
             return isoBS;
         }
     },
 
     BS2AD(bsString) {
-        const parsed = parseUserDate(bsString, USER_DATE_FORMAT);
+        const parsed = parseUserDate(bsString, getUserDateFormat());
         if (!parsed) return null;
 
         const { y, m, d } = parsed;
@@ -70,7 +68,7 @@ window.NepaliFunctions = {
 
     getToday() {
         const bs = NepaliDateLib.adToBs(new Date());
-        return formatDate(bs.year, bs.monthIndex + 1, bs.day, USER_DATE_FORMAT);
+        return formatDate(bs.year, bs.monthIndex + 1, bs.day, getUserDateFormat());
     }
 };
 
@@ -217,7 +215,7 @@ function extend_with_bs_date_picker() {
                     const bsDate = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
                     const adDate = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
                     const parsed = parseUserDate(bsDate, "YYYY-MM-DD");
-                    const bsDisplay = formatDate(parsed.y, parsed.m, parsed.d, USER_DATE_FORMAT);
+                    const bsDisplay = formatDate(parsed.y, parsed.m, parsed.d, getUserDateFormat());
                     this.safe_set_input(bsDisplay);
                     this.set_model_value(adDate);
                     
