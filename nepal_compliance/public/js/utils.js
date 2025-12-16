@@ -38,14 +38,14 @@ frappe.listview_settings['Leave Allocation'] = {
     if (frappe.user.has_role("HR User") || frappe.user.has_role("HR Manager")) {
       listview.page.add_inner_button(__('Allocate Monthly Leave (BS)'), async () => {
         const today = new Date();
+        // Format as YYYY-MM-DD
+        const adString = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
         let bs;
         try {
-          bs = NepaliFunctions.AD2BS({
-            year: today.getFullYear(),
-            month: today.getMonth() + 1,
-            day: today.getDate()
-          });
-        } catch {
+          bs = NepaliFunctions.AD2BS(adString, 'YYYY-MM-DD', 'YYYY-MM-DD');
+        } catch (err) {
+          console.error(err);
           frappe.msgprint(__('Failed to convert to BS date'));
           return;
         }
@@ -86,20 +86,34 @@ frappe.listview_settings['Leave Allocation'] = {
               frappe.msgprint(__("No leave type selected."));
               return;
             }
+            // Split BS string to get day, month, year (const [bsYear, bsMonth, bsDay] = bs.split('-').map(Number);)
+            if (typeof bs !== 'string') {
+              console.error('AD2BS returned non-string value:', bs);
+              frappe.msgprint(__('Invalid BS date format returned'));
+              return;
+            }
+            const parts = bs.split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) {
+              console.error('Invalid BS date format:', bs);
+              frappe.msgprint(__('Invalid BS date format returned'));
+              return;
+            }
+            const [bsYear, bsMonth, bsDay] = parts;
 
-            const is_first = bs.day === 1;
+            const is_first = bsDay === 1;
+
             const proceed = () => {
               frappe.call({
                 method: "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.allocate_monthly_leave_bs",
                 args: {
-                  bs_year: bs.year,
-                  bs_month: bs.month,
+                  bs_year: bsYear,
+                  bs_month: bsMonth,
                   leave_types: selected,
                   force: !is_first
                 },
                 callback: r => {
                   if (!r.exc) {
-                    frappe.msgprint(__('✅ Leave Allocation Done'));
+                    frappe.msgprint(__('Leave Allocation Done'));
                     listview.refresh();
                   }
                 }
@@ -108,7 +122,7 @@ frappe.listview_settings['Leave Allocation'] = {
 
             if (!is_first && frappe.user.has_role("HR Manager")) {
               frappe.confirm(
-                `Today is BS ${bs.year}-${bs.month}-${bs.day}, not the 1st. Do you still want to allocate leave?`,
+                `Today is BS ${bsYear}-${bsMonth}-${bsDay}, not the 1st. Do you still want to allocate leave?`,
                 proceed,
                 () => frappe.msgprint(__("Cancelled."))
               );
