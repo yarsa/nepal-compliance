@@ -1,47 +1,76 @@
+function getUserDateFormat() {
+    return frappe?.boot?.nepal_compliance?.date_format || "YYYY-MM-DD";
+}
+
+function formatDate(y, m, d, format) {
+    const map = {
+        YYYY: y,
+        MM: String(m).padStart(2, "0"),
+        M: m,
+        DD: String(d).padStart(2, "0"),
+        D: d
+    };
+
+    return format.replace(/YYYY|MM|DD|M|D/g, k => map[k]);
+}
+
+function parseUserDate(str, format) {
+    if (!str) return null;
+
+    const nums = str.match(/\d+/g);
+    const fmt = format.match(/YYYY|MM|DD|M|D/g);
+
+    if (!nums || !fmt || nums.length !== fmt.length) return null;
+
+    let y, m, d;
+    fmt.forEach((f, i) => {
+        if (f === "YYYY") y = Number(nums[i]);
+        if (f === "MM" || f === "M") m = Number(nums[i]);
+        if (f === "DD" || f === "D") d = Number(nums[i]);
+    });
+
+    if (![y, m, d].every(Number.isFinite)) return null;
+    return { y, m, d };
+}
+
 window.NepaliFunctions = {
-    AD2BS(adString) {
+    AD2BS(adString, forDisplay = true) {
         if (!adString || typeof adString !== "string") return null;
 
-        let parts = adString.split("-");
-        if (parts.length !== 3) return null;
-
-        let [y, m, d] = parts.map(Number);
+        const [y, m, d] = adString.split("-").map(Number);
         if (![y, m, d].every(Number.isFinite)) return null;
 
-        let date = new Date(Date.UTC(y, m - 1, d));
+        const date = new Date(Date.UTC(y, m - 1, d));
         if (isNaN(date.getTime())) return null;
 
-        let bs = NepaliDateLib.adToBs(date);
-        if (!bs || !bs.year) return null;
+        const bs = NepaliDateLib.adToBs(date);
+        if (!bs?.year) return null;
 
-        return `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+        const isoBS = `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+
+        if (forDisplay) {
+            return formatDate(bs.year, bs.monthIndex + 1, bs.day, getUserDateFormat());
+        } else {
+            return isoBS;
+        }
     },
 
     BS2AD(bsString) {
-        if (!bsString || typeof bsString !== "string") return null;
+        const parsed = parseUserDate(bsString, getUserDateFormat());
+        if (!parsed) return null;
 
-        let parts = bsString.split("-");
-        if (parts.length !== 3) return null;
-
-        let [y, m, d] = parts.map(Number);
-        if (![y, m, d].every(Number.isFinite)) return null;
-
-        let ad = NepaliDateLib.bsToAd(y, m - 1, d);
+        const { y, m, d } = parsed;
+        const ad = NepaliDateLib.bsToAd(y, m - 1, d);
         if (!(ad instanceof Date) || isNaN(ad.getTime())) return null;
 
-        let y2 = ad.getUTCFullYear();
-        let m2 = ad.getUTCMonth() + 1;
-        let d2 = ad.getUTCDate();
-
-        return `${y2}-${String(m2).padStart(2, "0")}-${String(d2).padStart(2, "0")}`;
+        return `${ad.getUTCFullYear()}-${String(ad.getUTCMonth() + 1).padStart(2, "0")}-${String(ad.getUTCDate()).padStart(2, "0")}`;
     },
 
     getToday() {
-        let bs = NepaliDateLib.adToBs(new Date());
-        return `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+        const bs = NepaliDateLib.adToBs(new Date());
+        return formatDate(bs.year, bs.monthIndex + 1, bs.day, getUserDateFormat());
     }
 };
-
 
 (function waitForFrappeReady() {
     if (
@@ -89,7 +118,7 @@ function extend_with_ad_date_picker() {
 
         render_equivalent_date(value) {
             try {
-                const bs_date = NepaliFunctions.AD2BS(value, "YYYY-MM-DD", "YYYY-MM-DD");
+                const bs_date = NepaliFunctions.AD2BS(value);
                 this.show_equivalent_date(`BS Date: ${bs_date}`);
             } catch (err) {
                 console.error("Failed AD → BS", err);
@@ -178,16 +207,18 @@ function extend_with_bs_date_picker() {
             document.addEventListener("mousedown", outsideClick);
 
             const ad = this.get_value();
-            const bs = ad ? NepaliFunctions.AD2BS(ad) : undefined;
+            const bs = ad ? NepaliFunctions.AD2BS(ad, false) : undefined;
 
             NepaliCalendarLib.render(pop, {
                 selectedDateBS: bs,
                 onSelect: (selected) => {
                     const bsDate = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
                     const adDate = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
-
-                    this.safe_set_input(bsDate);
+                    const parsed = parseUserDate(bsDate, "YYYY-MM-DD");
+                    const bsDisplay = formatDate(parsed.y, parsed.m, parsed.d, getUserDateFormat());
+                    this.safe_set_input(bsDisplay);
                     this.set_model_value(adDate);
+                    
                     this.$input?.trigger("change");
 
                     this.show_equivalent_date(`AD Date: ${adDate}`);
@@ -233,7 +264,15 @@ function display_equivalent_date(wrapper, text) {
     const $target = wrapper.find('.static-input');
     const container = $target.length ? $target : wrapper;
 
+    if (!text || text.includes("undefined") || text.includes("null")) {
+        container.find('.equivalent-date').remove();
+        return;
+    }
+
     const $eq = container.find('.equivalent-date');
-    if ($eq.length) $eq.text(text);
-    else container.append(`<div class="equivalent-date">${text}</div>`);
+    if ($eq.length) {
+        $eq.text(text);
+    } else {
+        container.append(`<div class="equivalent-date">${text}</div>`);
+    }
 }

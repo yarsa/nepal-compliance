@@ -27,7 +27,7 @@ def execute(filters=None):
 
 	    month_pattern = f"%-{month_number}-%"
     columns = [
-        _("Invoice Date") + ":Date:150",
+        _("Invoice Date") + ":Data:150",
         _("Supplier") + ":Link/Supplier:150",
         _("VAT/PAN Number") + ":Data:120",
         _("Invoice Number") + ":Link/Purchase Invoice:200",

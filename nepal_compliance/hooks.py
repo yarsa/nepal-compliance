@@ -25,18 +25,20 @@ app_license = "GNU General Public License (v3)"
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
-app_include_css = ["/assets/nepal_compliance/css/nepali_calendar.css",
-                   "/assets/nepal_compliance/css/date.css"
-                   ]
-# app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
+app_include_css = [
+    "/assets/nepal_compliance/css/nepali_calendar.css",
+    "/assets/nepal_compliance/css/date.css"]
+
 app_include_js = [
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
     "/assets/nepal_compliance/js/nepali_date_lib.js",
     "/assets/nepal_compliance/js/nepali_calendar_lib.js",
     "/assets/nepal_compliance/js/nepali_date_override.js",
-    "/assets/nepal_compliance/js/formatter.js"]
+    "/assets/nepal_compliance/js/formatter.js",
+    "/assets/nepal_compliance/js/report_filter.js",
+    "/assets/nepal_compliance/js/icon_patch.js",
+    "/assets/nepal_compliance/js/employee_benefit_claim.js"]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
 
@@ -55,7 +57,6 @@ boot_session = "nepal_compliance.boot.get_boot_info"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
     "Company": "public/js/validate.js",
     "User": "public/js/nepali_date.js",
@@ -93,7 +94,7 @@ doctype_js = {
     "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js',
     "Period Closing Voucher": "public/js/bs_date.js", "Invoice Discounting": "public/js/bs_date.js", "Dunning": "public/js/bs_date.js", "Process Deferred Accounting": "public/js/bs_date.js", "POS Invoice": "public/js/bs_date.js"
 }
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+
 doctype_list_js = {
     "Salary Component": "public/js/custom_button.js",
     "Leave Allocation": "public/js/utils.js",
@@ -135,18 +136,14 @@ doctype_list_js = {
 
 # Installation
 # ------------
-
-# before_install = "nepal_compliance.install.before_install"
 after_install = "nepal_compliance.install.install"
 after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
               "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
-# after_install = "nepal_compliance.install.after_install"
+
 # Uninstallation
 # ------------
 
-# before_uninstall = "nepal_compliance.uninstall.before_uninstall"
 before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
-# after_uninstall = "nepal_compliance.uninstall.after_uninstall"
 
 # Integration Setup
 # ------------------
@@ -185,10 +182,6 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # DocType Class
 # ---------------
 # Override standard doctype classes
-
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
 override_doctype_class = {
     "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
     "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
@@ -201,16 +194,7 @@ override_doctype_class = {
 # Document Events
 # ---------------
 # Hook on document methods and events
-
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
 doc_events = {
-
     "*": {
         "validate": "nepal_compliance.backdated_doctype_restriction.validate_backdate_and_sequence"
     },
