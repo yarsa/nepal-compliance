@@ -81,13 +81,13 @@
    "fieldname": "date_format",
    "fieldtype": "Select",
    "label": "Date Format",
-   "options": "YYYY-MM-DD\nYYYY/MM/DD\nYYYY.MM.DD\nYYYY-M-D\nYYYY/M/D\nYYYY.M.D"
+   "options": "YYYY-MM-DD"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-16 09:48:29.468734",
+ "modified": "2025-12-17 12:52:09.156563",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
