@@ -35,7 +35,7 @@ def generate_test_masters(docname=None):
                 "address_line1": "Lalitpur Office, Kathmandu",
                 "city": "Kathmandu",
                 "country": "Nepal",
-                "phone": "04234424 / 9834234524",
+                "phone": "+977 9834234524",
                 "is_your_company_address": 1,
                 "links": [{"link_doctype": "Company", "link_name": company_name}]
             }).insert()
@@ -69,7 +69,7 @@ def generate_test_masters(docname=None):
                 "address_line1": "Lalitpur Office, Kathmandu",
                 "city": "Kathmandu",
                 "country": "Nepal",
-                "phone": "046520613 / 9812453454",
+                "phone": "+977 9834234524",
                 "links": [{"link_doctype": "Customer", "link_name": customer_name}]
             }).insert()
             masters_created = True
@@ -90,7 +90,7 @@ def generate_test_masters(docname=None):
                 "address_line1": "Lalitpur Office, Kathmandu",
                 "city": "Kathmandu",
                 "country": "Nepal",
-                "phone": "045620165 / 9844012342",
+                "phone": "+977 9834234524",
                 "links": [{"link_doctype": "Supplier", "link_name": supplier_name}]
             }).insert()
             masters_created = True
