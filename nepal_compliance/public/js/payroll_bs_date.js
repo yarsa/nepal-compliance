@@ -1,13 +1,13 @@
 function convertToNepaliAndSet(frm, ad_field, bs_field) {
     if (frm.doc[ad_field]) {
-        const bs = NepaliFunctions.AD2BS(frm.doc[ad_field].split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+        const bs = NepaliFunctions.AD2BS(frm.doc[ad_field].split(" ")[0]);
         frappe.model.set_value(frm.doctype, frm.docname, bs_field, bs);
     }
 }
 
 function convertToADAndSet(frm, bs_field, ad_field) {
     if (frm.doc[bs_field]) {
-        const ad = NepaliFunctions.BS2AD(frm.doc[bs_field].split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+        const ad = NepaliFunctions.BS2AD(frm.doc[bs_field].split(" ")[0]);
         frappe.model.set_value(frm.doctype, frm.docname, ad_field, ad);
     }
 }
@@ -67,7 +67,7 @@ Object.keys(nepaliDateConfig).forEach(doctype => {
                 setTimeout(() => {
                     const map = fieldMappings[0];
                     if (frm.doc[map.ad] && !frm.doc[map.bs]) {
-                        const nepali = NepaliFunctions.AD2BS(frm.doc[map.ad].split(" ")[0], "YYYY-MM-DD", "YYYY-MM-DD");
+                        const nepali = NepaliFunctions.AD2BS(frm.doc[map.ad].split(" ")[0]);
                         frappe.db.set_value(frm.doc.doctype, frm.doc.name, map.bs, nepali).then(() => { frm.reload_doc(); });
                     }
                 }, 100);
