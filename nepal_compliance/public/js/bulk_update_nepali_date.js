@@ -79,7 +79,7 @@ function setup_nepali_date_fixer({ listview, doctype, ad_field, bs_field, label 
                         ad_fields.forEach((ad, i) => {
                             const bs = bs_fields[i];
                             if (doc[ad] && !doc[bs]) {
-                                updates[bs] = NepaliFunctions.AD2BS(doc[ad], "YYYY-MM-DD", "YYYY-MM-DD");
+                                updates[bs] = NepaliFunctions.AD2BS(doc[ad]);
                             }
                         });
 

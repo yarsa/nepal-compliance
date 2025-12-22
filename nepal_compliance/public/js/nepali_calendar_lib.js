@@ -558,8 +558,14 @@
     );
   }
 
+  const roots = new WeakMap();
   function render(el, props) {
-    const root = client.createRoot(el);
+    if (!el) return;
+    let root = roots.get(el);
+    if (!root) {
+      root = client.createRoot(el);
+      roots.set(el, root);
+    }
     root.render(
       /*#__PURE__*/ React.createElement(
         NepaliCalendarView,
@@ -568,6 +574,16 @@
     );
   }
 
+  function unmount(el) {
+    if (!el) return;
+    const root = roots.get(el);
+    if (root) {
+      root.unmount();
+      roots.delete(el);
+    }
+  }
+
   exports.NepaliCalendarView = NepaliCalendarView;
   exports.render = render;
+  exports.unmount = unmount;
 });

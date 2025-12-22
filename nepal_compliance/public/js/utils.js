@@ -43,7 +43,7 @@ frappe.listview_settings['Leave Allocation'] = {
 
         let bs;
         try {
-          bs = NepaliFunctions.AD2BS(adString);
+          bs = NepaliFunctions.AD2BS(adString, false);
         } catch (err) {
           console.error(err);
           frappe.msgprint(__('Failed to convert to BS date'));
