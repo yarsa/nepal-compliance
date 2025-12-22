@@ -18,7 +18,7 @@ permissions:
 jobs:
   spelling:
     name: Spell Check with Typos
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
     - name: Checkout Actions Repository
       uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
 
   linters:
     name: Frappe Linter
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
