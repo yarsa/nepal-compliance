@@ -15,7 +15,7 @@
             if (use_ad_date) {
                 return frappe.datetime.str_to_user(value);
             } else {
-                const bs_date = NepaliFunctions.AD2BS(value, "YYYY-MM-DD", "YYYY-MM-DD");
+                const bs_date = NepaliFunctions.AD2BS(value);
                 return bs_date;
             }
         } catch (e) {

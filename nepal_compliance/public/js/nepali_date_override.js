@@ -214,7 +214,7 @@ function extend_with_bs_date_picker() {
                 onSelect: (selected) => {
                     const bsDate = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
                     const adDate = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
-                    const parsed = parseUserDate(bsDate, "YYYY-MM-DD");
+                    const parsed = parseUserDate(bsDate, getUserDateFormat());
                     const bsDisplay = formatDate(parsed.y, parsed.m, parsed.d, getUserDateFormat());
                     this.safe_set_input(bsDisplay);
                     this.set_model_value(adDate);
@@ -250,7 +250,8 @@ function extend_with_bs_date_picker() {
             try {
                 return NepaliFunctions.BS2AD(valueBS);
             } catch {
-                return valueBS;
+                console.error("Failed to parse BS date:", valueBS);
+                return null;
             }
         }
 

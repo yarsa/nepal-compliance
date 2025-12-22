@@ -2,6 +2,8 @@ frappe.provide('frappe.listview_settings');
 
 const DatePickerConfig = {
 
+    _eventsAttached: false,
+
     FIELDS: [
         'nepali_date', 'from_nepali_date', 'to_nepali_date',
         'nepali_start_date', 'nepali_end_date',
@@ -111,6 +113,9 @@ const DatePickerConfig = {
     },
 
     attachEvents(listview) {
+        if (this._eventsAttached) return;
+        this._eventsAttached = true;
+        
         $(document).on("change", "input.nepali-picker-initialized", (e) => {
             // const fieldName = $inp.attr("data-fieldname");
             const $inp = $(e.target);
