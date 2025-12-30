@@ -8,7 +8,7 @@ def run_daily_bs_tasks():
         today_ad = getdate()
         bs = ad_to_bs(today_ad)
 
-        frappe.db.set_value("Nepal Compliance Settings", None, {
+        frappe.db.set_single_value("Nepal Compliance Settings", None, {
             "bs_day": bs["day"]
         })
 
