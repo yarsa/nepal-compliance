@@ -216,23 +216,11 @@ doc_events = {
 }
 # Scheduled Tasks
 # ---------------
-# scheduler_events = {
-# 	"all": [
-# 		"nepal_compliance.tasks.all"
-# 	],
-# 	"daily": [
-# 		"nepal_compliance.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"nepal_compliance.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"nepal_compliance.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"nepal_compliance.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+    "daily": [
+        "nepal_compliance.custom_code.leave_allocation.scheduled_tasks.run_daily_bs_tasks"
+    ]
+}
 
 # Testing
 # -------
