@@ -201,7 +201,6 @@ def format_bs(ad_date, fmt="YYYY-MM-DD"):
         "YYYY": str(bs["year"]),
         "MM": f"{bs['month']:02d}",
         "DD": f"{bs['day']:02d}",
-        "M_NP": NEPALI_MONTHS[bs["month"]],
         "M_S": str(bs["month"]),
         "D_S": str(bs["day"]),
         "M_NP": NEPALI_MONTHS[bs["month"]]
