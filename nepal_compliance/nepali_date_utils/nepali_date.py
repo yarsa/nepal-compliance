@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, os, threading
+import csv, os, threading, re
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Union
 
@@ -179,28 +179,47 @@ def bs_to_ad(year: int, month: int, day: int) -> date:
     return ad
 
 
-def format_bs(ad_date, fmt="YYYY-MM-DD") -> str:
-    if isinstance(ad_date, dict):
-        _throw("format_bs expects an AD date, not a BS dictionary.")
+def _safe_replace(fmt: str, mapping: Dict[str, str]) -> str:
+
+    # Replaces known tokens and support legacy M and D only when used as standalone tokens (e.g. YYYY.M.D, YYYY-M-D).
+
+    # Replace explicit tokens first
+    tokens = sorted(mapping, key=len, reverse=True)
+    pattern = "|".join(re.escape(t) for t in tokens)
+    result = re.sub(pattern, lambda m: mapping[m.group(0)], fmt)
+
+    # Legacy compatibility: standalone M and D
+    result = re.sub(r'(?<![A-Za-z])M(?![A-Za-z])', mapping["M_S"], result)
+    result = re.sub(r'(?<![A-Za-z])D(?![A-Za-z])', mapping["D_S"], result)
+
+    return result
+
+
+def format_bs(ad_date, fmt="YYYY-MM-DD"):
     bs = ad_to_bs(ad_date)
-    return (
-        fmt.replace("YYYY", str(bs["year"]))
-           .replace("MM", f"{bs['month']:02d}")
-           .replace("DD", f"{bs['day']:02d}")
-           .replace("M_NP", NEPALI_MONTHS[bs["month"]])
-    )
+    return _safe_replace(fmt, {
+        "YYYY": str(bs["year"]),
+        "MM": f"{bs['month']:02d}",
+        "DD": f"{bs['day']:02d}",
+        "M_S": str(bs["month"]),
+        "D_S": str(bs["day"]),
+        "M_NP": NEPALI_MONTHS[bs["month"]]
+    })
 
 
-def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS") -> str:
+def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
     dt = _dt(ad_dt)
     bs = ad_to_bs(dt.date())
-    return (
-        fmt.replace("YYYY", str(bs["year"]))
-           .replace("MM", f"{bs['month']:02d}")
-           .replace("DD", f"{bs['day']:02d}")
-           .replace("HH", f"{dt.hour:02d}")
-           .replace("mm", f"{dt.minute:02d}")
-           .replace("SS", f"{dt.second:02d}")
-           .replace("M_NP", NEPALI_MONTHS[bs["month"]])
-    )
+    return _safe_replace(fmt, {
+        "YYYY": str(bs["year"]),
+        "MM": f"{bs['month']:02d}",
+        "DD": f"{bs['day']:02d}",
+        "M_NP": NEPALI_MONTHS[bs["month"]],
+        "M_S": str(bs["month"]),
+        "D_S": str(bs["day"]),
+        "HH": f"{dt.hour:02d}",
+        "mm": f"{dt.minute:02d}",
+        "SS": f"{dt.second:02d}",
+    })
+
 __all__ = ["ad_to_bs", "bs_to_ad", "format_bs", "format_bs_datetime"]
