@@ -8,11 +8,14 @@ def run_daily_bs_tasks():
         today_ad = getdate()
         bs = ad_to_bs(today_ad)
 
-        frappe.db.set_single_value("Nepal Compliance Settings", None, {
-            "bs_day": bs["day"]
-        })
+        settings = frappe.get_single("Nepal Compliance Settings")
+        settings.db_set("bs_year", bs["year"], update_modified=False)
+        settings.db_set("bs_month", bs["month"], update_modified=False)
+        settings.db_set("bs_day", bs["day"], update_modified=False)
 
-        frappe.logger().info(f"[BS] Updated to {bs['year']}-{bs['month']}-{bs['day']}")
+        frappe.logger().info(
+            f"[BS] Updated to {bs['year']}-{bs['month']}-{bs['day']}"
+        )
 
         if bs["day"] == 1:
             leave_types = frappe.get_all(
@@ -30,7 +33,8 @@ def run_daily_bs_tasks():
                     silent=True,
                 )
 
-                frappe.logger().info(f"[BS] Leave allocated for {bs['year']}-{bs['month']}")
-
     except Exception:
-        frappe.log_error(title="Daily BS Tasks Failed", message=frappe.get_traceback())
+        frappe.log_error(
+            title="Daily BS Tasks Failed",
+            message=frappe.get_traceback()
+        )
