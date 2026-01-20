@@ -5,15 +5,6 @@ def get_boot_info(bootinfo):
         return
 
     try:
-        from nepal_compliance.nepali_date_utils.patch import apply_runtime_patches
-        apply_runtime_patches()
-    except Exception as e:
-        frappe.log_error(
-            title="Nepal Compliance - Runtime Patch Failure",
-            message=f"Failed to apply runtime patches during boot: {str(e)}"
-        )
-
-    try:
         user_doc = frappe.get_cached_doc("User", frappe.session.user)
         bootinfo["use_ad_date"] = bool(user_doc.get("use_ad_date", 0))
     except Exception:
