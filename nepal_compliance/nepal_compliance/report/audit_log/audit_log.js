@@ -97,12 +97,12 @@ frappe.query_reports["Audit Log"] = {
         {
             "fieldname": "from_nepali_date",
             "label": __("From Date"),
-            "fieldtype": "Data"
+            "fieldtype": "Date"
         },
         {
             "fieldname": "to_nepali_date",
             "label": __("To Date"),
-            "fieldtype": "Data"
+            "fieldtype": "Date"
         }
 	],
 	onload: function(report){

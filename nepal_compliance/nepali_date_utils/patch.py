@@ -53,7 +53,7 @@ def _convert_to_bs_if_date(value):
 
     try:
         if isinstance(value, datetime):
-            return format_bs_datetime(value, f"{fmt} HH:mm:ss")
+            return format_bs_datetime(value, f"{fmt} HH:mm:SS")
 
         if isinstance(value, date):
             return format_bs(value, fmt)
@@ -62,7 +62,7 @@ def _convert_to_bs_if_date(value):
             if DATE_REGEX.match(value):
                 return format_bs(value, fmt)
             if DATETIME_REGEX.match(value):
-                return format_bs_datetime(value, f"{fmt} HH:mm:ss")
+                return format_bs_datetime(value, f"{fmt} HH:mm:SS")
 
     except Exception:
         frappe.log_error(

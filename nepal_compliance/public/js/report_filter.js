@@ -87,13 +87,16 @@ const DatePickerConfig = {
             document.addEventListener("mousedown", handleOutside);
 
             const currentValue = $input.val();
-            const initialBS = currentValue || (NepaliFunctions?.getToday?.() ?? '');
-
-            if (!NepaliCalendarLib?.render) {
-                console.error('NepaliCalendarLib not loaded');
+            let initialBS = currentValue || (NepaliFunctions?.getToday?.() ?? '');
+            if (initialBS && typeof initialBS === "string") {
+                initialBS = initialBS.replace(/\./g, "-");
+            }
+            if (typeof NepaliCalendarLib?.render !== "function") {
+                console.warn("NepaliCalendarLib.render is not available");
                 close();
                 return;
             }
+
             NepaliCalendarLib.render(pop, {
                 selectedDateBS: initialBS,
                 onSelect: (dateObj) => {
