@@ -157,7 +157,7 @@ def post_process_rows(data, columns, filters):
         try:
             payload = json.loads(row["audit_detail"])
         except (json.JSONDecodeError, TypeError):
-            row.uopdate({
+            row.update({
                 "submit_status": "No",
                 "operation": "Unknown",
                 "audit_detail_summary": "Error parsing audit detail"
@@ -191,7 +191,7 @@ def post_process_rows(data, columns, filters):
             row[field] = value
             summary_lines.append(f"- **{field.replace('_',' ').title()}**: {value}")
 
-        row["audit_detail_summary"] = "\n".join(map(str, summary_lines))
+        row["audit_detail_summary"] = "\n".join(summary_lines)
 
     for row in data:
         if row["docname"] in submit_map and row["submit_status"] == "No":
