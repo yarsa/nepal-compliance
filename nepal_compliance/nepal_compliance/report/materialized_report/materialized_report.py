@@ -92,9 +92,9 @@ class ColumnDetail(BaseAuditTrail):
                 "width": 120,
             },
             {
-                "label": _("Nepali Date"),
-                "fieldtype": "Data",
-                "fieldname": "nepali_date",
+                "label": _("Posting Date"),
+                "fieldtype": "Date",
+                "fieldname": "posting_date",
                  "width": 120,
             },
             {
@@ -219,7 +219,7 @@ class ColumnDetail(BaseAuditTrail):
         if doctype in DOC["remark_field"]:
             fields.append("remarks")
         
-        fields.append("nepali_date")
+        fields.append("posting_date")
         
         fields.append("status")
 
@@ -231,7 +231,7 @@ class ColumnDetail(BaseAuditTrail):
             row["creation_date"] = getdate(
                 format_date(row["date_time"], get_user_date_format())
             )
-            row["nepali_date"] = row.get("nepali_date", "") 
+            row["posting_date"] = row.get("posting_date", "")
             row["status"] = row.get("status", "")
             print_count = 0
             printed_by_user = ""

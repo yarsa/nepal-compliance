@@ -14,13 +14,13 @@ frappe.query_reports["Landing Cost Voucher"] = {
 		{
             "fieldname": "from_nepali_date",
             "label": __("From Date"),
-            "fieldtype": "Data",
+            "fieldtype": "Date",
             "reqd": 0,
         },
         {
             "fieldname": "to_nepali_date",
             "label": __("To Date"),
-            "fieldtype": "Data",
+            "fieldtype": "Date",
             "reqd": 0
         },
 		{
