@@ -12,7 +12,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
         {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
         {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
@@ -42,14 +42,14 @@ def get_data(filters):
         values["return_invoice"] = filters.get("return_invoice")
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date BETWEEN %(from)s AND %(to)s")
+        conditions.append("si.posting_date BETWEEN %(from)s AND %(to)s")
         values["from"] = filters.get("from_nepali_date")
         values["to"] = filters.get("to_nepali_date")
     elif filters.get("from_nepali_date"):
-        conditions.append("si.nepali_date >= %(from)s")
+        conditions.append("si.posting_date >= %(from)s")
         values["from"] = filters.get("from_nepali_date")
     elif filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date <= %(to)s")
+        conditions.append("si.posting_date <= %(to)s")
         values["to"] = filters.get("to_nepali_date")
 
     query = f"""
@@ -57,7 +57,7 @@ def get_data(filters):
             si.name as invoice,
             si.rounded_total,
             si.grand_total,
-            si.nepali_date,
+            si.posting_date,
             si.customer_name,
             si.tax_id as pan,
             si.customer,
@@ -120,7 +120,7 @@ def get_data(filters):
                     (i[0]["calculated_tax"] for i in taxable_item_net_amounts if i[0] == item), 0.0)
 
             data.append({
-                "nepali_date": inv.nepali_date or inv.posting_date,
+                "posting_date": inv.posting_date or "",
                 "invoice": inv.invoice,
                 "customer_name": inv.customer_name,
                 "pan": inv.pan or frappe.db.get_value("Customer", inv.customer, "tax_id"),
@@ -134,7 +134,7 @@ def get_data(filters):
             })
 
         data.append({
-            "nepali_date": "",
+            "posting_date": "",
             "invoice": "",
             "customer_name": "जम्मा",
             "pan": "",
@@ -154,7 +154,7 @@ def get_data(filters):
         grand_tax += abs(flt(total_tax))
 
     data.append({
-        "nepali_date": "",
+        "posting_date": "",
         "invoice": "",
         "customer_name": "कुल जम्मा",
         "pan": "",

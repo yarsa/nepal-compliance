@@ -6,12 +6,12 @@ frappe.query_reports["Vat Return Report"] = {
 		{
 			"fieldname": "from_nepali_date",
 			"label": __("From Nepali Date"),
-			"fieldtype": "Data",
+			"fieldtype": "Date",
 		},
 		{
 			"fieldname": "to_nepali_date",
 			"label": __("To Nepali Date"),
-			"fieldtype": "Data",
+			"fieldtype": "Date",
 		},
 		{
 			"fieldname": "party_type",

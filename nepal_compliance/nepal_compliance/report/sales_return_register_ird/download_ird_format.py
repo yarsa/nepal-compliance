@@ -7,6 +7,7 @@ import json
 import openpyxl
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
+from nepal_compliance.nepali_date_utils.utils import bs_date
 
 def convert_to_nepali_fy_format(year_start_date, year_end_date):
     try:
@@ -121,6 +122,9 @@ def generate_ird_sales_register_excel():
     for row_idx, inv in enumerate(rows, start=data_start_row):
         is_grand_total_row = inv.get("customer_name") == "कुल जम्मा"
 
+        posting_date = inv.get("posting_date")
+        posting_bs = bs_date(posting_date) if posting_date else ""
+
         if is_grand_total_row:
             ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
             total_label_cell = ws.cell(row=row_idx, column=1, value="कुल जम्मा")
@@ -134,7 +138,7 @@ def generate_ird_sales_register_excel():
             start_col = 5
         else:
             values = [
-                inv.get("nepali_date"), inv.get("invoice"), inv.get("customer_name"), inv.get("pan"),
+                posting_bs, inv.get("invoice"), inv.get("customer_name"), inv.get("pan"),
                 inv.get("name"), inv.get("qty"), inv.get("uom"),
                 inv.get("total"), inv.get("tax_exempt"),
                 inv.get("taxable_amount"), inv.get("tax_amount")

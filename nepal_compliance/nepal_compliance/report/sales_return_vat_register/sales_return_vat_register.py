@@ -9,9 +9,9 @@ from frappe import _
 def execute(filters=None):
 	columns = [
 		{
-			'fieldname': 'nepali_date',
-			'label': _('Nepali Date'),
-			'fieldtype': 'Data'
+			'fieldname': 'posting_date',
+			'label': _('Posting Date'),
+			'fieldtype': 'Date'
 		},
 		{
 			'fieldname': 'invoice_no',
@@ -136,13 +136,13 @@ def execute(filters=None):
 		values.append(filters["company"])
 
 	if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-		conditions.append("si.nepali_date >= %s AND si.nepali_date <= %s")
+		conditions.append("si.posting_date >= %s AND si.posting_date <= %s")
 		values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
 	elif filters.get("from_nepali_date"):
-		conditions.append("si.nepali_date >= %s")
+		conditions.append("si.posting_date >= %s")
 		values.append(filters["from_nepali_date"])
 	elif filters.get("to_nepali_date"):
-		conditions.append("si.nepali_date <= %s")
+		conditions.append("si.posting_date <= %s")
 		values.append(filters["to_nepali_date"])
 
 	if filters.get("customer"):
@@ -187,5 +187,5 @@ def execute(filters=None):
 				vat = tax.tax_amount
 			elif tax.rate in [1.5, 15]:
 				tds = tax.tax_amount
-		data.append([sale.nepali_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number, sale.owner, total_qty, sale.total,sale.discount_amount, sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount, sale.return_against])
+		data.append([sale.posting_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number, sale.owner, total_qty, sale.total,sale.discount_amount, sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount, sale.return_against])
 	return columns, data
