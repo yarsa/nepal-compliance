@@ -13,12 +13,12 @@ frappe.query_reports["Purchase Register IRD"] = {
 		{
 			fieldname: 'from_nepali_date',
 			label: __('मिति देखि'),
-			fieldtype: 'Data'
+			fieldtype: 'Date'
 		},
 		{
 			fieldname: 'to_nepali_date',
 			label: __('मिति सम्म'),
-			fieldtype: 'Data'
+			fieldtype: 'Date'
 		},
         {
             fieldname: 'supplier',

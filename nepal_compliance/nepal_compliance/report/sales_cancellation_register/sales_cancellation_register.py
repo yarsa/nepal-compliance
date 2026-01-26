@@ -9,9 +9,9 @@ def execute(filters=None):
 def get_columns():
     return [
         {
-            "fieldname": "nepali_date",
+            "fieldname": "posting_date",
             "label": _("Date"),
-            "fieldtype": "Data",
+            "fieldtype": "Date",
             "width": 150
         },
         {
@@ -72,10 +72,10 @@ def get_data(filters):
     
     data = frappe.db.sql("""
         SELECT
-            si.nepali_date as nepali_date,
+            si.posting_date as posting_date,
             si.name as invoice_number,
             si.customer_name as customer,
-            si.vat_number as pan_number,
+            COALESCE(si.vat_number, si.tax_id) as pan_number,
             si.grand_total as total_amount,
             si.discount_amount as discount,
             si.total_taxes_and_charges as vat_amount,
@@ -97,9 +97,9 @@ def get_conditions(filters):
     conditions = []
 
     if filters.get("from_nepali_date"):
-        conditions.append("si.nepali_date >= %(from_nepali_date)s")
+        conditions.append("si.posting_date >= %(from_nepali_date)s")
     if filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date <= %(to_nepali_date)s")
+        conditions.append("si.posting_date <= %(to_nepali_date)s")
     if filters.get("company"):
         conditions.append("si.company = %(company)s")
     if filters.get("cancelled_by"):

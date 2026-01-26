@@ -13,12 +13,12 @@ frappe.query_reports["Purchase Vat Register"] = {
 		{
 			fieldname: 'from_nepali_date',
 			label: __('From Date'),
-			fieldtype: 'Data'
+			fieldtype: 'Date'
 		},
 		{
 			fieldname: 'to_nepali_date',
 			label: __('To Date'),
-			fieldtype: 'Data'
+			fieldtype: 'Date'
 		},
         {
             fieldname: 'supplier',

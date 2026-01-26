@@ -12,7 +12,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
         {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
         {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
@@ -43,19 +43,19 @@ def get_data(filters):
         values["document_number"] = filters.get("document_number")
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date BETWEEN %(from)s AND %(to)s")
+        conditions.append("si.posting_date BETWEEN %(from)s AND %(to)s")
         values["from"] = filters.get("from_nepali_date")
         values["to"] = filters.get("to_nepali_date")
     elif filters.get("from_nepali_date"):
-        conditions.append("si.nepali_date >= %(from)s")
+        conditions.append("si.posting_date >= %(from)s")
         values["from"] = filters.get("from_nepali_date")
     elif filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date <= %(to)s")
+        conditions.append("si.posting_date <= %(to)s")
         values["to"] = filters.get("to_nepali_date")
 
     query = f"""
         SELECT
-            si.name as invoice, si.rounded_total, si.nepali_date, si.customer_name, si.tax_id as invoice_pan, si.customer,
+            si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer,
             si.total, si.net_total, si.grand_total, si.total_taxes_and_charges as total_tax, si.customs_declaration_number, si.customs_declaration_date_bs
         FROM `tabSales Invoice` si
         WHERE {' AND '.join(conditions)}
@@ -110,7 +110,7 @@ def get_data(filters):
             tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax
 
         data.append({
-            "nepali_date": inv.nepali_date or inv.posting_date,
+            "posting_date": inv.posting_date or inv.posting_date,
             "invoice": inv.invoice,
             "customer_name": inv.customer_name,
             "pan": pan,
