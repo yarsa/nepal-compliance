@@ -94,6 +94,7 @@ def get_fiscal_year(filters):
 			"disabled": 0
 		},
 		fields=["name", "year_start_date", "year_end_date"],
+		order_by="year_start_date desc",
 		limit=1
 	)
 

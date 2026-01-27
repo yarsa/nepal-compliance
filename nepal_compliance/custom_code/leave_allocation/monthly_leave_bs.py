@@ -14,36 +14,40 @@ class LeavePolicyAssignment(BaseLeavePolicyAssignment):
             "leave_policy_assignment": self.name,
             "docstatus": 1
         }, fields=["name", "leave_type", "total_leaves_allocated"])
+        try:
+            for alloc in allocations:
+                leave_type = frappe.get_doc("Leave Type", alloc.leave_type)
 
-        for alloc in allocations:
-            leave_type = frappe.get_doc("Leave Type", alloc.leave_type)
+                if not (leave_type.allocate_leave_on_start_of_bs_month and not leave_type.is_earned_leave):
+                    continue
+                monthly_amt = leave_type.bs_monthly_allocation_amount or 0
+                max_allowed = leave_type.max_leaves_allowed or 0
 
-            if not (leave_type.allocate_leave_on_start_of_bs_month and not leave_type.is_earned_leave):
-                continue
+                if monthly_amt <= 0 or max_allowed <= 0:
+                    continue
+                alloc_doc = frappe.get_doc("Leave Allocation", alloc.name)
 
-            monthly_amt = leave_type.bs_monthly_allocation_amount or 0
-            max_allowed = leave_type.max_leaves_allowed or 0
+                if alloc_doc.total_leaves_allocated > monthly_amt:
+                    reduce_by = alloc_doc.total_leaves_allocated - monthly_amt
 
-            if monthly_amt <= 0 or max_allowed <= 0:
-                continue
+                    create_leave_ledger_entry(alloc_doc, {
+                        "employee": alloc_doc.employee,
+                        "leave_type": alloc_doc.leave_type,
+                        "from_date": alloc_doc.from_date,
+                        "to_date": alloc_doc.to_date,
+                        "leaves": -reduce_by,
+                        "transaction_name": alloc_doc.name,
+                        "transaction_type": "Leave Allocation",
+                        "doctype": "Leave Ledger Entry"
+                        })
 
-            alloc_doc = frappe.get_doc("Leave Allocation", alloc.name)
-
-            if alloc_doc.total_leaves_allocated > monthly_amt:
-                reduce_by = alloc_doc.total_leaves_allocated - monthly_amt
-
-                create_leave_ledger_entry(alloc_doc, {
-                    "employee": alloc_doc.employee,
-                    "leave_type": alloc_doc.leave_type,
-                    "from_date": alloc_doc.from_date,
-                    "to_date": alloc_doc.to_date,
-                    "leaves": -reduce_by,
-                    "transaction_name": alloc_doc.name,
-                    "transaction_type": "Leave Allocation",
-                    "doctype": "Leave Ledger Entry"
-                    })
-
-                alloc_doc.db_set("total_leaves_allocated", monthly_amt, update_modified=False)
+                    alloc_doc.db_set("total_leaves_allocated", monthly_amt, update_modified=False)
+        except Exception as e:
+            frappe.log_error(
+                message=frappe.get_traceback(),
+                title=f"LeavePolicyAssignment submit failed (LPA: {self.name})",
+            )
+            raise
 
 def get_active_leave_allocations(leave_type_name, as_of_date):
     return frappe.get_all("Leave Allocation", filters={

@@ -155,6 +155,7 @@ def execute(filters=None):
         sum_vat = 0
         invoice_total = purchase.grand_total
         net_total = purchase.net_total if purchase.additional_discount_percentage or purchase.discount_amount else invoice_total
+        item_warehouse = items[0].warehouse if items else None
         for item in items:
             total += item.amount
             gross_amount += item.amount
@@ -166,6 +167,6 @@ def execute(filters=None):
                 vat = t.tax_amount 
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
-        data.append([purchase.posting_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.vat_number, total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item.warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
+        data.append([purchase.posting_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.vat_number, total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item_warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
         # data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rat, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchase.outstanding_amount, purchase.taxes_and_charges_added])  
     return columns, data 
