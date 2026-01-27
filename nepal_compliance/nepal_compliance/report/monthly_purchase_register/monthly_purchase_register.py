@@ -87,6 +87,15 @@ def get_fiscal_year(filters):
 	if filters.get("fiscal_year"):
 		return frappe.get_doc("Fiscal Year", filters["fiscal_year"])
 
+	fy_names = frappe.get_all(
+		"Fiscal Year Company",
+		filters={"company": filters["company"]},
+		pluck="parent"
+	)
+
+	if not fy_names:
+		frappe.throw(_("No Fiscal Year found for company"))
+  
 	fy = frappe.get_all(
 		"Fiscal Year",
 		filters={
@@ -94,7 +103,7 @@ def get_fiscal_year(filters):
 			"disabled": 0
 		},
 		fields=["name", "year_start_date", "year_end_date"],
-		order_by="year_start_date desc",
+		order_by="year_start_date asc",
 		limit=1
 	)
 
