@@ -57,7 +57,7 @@ def execute(filters=None):
         LEFT JOIN `tabSales Taxes and Charges` stc ON stc.parent = si.name
         WHERE {conditions}
         GROUP BY si.name
-        ORDER BY si.posting_date, si.posting_date ASC
+        ORDER BY si.posting_date ASC
     """
 
     purchase_invoices_query = f"""
@@ -67,7 +67,7 @@ def execute(filters=None):
         LEFT JOIN `tabPurchase Taxes and Charges` ptc ON ptc.parent = pi.name
         WHERE {purchase_conditions}
         GROUP BY pi.name
-        ORDER BY pi.posting_date, pi.posting_date ASC
+        ORDER BY pi.posting_date ASC
     """
     params = {
         'from_nepali_date': from_nepali_date,

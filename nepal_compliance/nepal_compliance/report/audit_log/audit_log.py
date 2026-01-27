@@ -180,7 +180,8 @@ def post_process_rows(data, columns, filters):
                     row["operation"] = "Cancel"
             else:
                 changed_fields.add(field)
-                row[field] = f"{old} → {new}"
+                if field != "posting_date":
+                    row[field] = f"{old} → {new}"
                 summary_lines.append(f"- **{field.replace('_',' ').title()}**: {old} → {new}")
 
         for d in payload.get("data", []):
@@ -188,7 +189,8 @@ def post_process_rows(data, columns, filters):
                 continue
             field, value = d[0], d[1]
             changed_fields.add(field)
-            row[field] = value
+            if field != "posting_date":
+                row[field] = value
             summary_lines.append(f"- **{field.replace('_',' ').title()}**: {value}")
 
         row["audit_detail_summary"] = "\n".join(summary_lines)

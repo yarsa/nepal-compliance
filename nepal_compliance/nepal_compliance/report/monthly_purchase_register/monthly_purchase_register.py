@@ -28,7 +28,7 @@ def execute(filters=None):
 		SELECT
 			pi.posting_date,
 			pi.supplier,
-			COALESCE(pi.vat_number, pi.tax_id) AS vat_pan_number,
+			COALESCE(NULLIF(pi.vat_number, ''), NULLIF(pi.tax_id, '')) AS vat_pan_number,
 			pi.name AS invoice_number,
 			SUM(item.qty) AS total_qty,
 			SUM(item.qty * item.rate) AS total_amount,

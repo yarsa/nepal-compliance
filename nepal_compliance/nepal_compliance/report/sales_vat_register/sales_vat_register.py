@@ -173,14 +173,14 @@ def execute(filters=None):
 		tds = 0
 		invoice_total = sale.grand_total
 		net_total = sale.net_total if sale.net_total else invoice_total
+		gross_total = sale.total + (sale.discount_amount or 0)
 		for item in items:
 			total_qty += item.qty	
 			total_rate += item.rate
 		for tax in taxes:
 			if tax.rate == 13:
-				vat = tax.tax_amount if not tax.tax_amount_after_discount_amount else tax.tax_amount_after_discount_amount
+				vat = tax.tax_amount_after_discount_amount if tax.tax_amount_after_discount_amount is not None else tax.tax_amount
 			elif tax.rate in [1.5, 15]:
-				tds = tax.tax_amount if not tax.tax_amount_after_discount_amount else tax.tax_amount_after_discount_amount
-		data.append([sale.posting_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number if sale.vat_number else sale.tax_id, sale.owner, total_qty, sale.total, sale.discount_amount,sale.total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount])
+				tds = tax.tax_amount_after_discount_amount if tax.tax_amount_after_discount_amount is not None else tax.tax_amount
+		data.append([sale.posting_date, sale.name, sale.customer, sale.customer_group, sale.project, sale.cost_center, sale.vat_number if sale.vat_number else sale.tax_id, sale.owner, total_qty, sale.total, sale.discount_amount, gross_total, net_total, vat, tds, sale.total_taxes_and_charges, sale.total_advance, sale.grand_total, sale.rounded_total, sale.outstanding_amount])
 	return columns, data
-    

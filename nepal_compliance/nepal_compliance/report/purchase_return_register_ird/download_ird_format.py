@@ -132,8 +132,11 @@ def generate_ird_purchase_register_excel():
     data_start_row = 7
     for i, inv in enumerate(rows):
         row_idx = data_start_row + i
-        posting_date = inv.get("posting_date")
-        posting_bs = bs_date(posting_date) if posting_date else ""
+        row_posting_date = inv.get("posting_date")
+        try:
+            posting_bs = bs_date(row_posting_date) if row_posting_date else ""
+        except Exception:
+            posting_bs = ""
         row_data = [
             posting_bs,
             inv.get("invoice"),

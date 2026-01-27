@@ -59,8 +59,8 @@ boot_session = "nepal_compliance.boot.get_boot_info"
 # include js in doctype views
 doctype_js = {
     "Company": "public/js/validate.js",
-    "Purchase Invoice": ["public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
-    "Sales Invoice": ["public/js/utils.js", "public/js/validate.js", "public/js/email.js"],
+    "Purchase Invoice": "public/js/purchase_invoice.js",
+    "Sales Invoice": "public/js/sales_invoice.js",
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",

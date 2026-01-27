@@ -56,10 +56,10 @@ def execute(filters=None):
             'fieldtype': 'Currency'
         },
         {
-			'fieldname': 'discount',
-			'label': _('Discount'),
-			'fieldtype': 'Currency'
-		},
+            'fieldname': 'discount',
+            'label': _('Discount'),
+            'fieldtype': 'Currency'
+        },
         {
             'fieldname': 'gross_amount',
             'label': _('Gross Amount'),
@@ -131,7 +131,7 @@ def execute(filters=None):
         values.append(f"%{filters['bill']}%")
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date >= %s AND posting_date <= %s")
+        conditions.append("pi.posting_date >= %s AND pi.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
         conditions.append("pi.posting_date >= %s")
