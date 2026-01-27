@@ -9,9 +9,9 @@ def execute(filters=None):
     
     columns = [
         {
-            'fieldname': 'nepali_date',
+            'fieldname': 'posting_date',
             'label': _('Date'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Date'
         },
         {
             'fieldname': 'invoice_no',
@@ -119,13 +119,13 @@ def execute(filters=None):
         values.append(filters["bill_date"])
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date >= %s AND nepali_date <= %s")
+        conditions.append("pi.posting_date >= %s AND pi.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
-        conditions.append("pi.nepali_date >= %s")
+        conditions.append("pi.posting_date >= %s")
         values.append(filters["from_nepali_date"])
     elif filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date <= %s")
+        conditions.append("pi.posting_date <= %s")
         values.append(filters["to_nepali_date"])
 
     if filters.get("warehouse"):
@@ -154,7 +154,8 @@ def execute(filters=None):
         tds = 0
         sum_vat = 0
         invoice_total = purchase.grand_total
-        net_total = purchase.net_total if purchase.additional_discount_percentage else invoice_total
+        net_total = purchase.net_total if purchase.additional_discount_percentage or purchase.discount_amount else invoice_total
+        item_warehouse = items[0].warehouse if items else None
         for item in items:
             total += item.amount
             gross_amount += item.amount
@@ -166,6 +167,6 @@ def execute(filters=None):
                 vat = t.tax_amount 
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
-        data.append([purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.vat_number, total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item.warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
+        data.append([purchase.posting_date, purchase.name, purchase.supplier, purchase.bill_no, purchase.vat_number, total_qty, purchase.total, purchase.discount_amount, gross_amount, net_total, item_warehouse, vat, tds, invoice_total, purchase.outstanding_amount, purchase.total_taxes_and_charges])
         # data.append(['', '', '', '', '', '', '', '', '', '', '', 'Total', total_qty, total_rat, total, sum_gross_amount, purchase.grand_total, '', '', sum_vat, purchase.total, purchase.outstanding_amount, purchase.taxes_and_charges_added])  
     return columns, data 

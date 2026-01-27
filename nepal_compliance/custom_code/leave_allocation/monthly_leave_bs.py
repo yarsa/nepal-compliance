@@ -13,18 +13,18 @@ class LeavePolicyAssignment(BaseLeavePolicyAssignment):
         allocations = frappe.get_all("Leave Allocation", filters={
             "leave_policy_assignment": self.name,
             "docstatus": 1
-        }, fields=["name", "leave_type", "total_leaves_allocated", "employee", "from_date", "to_date"])
+        }, fields=["name", "leave_type", "total_leaves_allocated"])
+        try:
+            for alloc in allocations:
+                leave_type = frappe.get_doc("Leave Type", alloc.leave_type)
 
-        for alloc in allocations:
-            lt = frappe.get_doc("Leave Type", alloc.leave_type)
-
-            if lt.allocate_leave_on_start_of_bs_month and not lt.is_earned_leave:
-                monthly_amt = lt.bs_monthly_allocation_amount or 0
-                max_allowed = lt.max_leaves_allowed or 0
+                if not (leave_type.allocate_leave_on_start_of_bs_month and not leave_type.is_earned_leave):
+                    continue
+                monthly_amt = leave_type.bs_monthly_allocation_amount or 0
+                max_allowed = leave_type.max_leaves_allowed or 0
 
                 if monthly_amt <= 0 or max_allowed <= 0:
                     continue
-
                 alloc_doc = frappe.get_doc("Leave Allocation", alloc.name)
 
                 if alloc_doc.total_leaves_allocated > monthly_amt:
@@ -39,10 +39,15 @@ class LeavePolicyAssignment(BaseLeavePolicyAssignment):
                         "transaction_name": alloc_doc.name,
                         "transaction_type": "Leave Allocation",
                         "doctype": "Leave Ledger Entry"
-                    })
+                        })
 
                     alloc_doc.db_set("total_leaves_allocated", monthly_amt, update_modified=False)
-
+        except Exception as e:
+            frappe.log_error(
+                message=frappe.get_traceback(),
+                title=f"LeavePolicyAssignment submit failed (LPA: {self.name})",
+            )
+            raise
 
 def get_active_leave_allocations(leave_type_name, as_of_date):
     return frappe.get_all("Leave Allocation", filters={
@@ -90,8 +95,8 @@ def update_allocation(doc, amount_to_add):
 
 @frappe.whitelist()
 def get_bs_eligible_leave_types():
-    user_roles = frappe.get_roles(frappe.session.user)
-    if "HR User" not in user_roles and "HR Manager" not in user_roles:
+
+    if not frappe.has_permission("Leave Allocation", "read"):
         frappe.throw(_("You are not authorized to view leave allocation settings."))
 
     return frappe.get_all("Leave Type", filters={
@@ -100,10 +105,7 @@ def get_bs_eligible_leave_types():
 
 
 @frappe.whitelist()
-def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False):
-    user_roles = frappe.get_roles(frappe.session.user)
-    if "HR User" not in user_roles and "HR Manager" not in user_roles:
-        frappe.throw(_("You are not authorized to perform leave allocation."))
+def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, silent=False):
 
     if isinstance(leave_types, str):
         import json
@@ -115,12 +117,17 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False):
     last_bs_year = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_year") or 0)
     last_bs_month = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_month") or 0)
 
-    if not force and bs_year == last_bs_year and bs_month == last_bs_month:
+    already_done = (
+        last_bs_year == bs_year
+        and last_bs_month == bs_month
+        )
+
+    if already_done and not force and silent:
+        frappe.logger().info(f"[BS] Skip: Allocation already done for {bs_year}-{bs_month}")
+        return {"status": "skipped", "message": "Already allocated"}
+
+    if already_done and not force and not silent:
         frappe.throw(_("Leave already allocated for BS {0}-{1}.").format(bs_year, bs_month))
-
-    if not leave_types:
-        frappe.throw(_("No leave types selected for allocation."))
-
     allocated_count = 0
     ad_today = getdate()
 
@@ -139,17 +146,21 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False):
 
             for alloc in allocations:
                 alloc_doc = frappe.get_doc("Leave Allocation", alloc.name)
-
                 if update_allocation(alloc_doc, monthly_amount):
                     allocated_count += 1
 
         frappe.db.set_single_value("Nepal Compliance Settings", "bs_year", bs_year)
         frappe.db.set_single_value("Nepal Compliance Settings", "bs_month", bs_month)
-
         frappe.db.commit()
-        frappe.msgprint(_("Leave Allocation for BS {0}-{1}. Total Allocations: {2}").format(bs_year, bs_month, allocated_count))
 
     except Exception as e:
         frappe.db.rollback()
-        frappe.log_error(f"[Nepal Compliance] Allocation failed for BS {bs_year}-{bs_month}: {str(e)}")
-        frappe.throw(_("Leave allocation failed. Check error logs."))
+        frappe.log_error(str(e), "Leave Allocation Failure")
+        if not silent:
+            frappe.throw(_("An error occurred during leave allocation."))
+        return {"status": "error", "error": str(e)}
+
+    if not silent:
+        frappe.msgprint(_("Leave Allocation for BS {0}-{1}. Total Allocations: {2}").format(bs_year, bs_month, allocated_count))
+
+    return {"status": "success", "count": allocated_count}

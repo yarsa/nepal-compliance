@@ -8,6 +8,7 @@ import openpyxl
 from frappe.utils import get_site_path
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
+from nepal_compliance.nepali_date_utils.utils import bs_date
 
 def convert_to_nepali_fy_format(year_start_date, year_end_date):
     try:
@@ -131,8 +132,13 @@ def generate_ird_purchase_register_excel():
     data_start_row = 7
     for i, inv in enumerate(rows):
         row_idx = data_start_row + i
+        row_posting_date = inv.get("posting_date")
+        try:
+            posting_bs = bs_date(row_posting_date) if row_posting_date else ""
+        except Exception:
+            posting_bs = ""
         row_data = [
-            inv.get("nepali_date"),
+            posting_bs,
             inv.get("invoice"),
             inv.get("customs_declaration_number"),
             inv.get("supplier_name"),

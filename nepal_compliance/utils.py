@@ -93,3 +93,12 @@ def bill_no_required(doc, method):
     
     if not doc.get("bill_no") or not str(doc.bill_no).strip():
         frappe.throw(_("<b>Supplier Invoice No</b> is mandatory before submitting a Purchase Invoice. This is required for auditing."))
+
+def check_app_permission():
+    if frappe.session.user == "Administrator":
+        return True
+
+    if frappe.has_permission("Nepal Compliance Settings", ptype="read"):
+        return True
+
+    return False

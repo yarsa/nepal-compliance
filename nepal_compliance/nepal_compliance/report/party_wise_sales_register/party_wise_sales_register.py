@@ -9,7 +9,7 @@ from frappe.utils import flt, getdate
 def execute(filters=None):
     columns, data = [], []
     columns = [
-        _("Date") + ":Data:150",
+        _("Date") + ":Date:150",
         _("Customer") + ":Link/Customer:150",
         _("VAT/PAN Number") + ":Data:120",
         _("Invoice Number") + ":Link/Sales Invoice:200",
@@ -30,13 +30,13 @@ def execute(filters=None):
     conditions = ["si.docstatus IN (1, 2)"]
     values = []
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date >= %s AND nepali_date <= %s")
+        conditions.append("si.posting_date >= %s AND si.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
-        conditions.append("si.nepali_date >= %s")
+        conditions.append("si.posting_date >= %s")
         values.append(filters["from_nepali_date"])
     elif filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date <= %s")
+        conditions.append("si.posting_date <= %s")
         values.append(filters["to_nepali_date"])
 
     if filters.get("status"):
@@ -53,9 +53,9 @@ def execute(filters=None):
 
     query = f"""
         SELECT
-            si.nepali_date,
+            si.posting_date,
             si.customer,
-            si.vat_number,
+            COALESCE(NULLIF(si.vat_number, ''), NULLIF(si.tax_id, '')) AS vat_pan_number,
             si.name AS invoice_number,
             item.item_code,
             item.item_name,
@@ -138,9 +138,9 @@ def execute(filters=None):
             }
 
         data.append([
-            row.nepali_date,
+            row.posting_date,
             row.customer,
-            row.vat_number,
+            row.vat_pan_number,
             row.invoice_number,
             row.item_code,
             row.item_name,

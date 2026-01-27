@@ -12,7 +12,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": _("मिति"), "fieldname": "nepali_date", "fieldtype": "Data", "width": 150},
+        {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
         {"label": _("प्रज्ञापनपत्र नं."), "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
         {"label": _("आपूर्तिकर्ताको नाम"), "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
@@ -48,19 +48,19 @@ def get_data(filters):
 
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date BETWEEN %(from)s AND %(to)s")
+        conditions.append("pi.posting_date BETWEEN %(from)s AND %(to)s")
         values["from"] = filters.get("from_nepali_date")
         values["to"] = filters.get("to_nepali_date")
     elif filters.get("from_nepali_date"):
-        conditions.append("pi.nepali_date >= %(from)s")
+        conditions.append("pi.posting_date >= %(from)s")
         values["from"] = filters.get("from_nepali_date")
     elif filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date <= %(to)s")
+        conditions.append("pi.posting_date <= %(to)s")
         values["to"] = filters.get("to_nepali_date")
 
     query = f"""
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.nepali_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
+            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
             pi.total, pi.total_taxes_and_charges as total_tax
         FROM `tabPurchase Invoice` pi
         WHERE {' AND '.join(conditions)}
@@ -116,7 +116,7 @@ def get_data(filters):
             tax_capital = (capital_taxable_amount / total_taxable) * total_tax if total_taxable else 0
 
         data.append({
-            "nepali_date": inv.nepali_date or inv.posting_date,
+            "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,

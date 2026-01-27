@@ -7,11 +7,13 @@
  "field_order": [
   "settings_section",
   "prevent_out_of_sequence_doctype_submission",
+  "enable_nepali_date",
   "date_format",
   "max_backdate_days_allowed",
   "column_break_qnkm",
   "bs_year",
   "bs_month",
+  "bs_day",
   "section_break_gjyo",
   "allowed_role",
   "column_break_ftxd",
@@ -63,14 +65,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "This will be updated as per Leave Allocated by HR",
    "fieldname": "bs_year",
    "fieldtype": "Int",
    "label": "BS Year",
    "read_only": 1
   },
   {
-   "description": "This will be updated as per Leave Allocated by HR",
    "fieldname": "bs_month",
    "fieldtype": "Int",
    "label": "BS Month",
@@ -81,13 +81,26 @@
    "fieldname": "date_format",
    "fieldtype": "Select",
    "label": "Date Format",
-   "options": "YYYY-MM-DD"
+   "options": "YYYY-MM-DD\nYYYY-M-D\nYYYY.MM.DD\nYYYY.M.D\nYYYY/MM/DD\nYYYY/M/D"
+  },
+  {
+   "fieldname": "bs_day",
+   "fieldtype": "Int",
+   "label": "BS Day",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "description": "Enable or disable Nepali date functionality for exporting reports",
+   "fieldname": "enable_nepali_date",
+   "fieldtype": "Check",
+   "label": "Enable Nepali Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-17 12:52:09.156563",
+ "modified": "2026-01-06 09:53:40.956568",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",

@@ -7,7 +7,7 @@ from frappe import _
 def execute(filters=None):
     columns = [
         _("Invoice No") + ":Text:200",
-        _("Date") + ":Data:150",
+        _("Date") + ":Date:150",
         _("Customer/Supplier") + ":Data:200",
         _("VAT/PAN Number") + ":Data:150",
         _("Sales Amount") + ":Currency:150",
@@ -31,14 +31,14 @@ def execute(filters=None):
     to_nepali_date = filters.get("to_nepali_date")
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions += " AND si.nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
-        purchase_conditions += " AND pi.nepali_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
+        conditions += " AND si.posting_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
+        purchase_conditions += " AND pi.posting_date BETWEEN %(from_nepali_date)s AND %(to_nepali_date)s"
     elif from_nepali_date:
-        conditions += " AND si.nepali_date >= %(from_nepali_date)s"
-        purchase_conditions += " AND pi.nepali_date >= %(from_nepali_date)s"
+        conditions += " AND si.posting_date >= %(from_nepali_date)s"
+        purchase_conditions += " AND pi.posting_date >= %(from_nepali_date)s"
     elif to_nepali_date:
-        conditions += " AND si.nepali_date <= %(to_nepali_date)s"
-        purchase_conditions += " AND pi.nepali_date <= %(to_nepali_date)s"
+        conditions += " AND si.posting_date <= %(to_nepali_date)s"
+        purchase_conditions += " AND pi.posting_date <= %(to_nepali_date)s"
         
     if filters.get("party_type") == "Customer" and filters.get("customer"):
         conditions += " AND si.customer = %(customer)s"
@@ -51,23 +51,23 @@ def execute(filters=None):
     purchase_invoices = []
 
     sales_invoices_query = f"""
-        SELECT si.name AS invoice_no, si.nepali_date, si.customer AS customer, si.vat_number AS vat_number, si.rounded_total AS sales_amount, 
+        SELECT si.name AS invoice_no, si.posting_date, si.customer AS customer, COALESCE(si.vat_number, si.tax_id) AS vat_number, si.rounded_total AS sales_amount,
                SUM(stc.tax_amount) AS sales_vat
         FROM `tabSales Invoice` si
         LEFT JOIN `tabSales Taxes and Charges` stc ON stc.parent = si.name
         WHERE {conditions}
         GROUP BY si.name
-        ORDER BY si.posting_date, si.nepali_date ASC
+        ORDER BY si.posting_date ASC
     """
 
     purchase_invoices_query = f"""
-        SELECT pi.name AS invoice_no, pi.nepali_date, pi.supplier AS supplier, pi.vat_number AS vat_number, pi.grand_total AS purchase_amount, 
+        SELECT pi.name AS invoice_no, pi.posting_date, pi.supplier AS supplier, COALESCE(pi.vat_number, pi.tax_id) AS vat_number, pi.grand_total AS purchase_amount,
                SUM(ptc.tax_amount) AS purchase_vat
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabPurchase Taxes and Charges` ptc ON ptc.parent = pi.name
         WHERE {purchase_conditions}
         GROUP BY pi.name
-        ORDER BY pi.posting_date, pi.nepali_date ASC
+        ORDER BY pi.posting_date ASC
     """
     params = {
         'from_nepali_date': from_nepali_date,
@@ -92,7 +92,7 @@ def execute(filters=None):
             invoice_link = f'<a href="/app/sales-invoice/{sale["invoice_no"]}" target="_blank">{sale["invoice_no"]}</a>'
             data.append([
                 invoice_link,
-                sale['nepali_date'],
+                sale['posting_date'],
                 sale['customer'],
                 sale['sales_amount'],
                 sale['sales_vat'],
@@ -109,7 +109,7 @@ def execute(filters=None):
             invoice_link = f'<a href="/app/sales-invoice/{sale["invoice_no"]}" target="_blank">{sale["invoice_no"]}</a>'
             data.append([
                 invoice_link,
-                sale['nepali_date'],
+                sale['posting_date'],
                 sale['customer'],
                 sale['vat_number'],
                 sale['sales_amount'],
@@ -128,7 +128,7 @@ def execute(filters=None):
             invoice_link = f'<a href="/app/purchase-invoice/{purchase["invoice_no"]}" target="_blank">{purchase["invoice_no"]}</a>'
             data.append([
                 invoice_link,
-                purchase['nepali_date'],
+                purchase['posting_date'],
                 purchase['supplier'],
                 purchase['vat_number'],
                 0,

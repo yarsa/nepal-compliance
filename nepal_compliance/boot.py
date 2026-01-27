@@ -16,6 +16,7 @@ def get_boot_info(bootinfo):
 
     try:
         settings = frappe.get_cached_doc("Nepal Compliance Settings")
+        bootinfo["nepal_compliance_enabled"] = bool(settings.enable_nepali_date)
         bootinfo["nepal_compliance"] = {
             "date_format": settings.date_format or "YYYY-MM-DD"
         }
@@ -24,6 +25,7 @@ def get_boot_info(bootinfo):
             "Failed to retrieve Nepal Compliance Settings for boot info",
             "Nepal Compliance"
         )
+        bootinfo["nepal_compliance_enabled"] = False
         bootinfo["nepal_compliance"] = {
             "date_format": "YYYY-MM-DD"
         }

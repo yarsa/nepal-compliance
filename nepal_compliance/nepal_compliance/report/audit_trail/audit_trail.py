@@ -81,27 +81,26 @@ class BaseAuditTrail:
     def append_rows(self, new_count, modified_count, doctype):
         pass
     
-    def get_conditions(self):
+    def get_conditions(self, doctype=None):
         conditions = []
         date_option = self.filters.get("date_option")
-        doctype = self.filters.get("doctype")
     
-        if date_option == "Nepali Date Filter":
+        if date_option == "Nepali Date Filter" and doctype:
             from_np = self.filters.get("from_nepali_date")
             to_np = self.filters.get("to_nepali_date")
 
-            if from_np and to_np:
-                conditions.append(["nepali_date", ">=", from_np])
-                conditions.append(["nepali_date", "<=", to_np])
-            elif from_np:
-                conditions.append(["nepali_date", ">=", from_np])
-            elif to_np:
-                conditions.append(["nepali_date", "<=", to_np])
+            date_field = self.get_date_field(doctype)
+
+            if from_np:
+                conditions.append([date_field, ">=", from_np])
+            if to_np:
+                conditions.append([date_field, "<=", to_np])
 
         else:
             date_condition = self.get_date()
             if date_condition:
-                conditions.append(["modified", date_condition[0], date_condition[1]])
+                date_field = "modified"
+                conditions.append([date_field, date_condition[0], date_condition[1]])
             
         owner = self.get_user()
         if owner:
@@ -119,8 +118,12 @@ class BaseAuditTrail:
         return conditions
 
     def get_date(self):
-        date_option = self.filters.pop("date_option", None)
-        date_range = self.filters.pop("date_range", None)
+        date_option = self.filters.get("date_option", None)
+        date_range = self.filters.get("date_range", None)
+
+        if not date_option:
+            return None
+
         if date_option == "Custom":
             return ["between", date_range]
         else:
@@ -217,12 +220,6 @@ class ReportSummary(BaseAuditTrail):
                 "width": 120,
             },
             {
-                "label": _("Nepali Date"),
-                "fieldtype": "Data", 
-                "fieldname": "nepali_date",
-                 "width": 120,
-            },
-            {
                 "label": _("Party Type"),
                 "fieldtype": "Data",
                 "fieldname": "party_type",
@@ -267,7 +264,6 @@ class ReportSummary(BaseAuditTrail):
 
     def get_data(self):
         self.data = []
-        conditions = self.get_conditions()
 
         if doctype := self.filters.get("doctype"):
             doctypes = [doctype]
@@ -275,6 +271,7 @@ class ReportSummary(BaseAuditTrail):
             doctypes = self.get_doctypes()
 
         for doctype in doctypes:
+            conditions = self.get_conditions(doctype)
             fields = self.get_fields(doctype)
             records = frappe.get_all(doctype, fields=fields, filters=conditions)
             self.append_rows(records, doctype)
@@ -289,8 +286,8 @@ class ReportSummary(BaseAuditTrail):
             "owner as created_by",
             "modified_by as modified_by",
         ]
-        if self.field_exists(doctype, 'nepali_date'):
-            fields.append("nepali_date") 
+        if self.field_exists(doctype, 'posting_date'):
+            fields.append("posting_date")
 
         date_field = self.get_date_field(doctype)
         if self.field_exists(doctype, date_field):
@@ -335,8 +332,7 @@ class ReportSummary(BaseAuditTrail):
             row["creation_date"] = getdate(
                 format_date(row["date_time"], get_user_date_format())
             )
-            row["posting_date"] = row.get("posting_date") or row.get("transaction_date", "")
-            row["nepali_date"] = row.get("nepali_date", "")  
+            row["posting_date"] = row.get("posting_date") or row.get("transaction_date", "") or row.get("creation_date", "")
             
             if doctype in DoctypeFields["no_name"]:
                 row["party_name"] = ""
