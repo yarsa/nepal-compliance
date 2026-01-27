@@ -28,10 +28,10 @@ def execute(filters=None):
 		SELECT
 			si.posting_date,
 			si.customer,
-			COALESCE(si.vat_number, si.tax_id) AS vat_pan_number,
+			COALESCE(NULLIF(si.vat_number, ''), NULLIF(si.tax_id, '')) AS vat_pan_number,
 			si.name AS invoice_number,
-			(SELECT SUM(qty) FROM `tabSales Invoice Item` WHERE parent = si.name) AS total_qty,
-			(SELECT SUM(qty * rate) FROM `tabSales Invoice Item` WHERE parent = si.name) AS total_amount,
+			(SELECT COALESCE(SUM(qty), 0) FROM `tabSales Invoice Item` WHERE parent = si.name) AS total_qty,
+			(SELECT COALESCE(SUM(amount), 0) FROM `tabSales Invoice Item` WHERE parent = si.name) AS total_amount,
 			(SELECT COALESCE(SUM(tax_amount), 0) FROM `tabSales Taxes and Charges` WHERE parent = si.name AND docstatus = 1) AS tax_amount,
 			si.discount_amount,
 			si.total,

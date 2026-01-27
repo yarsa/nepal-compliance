@@ -110,7 +110,7 @@ def get_data(filters):
             tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax
 
         data.append({
-            "posting_date": inv.posting_date or inv.posting_date,
+            "posting_date": inv.posting_date,
             "invoice": inv.invoice,
             "customer_name": inv.customer_name,
             "pan": pan,

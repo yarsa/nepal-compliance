@@ -30,7 +30,7 @@ def execute(filters=None):
     conditions = ["si.docstatus IN (1, 2)"]
     values = []
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.posting_date >= %s AND posting_date <= %s")
+        conditions.append("si.posting_date >= %s AND si.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
         conditions.append("si.posting_date >= %s")

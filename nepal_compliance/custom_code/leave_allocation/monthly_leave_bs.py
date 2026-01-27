@@ -114,10 +114,8 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, 
     last_bs_month = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_month") or 0)
 
     already_done = (
-        last_bs_year is not None
-        and last_bs_month is not None
-        and int(last_bs_year) == bs_year
-        and int(last_bs_month) == bs_month
+        last_bs_year == bs_year
+        and last_bs_month == bs_month
         )
 
     if already_done and not force and silent:
@@ -147,6 +145,8 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, 
                 if update_allocation(alloc_doc, monthly_amount):
                     allocated_count += 1
 
+        frappe.db.set_single_value("Nepal Compliance Settings", "bs_year", bs_year)
+        frappe.db.set_single_value("Nepal Compliance Settings", "bs_month", bs_month)
         frappe.db.commit()
 
     except Exception as e:
@@ -155,14 +155,6 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, 
         if not silent:
             frappe.throw(_("An error occurred during leave allocation."))
         return {"status": "error", "error": str(e)}
-
-    try:
-        frappe.db.set_single_value("Nepal Compliance Settings", "bs_year", bs_year)
-        frappe.db.set_single_value("Nepal Compliance Settings", "bs_month", bs_month)
-    except Exception as e:
-        frappe.log_error(str(e), "Failed to update Nepal Compliance Settings after leave allocation.")
-        if not silent:
-            frappe.msgprint(_("Failed to update Nepal Compliance Settings after leave allocation."))
 
     if not silent:
         frappe.msgprint(_("Leave Allocation for BS {0}-{1}. Total Allocations: {2}").format(bs_year, bs_month, allocated_count))

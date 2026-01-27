@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-
+import redis
 
 class NepalComplianceSettings(Document):
     def on_update(self):
@@ -14,5 +14,5 @@ class NepalComplianceSettings(Document):
         ):
             try:
                 cache.delete_key(key)
-            except Exception:
+            except redis.exceptions.RedisError:
                 frappe.log_error(f"Failed to clear cache key: {key}", "Nepal Compliance")
