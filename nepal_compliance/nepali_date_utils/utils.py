@@ -24,7 +24,7 @@ def bs_date(value):
         settings = frappe.get_cached_doc("Nepal Compliance Settings")
         if not settings.enable_nepali_date:
             return value
-        fmt = settings.default_date_format or "YYYY-MM-DD"
+        fmt = settings.date_format or "YYYY-MM-DD"
     except Exception:
         return value
 

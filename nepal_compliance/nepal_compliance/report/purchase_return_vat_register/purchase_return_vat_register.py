@@ -171,8 +171,6 @@ def execute(filters=None):
             total += item.amount
             gross_amount += item.amount
             sum_gross_amount = gross_amount
-            # vat = gross_amount * 13/100
-            # sum_vat += vat
             total_rate += item.rate
             total_qty += item.qty
         for t in tax:

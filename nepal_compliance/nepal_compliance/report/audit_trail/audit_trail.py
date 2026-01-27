@@ -100,7 +100,7 @@ class BaseAuditTrail:
             date_condition = self.get_date()
             if date_condition:
                 date_field = "modified"
-                conditions.append(["modified", date_condition[0], date_condition[1]])
+                conditions.append([date_field, date_condition[0], date_condition[1]])
             
         owner = self.get_user()
         if owner:
