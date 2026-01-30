@@ -50,6 +50,7 @@ class CBMSIntegration:
             return None
 
     def prepare_payload(self):
+        from nepal_compliance.nepali_date_utils.nepali_date import format_bs
         try:
             if not self.cbms_settings:
                 self.cbms_settings = frappe.get_doc("CBMS Settings")
@@ -57,9 +58,6 @@ class CBMSIntegration:
             if not self.cbms_settings:
                 frappe.log_error("CBMS Settings not found", "CBMS API Error")
                 return None
-            
-            if not self.doc.nepali_date:
-                frappe.throw(_("Nepali date is missing in the Sales Invoice."))
 
             fiscal_year = frappe.db.get_value(
                 "Fiscal Year",
@@ -73,10 +71,9 @@ class CBMSIntegration:
             fiscal_year = self.convert_to_nepali_fy_format(fiscal_year)
 
             try:
-                date_obj = datetime.strptime(self.doc.nepali_date, "%Y-%m-%d")
-                invoice_date = date_obj.strftime("%Y.%m.%d")
+                invoice_date = format_bs(self.doc.posting_date, "YYYY.MM.DD")
             except ValueError as e:
-                frappe.log_error(f"Invalid Nepali date format: {self.doc.nepali_date}. Error: {str(e)}", "CBMS API Error")
+                frappe.log_error(f"Invalid Nepali date format: {invoice_date}. Error: {str(e)}", "CBMS API Error")
                 return None
             except AttributeError as e:
                 frappe.msgprint(_("Nepali Date Missing"))
