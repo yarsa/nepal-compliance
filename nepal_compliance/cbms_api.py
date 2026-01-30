@@ -73,11 +73,11 @@ class CBMSIntegration:
             try:
                 invoice_date = format_bs(self.doc.posting_date, "YYYY.MM.DD")
             except ValueError as e:
-                frappe.log_error(f"Invalid Nepali date format: {invoice_date}. Error: {str(e)}", "CBMS API Error")
+                frappe.log_error(f"Invalid Posting date format: {self.doc.posting_date}. Error: {str(e)}", "CBMS API Error")
                 return None
             except AttributeError as e:
-                frappe.msgprint(_("Nepali Date Missing"))
-                frappe.log_error("Nepali date is missing in the Sales Invoice.", "CBMS API Error")
+                frappe.msgprint(_("Posting Date Missing"))
+                frappe.log_error("Posting date is missing in the Sales Invoice.", "CBMS API Error")
                 return None
 
             datetimeclient = frappe.utils.now()
