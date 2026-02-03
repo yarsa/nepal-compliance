@@ -212,13 +212,9 @@ function extend_with_bs_date_picker() {
             NepaliCalendarLib.render(pop, {
                 selectedDateBS: bs,
                 onSelect: (selected) => {
-                    const bsDate = selected.format({ format: "YYYY-MM-DD", calendar: "BS" });
                     const adDate = selected.format({ format: "YYYY-MM-DD", calendar: "AD" });
-                    const parsed = parseUserDate(bsDate, "YYYY-MM-DD");
-                    if (!parsed) {
-                        return;
-                    }
-                    const bsDisplay = formatDate(parsed.y, parsed.m, parsed.d, getUserDateFormat());
+                    const bsDisplay = NepaliFunctions.AD2BS(adDate, true);
+
                     this.safe_set_input(bsDisplay);
                     this.set_model_value(adDate);
                     
@@ -253,7 +249,7 @@ function extend_with_bs_date_picker() {
             try {
                 return NepaliFunctions.BS2AD(valueBS);
             } catch {
-                return null;
+                return valueBS;
             }
         }
 
