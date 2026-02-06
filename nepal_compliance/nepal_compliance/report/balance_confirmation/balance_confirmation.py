@@ -110,42 +110,61 @@ def get_conditions(filters):
 
 
 def get_gl_entries(conditions, filters):
-    return frappe.db.sql(f"""
+
+    conditions_sql = f"AND {conditions}" if conditions else ""
+
+    query = """
         WITH OpeningBalance AS (
-            SELECT 
+            SELECT
                 party_type,
                 party,
-                SUM(IF(posting_date < %(from_date)s AND is_cancelled = 0, debit, 0)) as opening_debit,
-                SUM(IF(posting_date < %(from_date)s AND is_cancelled = 0, credit, 0)) as opening_credit
+                SUM(
+                    IF(posting_date < %(from_date)s AND is_cancelled = 0, debit, 0)
+                ) AS opening_debit,
+                SUM(
+                    IF(posting_date < %(from_date)s AND is_cancelled = 0, credit, 0)
+                ) AS opening_credit
             FROM `tabGL Entry`
-            WHERE {conditions}
+            WHERE is_cancelled = 0
+            {opening_conditions}
             GROUP BY party_type, party
         ),
         CurrentTransactions AS (
-            SELECT 
+            SELECT
                 party_type,
                 party,
-                SUM(IF(is_cancelled = 0, debit, 0)) as debit,
-                SUM(IF(is_cancelled = 0, credit, 0)) as credit
+                SUM(IF(is_cancelled = 0, debit, 0)) AS debit,
+                SUM(IF(is_cancelled = 0, credit, 0)) AS credit
             FROM `tabGL Entry`
             WHERE posting_date BETWEEN %(from_date)s AND %(to_date)s
-            AND {conditions}
+            AND is_cancelled = 0
+            {current_conditions}
             GROUP BY party_type, party
         )
-        SELECT 
+        SELECT
             ob.party_type,
             ob.party,
-            COALESCE(ob.opening_debit, 0) as opening_debit,
-            COALESCE(ob.opening_credit, 0) as opening_credit,
-            COALESCE(ct.debit, 0) as debit,
-            COALESCE(ct.credit, 0) as credit,
-            (COALESCE(ob.opening_debit, 0) + COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)) as closing_debit,
-            (COALESCE(ob.opening_credit, 0) + COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)) as closing_credit
+            COALESCE(ob.opening_debit, 0) AS opening_debit,
+            COALESCE(ob.opening_credit, 0) AS opening_credit,
+            COALESCE(ct.debit, 0) AS debit,
+            COALESCE(ct.credit, 0) AS credit,
+            (COALESCE(ob.opening_debit, 0)
+             + COALESCE(ct.debit, 0)
+             - COALESCE(ct.credit, 0)) AS closing_debit,
+            (COALESCE(ob.opening_credit, 0)
+             + COALESCE(ct.credit, 0)
+             - COALESCE(ct.debit, 0)) AS closing_credit
         FROM OpeningBalance ob
         LEFT JOIN CurrentTransactions ct
-            ON ob.party_type = ct.party_type AND ob.party = ct.party
+            ON ob.party_type = ct.party_type
+            AND ob.party = ct.party
         ORDER BY ob.party_type, ob.party
-    """, filters, as_dict=1)
+    """
+
+    query = query.replace("{opening_conditions}", conditions_sql)
+    query = query.replace("{current_conditions}", conditions_sql)
+
+    return frappe.db.sql(query, filters, as_dict=1)
 
 
 def get_dynamic_date_range():

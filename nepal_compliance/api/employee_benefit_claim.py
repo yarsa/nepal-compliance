@@ -2,24 +2,25 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, flt
 from datetime import date
+from typing import Union, Optional
 
 @frappe.whitelist()
-def get_max_amount_eligible(employee, claim_date):
+def get_max_amount_eligible(employee: str, claim_date: Optional[Union[str, date]]) -> float:
     if not employee:
-        return 0
+        return 0.0
 
     try:
         emp = frappe.get_doc("Employee", employee)
     except frappe.DoesNotExistError:
-        return 0
+        return 0.0
 
     if not emp.date_of_joining:
-        return 0
+        return 0.0
 
     base_salary = flt(emp.revised_salary) if getattr(emp, 'revised_salary', None) else flt(emp.ctc)
 
     if not base_salary:
-        return 0
+        return 0.0
 
     doj = getdate(emp.date_of_joining)
     claim_dt = getdate(claim_date) if claim_date else date.today()

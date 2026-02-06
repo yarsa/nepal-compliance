@@ -3,6 +3,8 @@ from frappe import _
 from frappe.utils import flt
 from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname
+from typing import Union
+import re
 
 def prevent_invoice_deletion(doc, method):
     if (doc.docstatus == 1):
@@ -37,15 +39,22 @@ def custom_autoname(doc, method):
         raise
 
 @frappe.whitelist()
-def evaluate_tax_formula(formula, taxable_salary):
+def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> float:
     try:
         taxable_salary = flt(taxable_salary)
         context = {
             'taxable_salary': taxable_salary,
-            'if': lambda x, y, z: y if x else z
+            'IF': lambda cond, true_val, false_val: true_val if cond else false_val
         }
+        # Allow: numbers, arithmetic/comparison operators, parentheses, whitespace, 'taxable_salary', and 'IF'
+        allowed_pattern = r"(\s*(\d+\.?\d*|\d*\.\d+|taxable_salary|IF|[+\-*/(),<>=!])\s*)+"
+        if not re.fullmatch(allowed_pattern, formula):
+            frappe.throw(_("Invalid formula"))
+
+        # Formula is regex-validated and evaluated using frappe safe_eval
+        # nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
         result = safe_eval(formula, {"__builtins__": {}}, context)
-        return flt(result)    
+        return flt(result)
     except Exception as e:
         frappe.log_error(f"Tax Formula Evaluation Error: {str(e)}\nFormula: {formula}")
         return 0
