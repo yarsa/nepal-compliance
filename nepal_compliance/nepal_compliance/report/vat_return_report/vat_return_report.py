@@ -62,7 +62,7 @@ def execute(filters=None):
     
     sales_invoices_query = sales_invoices_query.replace("{conditions}", conditions)
 
-    purchase_invoices_query = f"""
+    purchase_invoices_query = """
         SELECT pi.name AS invoice_no, pi.posting_date, pi.supplier AS supplier, COALESCE(pi.vat_number, pi.tax_id) AS vat_number, pi.grand_total AS purchase_amount,
                SUM(ptc.tax_amount) AS purchase_vat
         FROM `tabPurchase Invoice` pi
@@ -71,6 +71,8 @@ def execute(filters=None):
         GROUP BY pi.name
         ORDER BY pi.posting_date ASC
     """
+    purchase_invoices_query = purchase_invoices_query.replace("{purchase_conditions}", purchase_conditions)
+    
     params = {
         'from_nepali_date': from_nepali_date,
         'to_nepali_date': to_nepali_date
