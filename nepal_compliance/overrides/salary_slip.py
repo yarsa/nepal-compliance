@@ -3,6 +3,8 @@ from frappe import _
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 from hrms.payroll.doctype.salary_slip.salary_slip import make_loan_repayment_entry
 from frappe.utils import cint
+from typing import Optional
+from frappe.model.document import Document
 
 class CustomSalarySlip(SalarySlip):
     def on_submit(self):
@@ -94,7 +96,7 @@ class CustomPayrollEntry(PayrollEntry):
         frappe.flags.via_payroll_entry = False
 
     @frappe.whitelist()
-    def make_bank_entry(self, for_withheld_salaries=False):
+    def make_bank_entry(self, for_withheld_salaries: bool = False) -> Optional[Document]:
         self.check_permission("write")
         self.employee_based_payroll_payable_entries = {}
         employee_wise_accounting_enabled = frappe.db.get_single_value(

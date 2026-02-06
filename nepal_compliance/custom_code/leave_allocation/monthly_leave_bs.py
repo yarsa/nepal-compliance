@@ -3,7 +3,7 @@ from frappe import _
 from frappe.utils import getdate
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import LeavePolicyAssignment as BaseLeavePolicyAssignment
 from hrms.hr.doctype.leave_allocation.leave_allocation import create_leave_ledger_entry
-
+from typing import Optional, List, Union
 
 class LeavePolicyAssignment(BaseLeavePolicyAssignment):
 
@@ -105,7 +105,7 @@ def get_bs_eligible_leave_types():
 
 
 @frappe.whitelist()
-def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, silent=False):
+def allocate_monthly_leave_bs(bs_year: int, bs_month: int, leave_types: Optional[Union[str, List[str]]] = None, force: bool = False, silent: bool = False) -> dict:
 
     if isinstance(leave_types, str):
         import json
@@ -113,6 +113,8 @@ def allocate_monthly_leave_bs(bs_year, bs_month, leave_types=None, force=False, 
 
     bs_year = int(bs_year)
     bs_month = int(bs_month)
+    force = frappe.utils.cint(force)
+    silent = frappe.utils.cint(silent)
 
     last_bs_year = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_year") or 0)
     last_bs_month = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_month") or 0)

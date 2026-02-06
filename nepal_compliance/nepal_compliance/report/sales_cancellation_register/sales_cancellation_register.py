@@ -70,7 +70,7 @@ def get_columns():
 def get_data(filters):
     conditions = get_conditions(filters)
     
-    data = frappe.db.sql("""
+    data = """
         SELECT
             si.posting_date as posting_date,
             si.name as invoice_number,
@@ -89,9 +89,9 @@ def get_data(filters):
             AND {conditions}
         ORDER BY 
             si.creation DESC
-    """.format(conditions=conditions), filters, as_dict=1)
+    """.format(conditions=conditions)
     
-    return data
+    return frappe.db.sql(data, filters, as_dict=1)
 
 def get_conditions(filters):
     conditions = []

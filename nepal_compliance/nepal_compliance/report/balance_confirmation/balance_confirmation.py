@@ -110,7 +110,7 @@ def get_conditions(filters):
 
 
 def get_gl_entries(conditions, filters):
-    return frappe.db.sql(f"""
+    query = """
         WITH OpeningBalance AS (
             SELECT 
                 party_type,
@@ -145,7 +145,9 @@ def get_gl_entries(conditions, filters):
         LEFT JOIN CurrentTransactions ct
             ON ob.party_type = ct.party_type AND ob.party = ct.party
         ORDER BY ob.party_type, ob.party
-    """, filters, as_dict=1)
+    """.format(conditions=conditions)
+
+    return frappe.db.sql(query, filters, as_dict=1)
 
 
 def get_dynamic_date_range():

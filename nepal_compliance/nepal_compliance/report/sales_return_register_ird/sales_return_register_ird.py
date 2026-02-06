@@ -52,7 +52,9 @@ def get_data(filters):
         conditions.append("si.posting_date <= %(to)s")
         values["to"] = filters.get("to_nepali_date")
 
-    query = f"""
+    conditions_sql = " AND ".join(conditions)
+
+    query = """
         SELECT
             si.name as invoice,
             si.rounded_total,
@@ -65,9 +67,9 @@ def get_data(filters):
             si.total_taxes_and_charges as total_tax,
             si.posting_date
         FROM `tabSales Invoice` si
-        WHERE {' AND '.join(conditions)}
+        WHERE {conditions}
         ORDER BY si.posting_date
-    """
+    """.format(conditions=conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []

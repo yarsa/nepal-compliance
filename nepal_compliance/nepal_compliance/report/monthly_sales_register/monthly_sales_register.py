@@ -24,7 +24,7 @@ def execute(filters=None):
 
 	conditions, values = build_conditions(filters, fy)
 
-	query = f"""
+	query = """
 		SELECT
 			si.posting_date,
 			si.customer,
@@ -44,7 +44,7 @@ def execute(filters=None):
 			si.docstatus = 1
 			{conditions}
 		ORDER BY si.posting_date DESC
-	"""
+	""".format(conditions=conditions)
 
 	rows = frappe.db.sql(query, values, as_dict=True)
 

@@ -50,7 +50,7 @@ def execute(filters=None):
     sales_invoices = []
     purchase_invoices = []
 
-    sales_invoices_query = f"""
+    sales_invoices_query = """
         SELECT si.name AS invoice_no, si.posting_date, si.customer AS customer, COALESCE(si.vat_number, si.tax_id) AS vat_number, si.rounded_total AS sales_amount,
                SUM(stc.tax_amount) AS sales_vat
         FROM `tabSales Invoice` si
@@ -58,7 +58,7 @@ def execute(filters=None):
         WHERE {conditions}
         GROUP BY si.name
         ORDER BY si.posting_date ASC
-    """
+    """.format(conditions=conditions)
 
     purchase_invoices_query = f"""
         SELECT pi.name AS invoice_no, pi.posting_date, pi.supplier AS supplier, COALESCE(pi.vat_number, pi.tax_id) AS vat_number, pi.grand_total AS purchase_amount,

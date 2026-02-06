@@ -8,6 +8,7 @@ from PyPDF2 import PdfMerger
 from PIL import Image
 import io, os, zipfile
 from frappe import _
+from typing import Optional
 
 class IRDCertification(Document):
     pass
@@ -48,7 +49,7 @@ def _get_sorted_ird_files(docname):
     return files
 
 @frappe.whitelist(allow_guest=False)
-def download_all_ird_files_stream(docname):
+def download_all_ird_files_stream(docname: str) -> io.BytesIO:
     files = _get_sorted_ird_files(docname)
 
     zip_buffer = io.BytesIO()
@@ -77,7 +78,7 @@ def download_all_ird_files_stream(docname):
     frappe.local.response.content_type = "application/zip"
 
 @frappe.whitelist(allow_guest=False)
-def generate_combined_ird_pdf_stream(docname):
+def generate_combined_ird_pdf_stream(docname: str) -> Optional[bytes]:
     files = _get_sorted_ird_files(docname)
 
     merger = PdfMerger()

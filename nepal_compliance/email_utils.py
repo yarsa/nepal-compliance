@@ -1,8 +1,11 @@
 import frappe
 from frappe import _
+from typing import Optional
 
 @frappe.whitelist()
-def send_invoice_email(docname, doctype, auto_send=False):
+def send_invoice_email(docname: str, doctype: str, auto_send: bool = False) -> None:
+    auto_send = frappe.utils.cint(auto_send)
+    doc = frappe.get_doc(doctype, docname)
     doc = frappe.get_doc(doctype, docname)
     if doc.docstatus != 1:
         frappe.throw(_("Email can only be sent after submission."))
@@ -99,7 +102,7 @@ def send_invoice_email(docname, doctype, auto_send=False):
         frappe.logger().error(f"Error while sending email: {str(e)}")
 
 @frappe.whitelist()
-def check_email_setup(doctype, docname):
+def check_email_setup(doctype: str, docname: str) -> Optional[str]:
     doc = frappe.get_doc(doctype, docname)
     email = None
     if doctype == "Purchase Invoice":

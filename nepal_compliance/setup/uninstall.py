@@ -1,8 +1,9 @@
 import frappe
 from frappe import delete_doc, _
+from typing import Optional
 
 @frappe.whitelist()
-def clear_test_data(docname=None):
+def clear_test_data(docname: Optional[str] = None) -> bool:
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
 

@@ -2,9 +2,10 @@ import frappe
 from frappe import delete_doc, _
 from frappe.model.document import Document
 from frappe.utils import nowdate
+from typing import Optional, Dict
 
 @frappe.whitelist()
-def generate_test_masters(docname=None):
+def generate_test_masters(docname: Optional[str] = None) -> bool:
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
     settings = frappe.get_doc("IRD Certification", docname)
@@ -101,6 +102,8 @@ def generate_test_masters(docname=None):
             frappe.msgprint(_("Test masters created successfully. Now, generate test transactions."))
         else:
             frappe.msgprint(_("Test masters already exist."))
+  
+        return masters_created
 
     except Exception as e:
         frappe.db.rollback()
@@ -108,7 +111,7 @@ def generate_test_masters(docname=None):
         frappe.throw(f"Failed to create test masters: {e}")
 
 @frappe.whitelist()
-def generate_test_transactions(docname=None):
+def generate_test_transactions(docname: Optional[str] = None) -> bool:
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
     try:
@@ -225,6 +228,8 @@ def generate_test_transactions(docname=None):
             frappe.msgprint(_("Test transactions created successfully."))
         else:
             frappe.msgprint(_("Test transactions already exist."))
+ 
+        return transactions_created
 
     except Exception as e:
         frappe.db.rollback()
@@ -233,7 +238,7 @@ def generate_test_transactions(docname=None):
 
 
 @frappe.whitelist()
-def check_test_data_status(docname=None):
+def check_test_data_status(docname: Optional[str] = None) -> Dict[str, bool]:
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
     

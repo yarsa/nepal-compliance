@@ -53,8 +53,14 @@ def load_calendar() -> None:
 
         parsed: Dict[int, List[int]] = {}
 
+        safe_base = os.path.abspath(os.path.dirname(__file__))
+        full_path = os.path.abspath(path)
+
+        if not (full_path.startswith(safe_base + os.sep) or full_path == safe_base):
+            _throw("Invalid file path")
+
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(full_path, encoding="utf-8") as f:
                 for row in csv.reader(f):
                     if not row or row[0].startswith("#"):
                         continue

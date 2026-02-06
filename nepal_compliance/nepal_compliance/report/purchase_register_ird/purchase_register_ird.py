@@ -54,31 +54,44 @@ def get_data(filters):
         conditions.append("pi.posting_date <= %(to)s")
         values["to"] = filters.get("to_nepali_date")
 
-    query = f"""
+    conditions_sql = " AND ".join(conditions)
+
+    query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.posting_date,
-            pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax,
-            pi.supplier, pi.posting_date
+            pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax, pi.supplier,
+            s.country as supplier_country, s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
-        WHERE {' AND '.join(conditions)}
+        WHERE {conditions}
         ORDER BY pi.posting_date
-    """
+    """.format(conditions=conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
-    for inv in invoices:
-        supplier_country = frappe.db.get_value("Supplier", inv.supplier, "country") or ""
-        is_import = supplier_country.strip().lower() != "nepal"
+    invoice_names = [inv.invoice for inv in invoices]
+    if invoice_names:
+        all_items = frappe.get_all(
+            "Purchase Invoice Item",
+            filters={"parent": ["in", invoice_names]},
+            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_tax_template"]
+        )
+        items_by_invoice = {}
+        for item in all_items:
+            items_by_invoice.setdefault(item.parent, []).append(item)
+    else:
+        items_by_invoice = {}
 
-        pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
+    for inv in invoices:
+        supplier_country = (inv.supplier_country or "nepal").strip().lower()
+        is_import = supplier_country != "nepal"
+
+        pan = inv.invoice_pan or inv.supplier_tax_id
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
 
-        item_filters = {"parent": inv.invoice}
-        items = frappe.get_all("Purchase Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "item_tax_template"])
+        items = items_by_invoice.get(inv.invoice, [])
 
         for item in items:
             amt = flt(item.get("net_amount") or item.get("amount"))
