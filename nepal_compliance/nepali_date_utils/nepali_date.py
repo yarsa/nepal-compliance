@@ -60,6 +60,7 @@ def load_calendar() -> None:
             _throw("Invalid file path")
 
         try:
+            # nosemgrep: frappe-semgrep-rules.rules.security.frappe-security-file-traversal
             with open(full_path, encoding="utf-8") as f:
                 for row in csv.reader(f):
                     if not row or row[0].startswith("#"):

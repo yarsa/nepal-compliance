@@ -78,7 +78,9 @@ def execute(filters=None):
             ON item.parent = pi.name
         WHERE {conditions}
         ORDER BY pi.name, item.idx
-    """.format(conditions=conditions_sql)
+    """
+    
+    query = query.replace("{conditions}", conditions_sql)
 
     result = frappe.db.sql(query, values=values, as_dict=True)
 

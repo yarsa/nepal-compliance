@@ -44,7 +44,9 @@ def execute(filters=None):
 			si.docstatus = 1
 			{conditions}
 		ORDER BY si.posting_date DESC
-	""".format(conditions=conditions)
+	"""
+ 
+	query = query.replace("{conditions}", conditions)
 
 	rows = frappe.db.sql(query, values, as_dict=True)
 

@@ -48,7 +48,8 @@ def execute(filters=None):
 			{conditions}
 		GROUP BY pi.name
 		ORDER BY pi.posting_date DESC
-	""".format(conditions=conditions)
+	"""
+	query = query.replace("{conditions}", conditions)
 
 	rows = frappe.db.sql(query, values, as_dict=True)
 

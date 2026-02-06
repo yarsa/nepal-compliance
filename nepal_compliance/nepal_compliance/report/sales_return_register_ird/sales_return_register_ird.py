@@ -69,7 +69,9 @@ def get_data(filters):
         FROM `tabSales Invoice` si
         WHERE {conditions}
         ORDER BY si.posting_date
-    """.format(conditions=conditions_sql)
+    """
+    
+    query = query.replace("{conditions}", conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []

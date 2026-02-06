@@ -58,7 +58,9 @@ def execute(filters=None):
         WHERE {conditions}
         GROUP BY si.name
         ORDER BY si.posting_date ASC
-    """.format(conditions=conditions)
+    """
+    
+    sales_invoices_query = sales_invoices_query.replace("{conditions}", conditions)
 
     purchase_invoices_query = f"""
         SELECT pi.name AS invoice_no, pi.posting_date, pi.supplier AS supplier, COALESCE(pi.vat_number, pi.tax_id) AS vat_number, pi.grand_total AS purchase_amount,

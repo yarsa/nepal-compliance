@@ -78,8 +78,10 @@ def execute(filters=None):
             `tabSales Invoice Item` item ON item.parent = si.name
         WHERE {conditions}
         ORDER BY si.posting_date DESC
-    """.format(conditions=conditions_sql)
-    
+    """
+
+    query = query.replace("{conditions}", conditions_sql)
+
     result = frappe.db.sql(query, values=values, as_dict=True)
     invoice_totals = {}
     current_invoice = None

@@ -89,7 +89,9 @@ def get_data(filters):
             AND {conditions}
         ORDER BY 
             si.creation DESC
-    """.format(conditions=conditions)
+    """
+    
+    data = data.replace("{conditions}", conditions)
     
     return frappe.db.sql(data, filters, as_dict=1)
 

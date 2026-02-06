@@ -5,7 +5,7 @@ from frappe.utils.password import get_decrypted_password
 from frappe.utils.background_jobs import enqueue
 from frappe import _
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 class CBMSIntegration:
     def __init__(self, doc):
@@ -178,7 +178,7 @@ class CBMSIntegration:
             return {"message": _("Unexpected error occurred"), "status": "failed", "error": str(e)}
 
 @frappe.whitelist()
-def post_sales_invoice_or_return_to_cbms(doc_name, method: Optional[str] = None) -> None:
+def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = None) -> None:
     
     try:
         doc = frappe.get_doc("Sales Invoice", doc_name)

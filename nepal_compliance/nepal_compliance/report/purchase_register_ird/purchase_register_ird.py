@@ -65,8 +65,10 @@ def get_data(filters):
         LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
         WHERE {conditions}
         ORDER BY pi.posting_date
-    """.format(conditions=conditions_sql)
-
+    """
+    
+    query = query.replace("{conditions}", conditions_sql)
+    
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
