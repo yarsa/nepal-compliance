@@ -47,7 +47,7 @@ def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> flo
             'IF': lambda cond, true_val, false_val: true_val if cond else false_val
         }
         # Allow: numbers, arithmetic/comparison operators, parentheses, whitespace, 'taxable_salary', and 'IF'
-        allowed_pattern = r"(\s*(\d+\.?\d*|\d*\.\d+|taxable_salary|IF|[+\-*/(),<>=!])\s*)*"
+        allowed_pattern = r"(\s*(\d+\.?\d*|\d*\.\d+|taxable_salary|IF|[+\-*/(),<>=!])\s*)+"
         if not re.fullmatch(allowed_pattern, formula):
             frappe.throw(_("Invalid formula"))
 

@@ -102,7 +102,7 @@ def generate_test_masters(docname: Optional[str] = None) -> bool:
             frappe.msgprint(_("Test masters created successfully. Now, generate test transactions."))
         else:
             frappe.msgprint(_("Test masters already exist."))
-  
+
         return masters_created
 
     except Exception as e:
@@ -228,7 +228,7 @@ def generate_test_transactions(docname: Optional[str] = None) -> bool:
             frappe.msgprint(_("Test transactions created successfully."))
         else:
             frappe.msgprint(_("Test transactions already exist."))
- 
+
         return transactions_created
 
     except Exception as e:

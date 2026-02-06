@@ -6,7 +6,7 @@ from typing import Optional
 def send_invoice_email(docname: str, doctype: str, auto_send: bool = False) -> None:
     auto_send = frappe.utils.cint(auto_send)
     doc = frappe.get_doc(doctype, docname)
-    doc = frappe.get_doc(doctype, docname)
+
     if doc.docstatus != 1:
         frappe.throw(_("Email can only be sent after submission."))
 
