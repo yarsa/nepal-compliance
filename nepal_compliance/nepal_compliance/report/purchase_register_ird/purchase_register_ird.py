@@ -77,7 +77,8 @@ def get_data(filters):
         all_items = frappe.get_all(
             "Purchase Invoice Item",
             filters={"parent": ["in", invoice_names]},
-            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_tax_template"]
+            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_tax_template"],
+            limit_page_length=0
         )
         items_by_invoice = {}
         for item in all_items:

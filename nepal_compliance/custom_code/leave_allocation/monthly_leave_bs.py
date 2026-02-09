@@ -116,6 +116,9 @@ def allocate_monthly_leave_bs(bs_year: int, bs_month: int, leave_types: Optional
     force = frappe.utils.cint(force)
     silent = frappe.utils.cint(silent)
 
+    if not leave_types:
+        return {"status": "skipped", "message": "No leave type provided"}
+
     last_bs_year = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_year") or 0)
     last_bs_month = int(frappe.db.get_single_value("Nepal Compliance Settings", "bs_month") or 0)
 
