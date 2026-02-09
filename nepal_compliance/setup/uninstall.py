@@ -17,6 +17,8 @@ def clear_test_data(docname: Optional[str] = None) -> bool:
         cleanup_test_data(company_name, docname)
         frappe.db.commit()
         frappe.msgprint(_("All test masters and transactions for {0} have been deleted successfully.").format(company_name))
+        return True
+
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Error in clear_test_data")

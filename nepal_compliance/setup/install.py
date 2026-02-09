@@ -2,7 +2,7 @@ import frappe
 from frappe import delete_doc, _
 from frappe.model.document import Document
 from frappe.utils import nowdate
-from typing import Optional, Dict
+from typing import Optional
 
 @frappe.whitelist()
 def generate_test_masters(docname: Optional[str] = None) -> bool:
@@ -238,7 +238,7 @@ def generate_test_transactions(docname: Optional[str] = None) -> bool:
 
 
 @frappe.whitelist()
-def check_test_data_status(docname: Optional[str] = None) -> Dict[str, bool]:
+def check_test_data_status(docname: Optional[str] = None) -> dict[str, bool]:
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
     

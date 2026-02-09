@@ -64,6 +64,7 @@ doctype_js = {
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
+    "Salary Slip": "public/js/salary_slip.js"
 }
 
 doctype_list_js = {
