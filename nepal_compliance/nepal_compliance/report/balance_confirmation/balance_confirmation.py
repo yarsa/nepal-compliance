@@ -132,10 +132,13 @@ def get_gl_entries(filters):
             SELECT
                 party_type,
                 party,
-                SUM(IF(posting_date < %(from_date)s, debit, 0)) AS opening_debit,
-                SUM(IF(posting_date < %(from_date)s, credit, 0)) AS opening_credit
+                # SUM(IF(posting_date < %(from_date)s, debit, 0)) AS opening_debit,
+                SUM(debit) AS opening_debit,
+                # SUM(IF(posting_date < %(from_date)s, credit, 0)) AS opening_credit
+                SUM(credit) AS opening_credit
             FROM `tabGL Entry`
             WHERE is_cancelled = 0
+            AND posting_date < %(from_date)s
             {opening_conditions}
             GROUP BY party_type, party
         ),
@@ -155,16 +158,20 @@ def get_gl_entries(filters):
             SELECT
                 COALESCE(ob.party_type, ct.party_type) AS party_type,
                 COALESCE(ob.party, ct.party) AS party,
-                COALESCE(ob.opening_debit, 0) AS opening_debit,
-                COALESCE(ob.opening_credit, 0) AS opening_credit,
+                GREATEST(COALESCE(ob.opening_debit, 0) - COALESCE(ob.opening_credit, 0), 0) AS opening_debit,
+                GREATEST(COALESCE(ob.opening_credit, 0) - COALESCE(ob.opening_debit, 0), 0) AS opening_credit,
                 COALESCE(ct.debit, 0) AS debit,
                 COALESCE(ct.credit, 0) AS credit,
-                COALESCE(ob.opening_debit, 0)
-                    + COALESCE(ct.debit, 0)
-                    - COALESCE(ct.credit, 0) AS closing_debit,
-                COALESCE(ob.opening_credit, 0)
-                    + COALESCE(ct.credit, 0)
-                    - COALESCE(ct.debit, 0) AS closing_credit
+                GREATEST(
+                    (COALESCE(ob.opening_debit, 0) - COALESCE(ob.opening_credit, 0))
+                    + (COALESCE(ct.debit, 0) - COALESCE(ct.credit, 0)),
+                    0
+                ) AS closing_debit,
+                GREATEST(
+                    (COALESCE(ob.opening_credit, 0) - COALESCE(ob.opening_debit, 0))
+                    + (COALESCE(ct.credit, 0) - COALESCE(ct.debit, 0)),
+                    0
+                ) AS closing_credit
             FROM OpeningBalance ob
             LEFT JOIN CurrentTransactions ct
                 ON ob.party_type = ct.party_type
