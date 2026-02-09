@@ -105,14 +105,19 @@ def get_opening_conditions(filters):
 
 
 def get_current_conditions(filters):
-    conditions = get_opening_conditions(filters)
 
+    parts = []
+    opening = get_opening_conditions(filters)
+    
+    if opening:
+        parts.append(opening)
+    
     if filters.get("from_date"):
-        conditions += " AND posting_date >= %(from_date)s"
+        parts.append("posting_date >= %(from_date)s")
     if filters.get("to_date"):
-        conditions += " AND posting_date <= %(to_date)s"
+        parts.append("posting_date <= %(to_date)s")
 
-    return conditions
+    return " AND ".join(parts)
 
 
 def get_gl_entries(filters):
@@ -165,7 +170,7 @@ def get_gl_entries(filters):
                 ON ob.party_type = ct.party_type
                 AND ob.party = ct.party
 
-            UNION
+            UNION ALL
 
             SELECT
                 COALESCE(ob.party_type, ct.party_type),

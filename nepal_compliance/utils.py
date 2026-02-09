@@ -51,8 +51,7 @@ def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> flo
         result = safe_eval(formula, {"__builtins__": {}}, context)
         return flt(result)
     except Exception as e:
-        frappe.log_error(f"Tax Formula Evaluation Error: {str(e)}\nFormula: {formula}")
-        return 0
+        freppe.throw(_("Invalid tax formula. Payroll calculation stopped. Please fix the formula."))
 
 def set_vat_numbers(doc, method):
     if doc.get("__islocal") and doc.is_opening == "Yes":

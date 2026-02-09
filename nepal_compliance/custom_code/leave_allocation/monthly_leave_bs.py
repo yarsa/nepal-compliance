@@ -105,7 +105,7 @@ def get_bs_eligible_leave_types():
 
 
 @frappe.whitelist()
-def allocate_monthly_leave_bs(bs_year: int, bs_month: int, leave_types: Optional[Union[str, List[str]]] = None, force: bool = False, silent: bool = False) -> dict:
+def allocate_monthly_leave_bs(bs_year: int, bs_month: int, leave_types: Optional[Union[str, List[str]]] = None, *, force: bool = False, silent: bool = False) -> dict:
 
     if isinstance(leave_types, str):
         import json
