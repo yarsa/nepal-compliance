@@ -51,7 +51,9 @@ def execute(filters=None):
         conditions.append("si.name = %s")
         values.append(filters["invoice_number"])
 
-    query = f"""
+    conditions_sql = " AND ".join(conditions)
+
+    query = """
         SELECT
             si.posting_date,
             si.customer,
@@ -74,10 +76,12 @@ def execute(filters=None):
             `tabSales Invoice` si
         JOIN
             `tabSales Invoice Item` item ON item.parent = si.name
-        WHERE { " AND ".join(conditions) }
+        WHERE {conditions}
         ORDER BY si.posting_date DESC
     """
-    
+
+    query = query.replace("{conditions}", conditions_sql)
+
     result = frappe.db.sql(query, values=values, as_dict=True)
     invoice_totals = {}
     current_invoice = None

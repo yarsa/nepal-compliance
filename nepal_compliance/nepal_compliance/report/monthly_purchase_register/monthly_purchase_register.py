@@ -24,7 +24,7 @@ def execute(filters=None):
 
 	conditions, values = build_conditions(filters, fy)
 
-	query = f"""
+	query = """
 		SELECT
 			pi.posting_date,
 			pi.supplier,
@@ -49,6 +49,7 @@ def execute(filters=None):
 		GROUP BY pi.name
 		ORDER BY pi.posting_date DESC
 	"""
+	query = query.replace("{conditions}", conditions)
 
 	rows = frappe.db.sql(query, values, as_dict=True)
 

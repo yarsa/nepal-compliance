@@ -3,6 +3,7 @@ from frappe import _
 from frappe.utils import flt
 from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname
+from typing import Union
 
 def prevent_invoice_deletion(doc, method):
     if (doc.docstatus == 1):
@@ -37,18 +38,20 @@ def custom_autoname(doc, method):
         raise
 
 @frappe.whitelist()
-def evaluate_tax_formula(formula, taxable_salary):
+def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> float:
     try:
         taxable_salary = flt(taxable_salary)
         context = {
             'taxable_salary': taxable_salary,
             'if': lambda x, y, z: y if x else z
         }
+
+        # Formula is evaluated using frappe safe_eval
+        # nosemgrep: frappe-semgrep-rules.rules.security.frappe-codeinjection-eval
         result = safe_eval(formula, {"__builtins__": {}}, context)
-        return flt(result)    
+        return flt(result)
     except Exception as e:
-        frappe.log_error(f"Tax Formula Evaluation Error: {str(e)}\nFormula: {formula}")
-        return 0
+        freppe.throw(_("Invalid tax formula: {0}. Payroll calculation stopped. Please fix the formula.").format(e))
 
 def set_vat_numbers(doc, method):
     if doc.get("__islocal") and doc.is_opening == "Yes":

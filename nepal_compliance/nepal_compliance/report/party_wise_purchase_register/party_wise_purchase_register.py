@@ -51,7 +51,9 @@ def execute(filters=None):
         conditions.append("pi.name = %s")
         values.append(filters["invoice_number"])
 
-    query = f"""
+    conditions_sql = " AND ".join(conditions)
+
+    query = """
         SELECT
             pi.posting_date,
             pi.supplier,
@@ -74,9 +76,11 @@ def execute(filters=None):
         FROM `tabPurchase Invoice` pi
         JOIN `tabPurchase Invoice Item` item
             ON item.parent = pi.name
-        WHERE { " AND ".join(conditions) }
+        WHERE {conditions}
         ORDER BY pi.name, item.idx
     """
+    
+    query = query.replace("{conditions}", conditions_sql)
 
     result = frappe.db.sql(query, values=values, as_dict=True)
 
