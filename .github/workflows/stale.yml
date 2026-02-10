@@ -21,7 +21,7 @@ jobs:
         # STALE LABEL / COMMENT
         stale-issue-label: stale-issue
         stale-pr-label: stale-pr
-        stale-issue-message: This PR has been automatically marked as stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 7 days.
+        stale-issue-message: This issue has been automatically marked as stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 7 days.
         stale-pr-message: This PR has been automatically marked as stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 7 days.
 
         # WHEN TO CLOSE AFTER STALE
