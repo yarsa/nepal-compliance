@@ -3,7 +3,7 @@ import frappe
 def _nepali_in_words(integer: int) -> str:
 	"""
 	Manual Nepali number to words conversion using Arba/Kharba system.
-	Handles numbers up to 10^11 (Kharba).
+	Handles numbers up to 9,999,999,999,999 (99 Kharba).
 	"""
 	if integer < 0:
 		return "Minus " + _nepali_in_words(-integer)
@@ -92,8 +92,8 @@ def in_words(integer: int, in_million=True) -> str:
 			country = defaults.get("country")
 			if currency == "NPR" or country == "Nepal":
 				return _nepali_in_words(int(integer))
-		except Exception:
-			pass
+		except Exception as exc:
+			frappe.log_error(exc, "Error determining currency/country in nepali_num2words.in_words")
 		
 		locale = "en_IN"
 	else:

@@ -9,8 +9,11 @@ def _apply_patches():
 		from nepal_compliance.nepali_num2words import in_words
 		frappe.utils.in_words = in_words
 		frappe.utils.data.in_words = in_words
-	except ImportError as e:
-		frappe.log_error(f"Failed to apply patches for Nepal Compliance: {e}", "Nepal Compliance Patch Error")
+	except Exception as e:
+		try:
+			frappe.log_error(f"Failed to apply patches for Nepal Compliance: {e}", "Nepal Compliance Patch Error")
+		except Exception:
+			pass
 
 # Apply patches on import
 _apply_patches()
