@@ -17,7 +17,7 @@ frappe.require([
                     doc_name: frm.doc.name
                 },
                 freeze: true,
-                freeze_message: __("Submitting to CBMS..."),
+                freeze_message: __("Checking CBMS configuration..."),
                 callback: function(r) {
                     if (!r.message) return;
 
@@ -48,8 +48,8 @@ frappe.require([
                             title: __("CBMS Error"),
                             message: r.message.message || __("An error occurred while submitting to CBMS."),
                             indicator: "red"
-                    });
-                }
+                        });
+                    }
                     else {
                         frappe.show_alert({
                             message: r.message.message || __("Unexpected response from CBMS"),

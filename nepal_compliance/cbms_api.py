@@ -159,7 +159,7 @@ class CBMSIntegration:
                 }
 
             if config["status"] != "configured":
-                raise Exception(config["message"])
+                frappe.throw(config["message"], title=_("CBMS Configuration Error"))
 
             api_url = self.cbms_settings.credit_note_api_url if self.doc.is_return else self.cbms_settings.sales_api_url
             if not api_url:
@@ -296,10 +296,10 @@ def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> di
         cbms_integration = CBMSIntegration(None)
         config = cbms_integration.is_cbms_configured()
 
-        if config["status"] != "configured":
-            return config
-
-        return {"message": _("CBMS is configured, Invoice Queued....."), "status": "configured"}
+        if config["status"] == "configured":
+            return {"message": _("CBMS is configured, Invoice Queued....."), "status": "queued"}
+        
+        return config
 
     except Exception as e:
         frappe.log_error(
