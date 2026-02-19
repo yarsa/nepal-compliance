@@ -87,7 +87,7 @@ def get_data(filters):
             fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_tax_template"])
 
         for item in items:
-            amt = flt(item.get("net_amount") or item.get("amount"))
+            amt = flt(item.get("net_amount"))
 
             item_tax_template = item.get("item_tax_template")
 

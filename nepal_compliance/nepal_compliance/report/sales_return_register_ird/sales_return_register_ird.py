@@ -90,7 +90,7 @@ def get_data(filters):
         taxable_item_net_amounts = []
 
         for item in items:
-            amt = flt(item.get("net_amount") or item.get("amount"))
+            amt = flt(item.get("net_amount"))
             item_tax_template = item.get("item_tax_template")
             is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
             qty = flt(item.get("qty") or 0)
@@ -109,7 +109,7 @@ def get_data(filters):
             item["calculated_tax"] = share * total_tax
 
         for item in items:
-            amt = flt(item.get("net_amount") or item.get("amount"))
+            amt = flt(item.get("net_amount"))
             qty = flt(item.get("qty") or 0)
             item_tax_template = item.get("item_tax_template")
             is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
