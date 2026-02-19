@@ -37,6 +37,10 @@ def _nepali_in_words(integer: int) -> str:
 	# Kharba (खर्ब) = 10^11
 	if integer >= 100000000000:
 		kharba = integer // 100000000000
+		if kharba > 99:
+			# Fallback: numbers beyond 99 Kharba (~10^13) are not natively supported
+			from num2words import num2words
+			return num2words(integer, lang="en").replace("-", " ")
 		result.append(words_below_hundred(kharba) + " Kharba")
 		integer %= 100000000000
 	
@@ -87,10 +91,8 @@ def in_words(integer: int, in_million=True) -> str:
 	if not in_million:
 		# Check if currency is NPR (Nepalese Rupee)
 		try:
-			defaults = frappe.defaults.get_defaults()
-			currency = defaults.get("currency")
-			country = defaults.get("country")
-			if currency == "NPR" or country == "Nepal":
+			sys_settings = frappe.get_cached_doc("System Settings")
+			if sys_settings.currency == "NPR" or sys_settings.country == "Nepal":
 				return _nepali_in_words(int(integer))
 		except Exception as exc:
 			frappe.log_error(exc, "Error determining currency/country in nepali_num2words.in_words")

@@ -1,6 +1,7 @@
 __version__ = "0.2.0"
 
 # Monkey patch Frappe's in_words function to use Nepali number-to-words conversion
+import frappe
 import frappe.utils
 import frappe.utils.data
 
