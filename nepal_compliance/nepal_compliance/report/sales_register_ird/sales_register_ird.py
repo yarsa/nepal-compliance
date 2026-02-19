@@ -86,7 +86,7 @@ def get_data(filters):
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
         
         for item in items:
-            amt = flt(item.get("net_amount") or item.get("amount"))
+            amt = flt(item.get("net_amount"))
 
             item_tax_template = item.get("item_tax_template")
 
