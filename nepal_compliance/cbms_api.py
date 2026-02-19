@@ -17,15 +17,37 @@ class CBMSIntegration:
     def is_cbms_configured(self):
         try:
             self.cbms_settings = frappe.get_doc("CBMS Settings")
-            return all([
+            
+            configure_cbms_enabled = getattr(self.cbms_settings, "configure_cbms", None)
+
+            if not configure_cbms_enabled:
+                return {
+                    "status": "disabled",
+                    "message": _("CBMS is disabled.")
+                }
+            
+            if not all([
                 self.cbms_settings.user_name,
                 self.cbms_settings.get_password("password"),  
                 self.cbms_settings.panvat_no,
                 self.cbms_settings.sales_api_url,  
                 self.cbms_settings.credit_note_api_url  
-            ])
+            ]):
+                return {
+                    "status": "configuration_error",
+                    "message": _("CBMS is enabled but configuration is incomplete. Please fill all required fields in CBMS Settings.")
+                }
+
+            return {
+                "status": "configured",
+                "message": None
+            }
+
         except frappe.DoesNotExistError:
-            return False
+            return {
+                "status": "not_found",
+                "message": _("CBMS Settings not found.")
+            }
     
     def convert_to_nepali_fy_format(self, fy_name):
         if "/" in fy_name and len(fy_name.split("/")[0]) == 4:
@@ -128,8 +150,16 @@ class CBMSIntegration:
         self.doc = doc
         
         try:
-            if not self.is_cbms_configured():
-                raise Exception(_("CBMS settings are not properly configured."))
+            config = self.is_cbms_configured()
+            
+            if config["status"] in ["disabled", "not_found"]:
+                return {
+                    "message": config.get("message"),
+                    "status": config.get("status")
+                }
+
+            if config["status"] != "configured":
+                frappe.throw(config["message"], title=_("CBMS Configuration Error"))
 
             api_url = self.cbms_settings.credit_note_api_url if self.doc.is_return else self.cbms_settings.sales_api_url
             if not api_url:
@@ -143,31 +173,79 @@ class CBMSIntegration:
             headers = {"Content-Type": "application/json"}
             response = requests.post(api_url, json=payload, headers=headers, timeout=60)
 
-            if response.status_code == 200:
-                doc.reload()
-                doc.cbms_status = "Success"
-                doc.cbms_response = json.dumps(response.status_code)
-                doc.save(ignore_permissions=True)
-                frappe.db.commit()
-                return {"message": _("Invoice/Return successfully posted to CBMS"), "status": "success"}
-
-            else:
+            if response.status_code != 200:
                 doc.reload()
                 doc.cbms_status = "Failed"
-                doc.cbms_response = response.text
+                doc.cbms_response = f"HTTP Error {response.status_code}: {response.text[:500]}"
                 doc.save(ignore_permissions=True)
                 frappe.db.commit()
-                error_msg = f"CBMS API Error: {response.text}"
-                frappe.log_error(error_msg, "CBMS API")
-                return {"message": _("Error occurred"), "status": "failed", "error": error_msg}
-        except requests.exceptions.RequestException as e:
+                frappe.log_error(
+                    f"CBMS HTTP Error {response.status_code}: {response.text}",
+                    "CBMS API"
+                )
+                return {
+                    "message": _("HTTP error while connecting to CBMS"),
+                    "status": "failed"
+                }
+
+            cbms_raw_response = (response.text or "").strip()
+            try:
+                cbms_code = int(cbms_raw_response)
+            except ValueError:
+                doc.reload()
+                doc.cbms_status = "Failed"
+                doc.cbms_response = f"Invalid CBMS response: {cbms_raw_response}"
+                doc.save(ignore_permissions=True)
+                frappe.db.commit()
+                frappe.log_error(
+                    f"Invalid CBMS response format: {cbms_raw_response}",
+                    "CBMS API"
+                )
+                return {"message": _("Invalid response received from CBMS"), "status": "failed"}
+
             doc.reload()
-            doc.cbms_status = "Failed"
-            doc.cbms_response = str(e)
+            if cbms_code == 200:
+                doc.cbms_status = "Success"
+                doc.cbms_response = "200 - Invoice successfully recorded in CBMS"
+            elif cbms_code == 100:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = "100 - API credentials do not match"
+            elif cbms_code == 101:
+                doc.cbms_status = "Success"
+                doc.cbms_response = "101 - Invoice already exists in CBMS"
+            elif cbms_code == 102:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = "102 - Exception while saving invoice"
+            elif cbms_code == 103:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = "103 - Unknown exception (check URL/model)"
+            elif cbms_code == 104:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = "104 - Invalid model or validation error"
+            elif cbms_code == 105:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = "105 - Invoice does not exist (return case)"
+            else:
+                doc.cbms_status = "Failed"
+                doc.cbms_response = f"{cbms_code} - Unknown CBMS response"
             doc.save(ignore_permissions=True)
             frappe.db.commit()
-            frappe.log_error(f"Failed to connect to CBMS API: {str(e)}", "CBMS API")
-            return {"message": _("Failed to connect to CBMS API"), "status": "failed", "error": str(e)}
+
+            if doc.cbms_status == "Success":
+                return {
+                    "message": _("Invoice/Return successfully posted to CBMS"),
+                    "status": "success"
+                }
+            else:
+                frappe.log_error(
+                    f"CBMS Business Error {cbms_code}",
+                    "CBMS API"
+                )
+                return {
+                    "message": _("CBMS rejected the invoice"),
+                    "status": "failed"
+                }
+
         except Exception as e:
             doc.reload()
             doc.cbms_status = "Failed"
@@ -186,9 +264,10 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
             frappe.throw(_("Sales Invoice not found"))
 
         cbms_integration = CBMSIntegration(doc)
-        if not cbms_integration.is_cbms_configured():
-            frappe.throw(_("CBMS settings are not configured properly."))
-            return {"message": _("CBMS settings not configured")}
+        config = cbms_integration.is_cbms_configured()
+        
+        if config.get("status") != "configured":
+            return config
         
         enqueue(
             method=cbms_integration.send_to_cbms,  
@@ -198,11 +277,36 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
             doc=doc_name 
         )
         frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS."))
-        return {"message": _("Request processed successfully"), "status": "success"}
+        return {"message": _("Request processed successfully"), "status": "queued"}
 
     except Exception as e:
-        frappe.log_error(f"Error in post_sales_invoice_or_return_to_cbms: {str(e)}", "CBMS API Error")
-        return {"message": _("An error occurred while processing the request: {0}").format(str(e))}
+        frappe.log_error(
+            message=str(e),
+            title="CBMS API Error"
+        )
+        return {"message": _("An error occurred while processing the request: {0}").format(str(e)), "status": "error"}
+
+@frappe.whitelist()
+def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> dict:
+
+    try:
+        if not frappe.db.exists("Sales Invoice", doc_name):
+            return {"message": _("Sales Invoice not found"), "status": "error"}
+
+        cbms_integration = CBMSIntegration(None)
+        config = cbms_integration.is_cbms_configured()
+
+        if config["status"] == "configured":
+            return {"message": _("CBMS is configured, Invoice Queued....."), "status": "queued"}
+        
+        return config
+
+    except Exception as e:
+        frappe.log_error(
+            message=str(e),
+            title="CBMS API Error"
+        )
+        return {"message": _("An error occurred while processing the request: {0}").format(str(e)), "status": "error"}
 
 @frappe.whitelist()
 def sync_failed_cbms_invoices():

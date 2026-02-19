@@ -97,7 +97,7 @@ def get_data(filters):
         items = items_by_invoice.get(inv.invoice, [])
 
         for item in items:
-            amt = flt(item.get("net_amount") or item.get("amount"))
+            amt = flt(item.get("net_amount"))
 
             item_tax_template = item.get("item_tax_template")
 
