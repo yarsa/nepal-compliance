@@ -91,9 +91,8 @@ def in_words(integer: int, in_million=True) -> str:
 	if not in_million:
 		# Check if currency is NPR (Nepalese Rupee)
 		try:
-			currency = frappe.db.get_default("currency")
-			country = frappe.db.get_default("country")
-			if currency == "NPR" or country == "Nepal":
+			sys_settings = frappe.get_cached_doc("System Settings")
+			if sys_settings.currency == "NPR" or sys_settings.country == "Nepal":
 				return _nepali_in_words(int(integer))
 		except Exception as exc:
 			frappe.log_error(exc, "Error determining currency/country in nepali_num2words.in_words")
