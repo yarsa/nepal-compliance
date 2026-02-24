@@ -1,14 +1,12 @@
 import unittest
 from types import SimpleNamespace
-from datetime import date, datetime
+from datetime import date
 from frappe.exceptions import ValidationError
 import frappe
+from unittest.mock import patch
 
 # Import your class
 from nepal_compliance.custom_code.holiday_list.holiday_list import HolidayList_Nepali_Date
-
-# Mock frappe.throw to raise ValidationError
-frappe.throw = lambda msg: (_ for _ in ()).throw(ValidationError(msg))
 
 # Pure Python subclass for testing
 class TestableHolidayList(HolidayList_Nepali_Date):
@@ -71,8 +69,10 @@ class TestHolidayListNepaliDate(unittest.TestCase):
     # get_weekly_off_dates() raises error if weekly_off not set
     def test_get_weekly_off_without_selection(self):
         self.doc.weekly_off = None
-        with self.assertRaises(ValidationError):
-            self.doc.get_weekly_off_dates()
+        target = "nepal_compliance.custom_code.holiday_list.holiday_list.throw"
+        with patch(target, side_effect=ValidationError("Please select weekly off day")):
+            with self.assertRaises(ValidationError):
+                self.doc.get_weekly_off_dates()
 
     # get_weekly_off_dates() adds new holiday
     def test_get_weekly_off_adds_dates(self):

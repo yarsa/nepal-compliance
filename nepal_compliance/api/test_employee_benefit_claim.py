@@ -1,5 +1,6 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe import _
 from frappe.utils import add_months, today, flt, add_years
 from nepal_compliance.api.employee_benefit_claim import get_max_amount_eligible
 
@@ -29,6 +30,8 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
             "revised_salary": revised_salary,
             "ctc": ctc,
         }).insert(ignore_permissions=True)
+        self.addCleanup(frappe.delete_doc, "Employee", emp.name, ignore_permissions=True, force=True)
+        return emp
 
     # TEST CASES
     def test_employee_completed_12_months(self):
