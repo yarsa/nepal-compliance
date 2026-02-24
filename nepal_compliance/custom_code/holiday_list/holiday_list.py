@@ -2,6 +2,7 @@ import frappe
 from frappe import _, throw
 from frappe.utils import formatdate, getdate, today
 from frappe.model.document import Document
+from datetime import date
 
 class HolidayList_Nepali_Date(Document):
 
@@ -23,8 +24,8 @@ class HolidayList_Nepali_Date(Document):
 		weekly_off: DF.Literal[
 			"", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 		]
-        nepali_from_date: DF.Data
-        nepali_to_date: DF.Data
+		nepali_from_date: DF.Data
+		nepali_to_date: DF.Data
 	def validate(self):
 		self.total_holidays = len(self.holidays)
 		self.sort_holidays()
@@ -41,7 +42,7 @@ class HolidayList_Nepali_Date(Document):
 				continue
 
 			self.append("holidays", {"description": _(self.weekly_off), "holiday_date": d, "weekly_off": 1})
-    def sort_holidays(self):
+	def sort_holidays(self):
 		self.holidays.sort(key=lambda x: getdate(x.holiday_date))
 		for i in range(len(self.holidays)):
 			self.holidays[i].idx = i + 1
