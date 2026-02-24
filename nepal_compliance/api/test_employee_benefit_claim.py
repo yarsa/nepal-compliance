@@ -19,7 +19,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
 
     # Helper Factory Method to create Employee with specified parameters
     def create_employee(self, months_back=12, revised_salary=1000000, ctc=1200000):
-        return frappe.get_doc({
+        emp = frappe.get_doc({
             "doctype": "Employee",
             "first_name": "Test",
             "last_name": "Employee",
