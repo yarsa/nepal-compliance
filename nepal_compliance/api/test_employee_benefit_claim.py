@@ -12,7 +12,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
 
         company = frappe.get_all("Company", limit=1)
         if not company:
-            frappe.throw("No Company found. ERPNext must be installed.")
+            frappe.throw(_("No Company found. ERPNext must be installed."))
 
         cls.company = company[0].name
 
@@ -32,7 +32,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
 
     # TEST CASES
     def test_employee_completed_12_months(self):
-        """Employee >= 12 months should get 60% of base salary"""
+        #Employee >= 12 months should get 60% of base salary
         emp = self.create_employee(months_back=12)
 
         amount = get_max_amount_eligible(emp.name, today())
@@ -41,7 +41,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
         self.assertEqual(amount, expected)
 
     def test_employee_less_than_12_months(self):
-        """Employee with 6 months should get prorated amount"""
+        #Employee with 6 months should get prorated amount
         emp = self.create_employee(months_back=6)
 
         amount = get_max_amount_eligible(emp.name, today())
@@ -50,7 +50,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
         self.assertEqual(amount, expected)
 
     def test_employee_without_salary(self):
-        """Employee without salary should return 0"""
+        #Employee without salary should return 0
         emp = self.create_employee(
             months_back=12,
             revised_salary=0,
@@ -61,7 +61,7 @@ class TestEmployeeBenefitClaim(FrappeTestCase):
         self.assertEqual(amount, 0.0)
 
     def test_future_joining_date(self):
-        """Future joining date should return 0"""
+        #Future joining date should return 0
         emp = self.create_employee(
             months_back=-2,
             revised_salary=1000000
