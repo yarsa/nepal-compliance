@@ -14,6 +14,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls._created_fiscal_year = False
+        cls._preexisting_income_tax_slab = False
 
         # Ensure at least one company exists
         company = frappe.get_all("Company", limit=1)
@@ -22,6 +24,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
 
         cls.company = company[0].name
         cls.currency = frappe.get_value("Company", cls.company, "default_currency")
+        slab_name = f"{cls.company} - Income Tax Slab"
+        cls._preexisting_income_tax_slab = bool(frappe.db.exists("Income Tax Slab", slab_name))
 
         # Create a Fiscal Year for this company if not exists
         # if not frappe.get_all("Fiscal Year", filters={"company": cls.company}):
@@ -39,15 +43,16 @@ class TestIncomeTaxSlab(FrappeTestCase):
                 "year_end_date": add_days(add_years(today(), 1), -1),
                 "companies": [{"company": cls.company}],
                 "nepali_year_start_date": today(),
-            }).insert(ignore_permission=True)
+            }).insert(ignore_permissions=True)
+            cls._created_fiscal_year = True
 
     @classmethod
     def tearDownClass(cls):
-        if hasattr(cls, 'fiscal_year') and cls.fiscal_year:
+        if cls._created_fiscal_year and hasattr(cls, "fiscal_year") and cls.fiscal_year:
             frappe.delete_doc("Fiscal Year", cls.fiscal_year.name, force=1)
         # Cleanup Income Tax Slab created during the test class lifecycle
         slab_name = f"{cls.company} - Income Tax Slab"
-        if frappe.db.exists("Income Tax Slab", slab_name):
+        if not cls._preexisting_income_tax_slab and frappe.db.exists("Income Tax Slab", slab_name):
             frappe.delete_doc("Income Tax Slab", slab_name, force=1)
         super().tearDownClass()
 
