@@ -46,7 +46,7 @@ class TestModifyEmailSalarySlipDefault(FrappeTestCase):
     def test_modify_email_salary_slip_default_no_payroll_settings_doc(self):
         # Should raise ValidationError if Payroll Settings DocType missing
         # Remove Payroll Settings doc to simulate missing DocType
-        if frappe.db.exists("Payroll Settings"):
+        if frappe.db.exists("Payroll Settings", "Payroll Settings"):
             frappe.delete_doc("Payroll Settings", "Payroll Settings", force=True)
 
         # Temporarily rename DocType to simulate missing DocType
@@ -54,10 +54,12 @@ class TestModifyEmailSalarySlipDefault(FrappeTestCase):
 
         from unittest.mock import patch
 
+        original_exists = frappe.db.exists
+
         def mock_exists(doctype, name=None):
             if doctype == "DocType" and name == "Payroll Settings":
                 return False
-            return frappe.db.exists.__wrapped__(doctype, name) if hasattr(frappe.db.exists, '__wrapped__') else True
+            return original_exists(doctype, name)
 
         with patch("frappe.db.exists", side_effect=mock_exists):
             with self.assertRaises(ValidationError):

@@ -30,6 +30,42 @@ class HolidayList_Nepali_Date(Document):
 		self.total_holidays = len(self.holidays)
 		self.sort_holidays()
 
+	from datetime import timedelta
+
+	def get_weekly_off_date_list(self, from_date, to_date):
+		"""Return list of weekly off dates between from_date and to_date (inclusive)."""
+
+		from frappe.utils import getdate
+		if not from_date or not to_date:
+			return []
+
+		start = getdate(from_date)
+		end = getdate(to_date)
+
+		weekday_map = {
+        	"Monday": 0,
+        	"Tuesday": 1,
+        	"Wednesday": 2,
+        	"Thursday": 3,
+        	"Friday": 4,
+        	"Saturday": 5,
+        	"Sunday": 6,
+    	}
+
+		target_weekday = weekday_map.get(self.weekly_off)
+		if target_weekday is None:
+			return []
+
+		current = start
+		dates = []
+
+		while current <= end:
+			if current.weekday() == target_weekday:
+				dates.append(current)
+			current += timedelta(days=1)
+
+		return dates
+
 	@frappe.whitelist()
 	def get_weekly_off_dates(self):
 		if not self.weekly_off:
@@ -49,4 +85,3 @@ class HolidayList_Nepali_Date(Document):
 
 	def get_holidays(self) -> list[date]:
 		return [getdate(holiday.holiday_date) for holiday in self.holidays]
-    
