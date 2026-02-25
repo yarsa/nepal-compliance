@@ -2,6 +2,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today, add_years, add_days
 from frappe import _
+import hashlib
 from erpnext.accounts.utils import get_fiscal_year
 from nepal_compliance.custom_code.payroll.income_tax_slab import (
     create_income_tax_slab_for_company,
@@ -36,9 +37,10 @@ class TestIncomeTaxSlab(FrappeTestCase):
             else:
                 raise ValueError("No fiscal year found")
         except (frappe.ValidationError, ValueError):
+            _suffix = hashlib.md5(cls.company.encode()).hexdigest()[:6]
             cls.fiscal_year = frappe.get_doc({
                 "doctype": "Fiscal Year",
-                "year": "2090-2091",
+                "year": f"_Test 2090-2091 {_suffix}",
                 "year_start_date": today(),
                 "year_end_date": add_days(add_years(today(), 1), -1),
                 "companies": [{"company": cls.company}],
