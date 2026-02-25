@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import now_datetime 
+from erpnext.accounts.utils import get_fiscal_year
 
 def create_income_tax_slabs_for_all_companies():
     
@@ -17,13 +17,11 @@ def create_income_tax_slabs_for_all_companies():
             frappe.msgprint(f"No fiscal year found for company: {company['name']}")
 
 def get_fiscal_year_for_company(company_name):
-
-    fiscal_years = frappe.get_all("Fiscal Year", filters={"company": company_name}, fields=["name", "year_start_date"])
-
-    if fiscal_years:
-        return frappe.get_doc("Fiscal Year", fiscal_years[0]["name"])
-
-    return None
+    try:
+        fy = get_fiscal_year(frappe.utils.today(), company=company_name, as_dict=True)
+        return frappe.get_doc("Fiscal Year", fy.name) if fy else None
+    except frappe.exceptions.ValidationError:
+        return None
 
 def create_income_tax_slab_for_company(company_name, year_start_date, company_currency, nepali_date):
 
@@ -107,4 +105,4 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
         else:
             frappe.msgprint(f"Slab already exists: {slab['from_amount']} - {slab['to_amount']}")
 
-    income_tax_slab.save()
+    income_tax_slab.save(ignore_permissions=True)
