@@ -54,6 +54,11 @@ class TestModifyEmailSalarySlipDefault(FrappeTestCase):
 
         from unittest.mock import patch
 
-        with patch("frappe.db.exists", return_value=False):
+        def mock_exists(doctype, name=None):
+            if doctype == "DocType" and name == "Payroll Settings":
+                return False
+            return frappe.db.exists.__wrapped__(doctype, name) if hasattr(frappe.db.exists, '__wrapped__') else True
+
+        with patch("frappe.db.exists", side_effect=mock_exists):
             with self.assertRaises(ValidationError):
                 modify_email_salary_slip_default()

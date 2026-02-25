@@ -1,5 +1,4 @@
 import frappe
-from frappe.utils import now_datetime
 from erpnext.accounts.utils import get_fiscal_year
 
 def create_income_tax_slabs_for_all_companies():

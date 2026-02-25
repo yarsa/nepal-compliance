@@ -2,6 +2,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today, add_years, add_days
 from frappe import _
+from erpnext.accounts.utils import get_fiscal_year
 from nepal_compliance.custom_code.payroll.income_tax_slab import (
     create_income_tax_slab_for_company,
     get_fiscal_year_for_company,
@@ -23,22 +24,23 @@ class TestIncomeTaxSlab(FrappeTestCase):
         cls.currency = frappe.get_value("Company", cls.company, "default_currency")
 
         # Create a Fiscal Year for this company if not exists
-        if not frappe.get_all("Fiscal Year", filters={"company": cls.company}):
+        # if not frappe.get_all("Fiscal Year", filters={"company": cls.company}):
+        try:
+            fiscal_year_data = get_fiscal_year(today(), company=cls.company, as_dict=True)
+            if fiscal_year_data:
+                cls.fiscal_year = frappe.get_doc("Fiscal Year", fiscal_year_data.name)
+            else:
+                raise ValueError("No fiscal year found")
+        except (frappe.ValidationError, ValueError):
             cls.fiscal_year = frappe.get_doc({
                 "doctype": "Fiscal Year",
                 "year": "2090-2091",
                 "year_start_date": today(),
                 "year_end_date": add_days(add_years(today(), 1), -1),
-                "company": cls.company,
+                "companies": [{"company": cls.company}],
                 "nepali_year_start_date": today(),
-            }).insert(ignore_permissions=True)
-        else:
-            fy_name = frappe.get_all(
-                "Fiscal Year",
-                filters={"company": cls.company},
-                limit=1
-            )[0].name
-            cls.fiscal_year = frappe.get_doc("Fiscal Year", fy_name)
+            }).insert(ignore_permission=True)
+
     @classmethod
     def tearDownClass(cls):
         if hasattr(cls, 'fiscal_year') and cls.fiscal_year:
