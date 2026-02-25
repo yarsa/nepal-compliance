@@ -35,7 +35,6 @@ class TestModifyEmailSalarySlipDefault(FrappeTestCase):
         frappe.clear_cache(doctype="Payroll Settings")
         if frappe.db.exists("Payroll Settings", "Payroll Settings"):
             frappe.delete_doc("Payroll Settings", "Payroll Settings", force=True)
-        frappe.db.commit()
 
     def test_modify_email_salary_slip_default_updates_field(self):
         # Should set email_salary_slip_to_employee = 0
@@ -52,7 +51,6 @@ class TestModifyEmailSalarySlipDefault(FrappeTestCase):
 
         # Temporarily rename DocType to simulate missing DocType
         frappe.db.sql("UPDATE tabDocType SET name='Payroll Settings Backup' WHERE name='Payroll Settings'")
-        frappe.db.commit()
 
         from unittest.mock import patch
 
