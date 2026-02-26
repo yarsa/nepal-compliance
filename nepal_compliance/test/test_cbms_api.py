@@ -52,8 +52,8 @@ class TestCBMSConfiguration(unittest.TestCase):
         mock_settings.configure_cbms = 1
         mock_settings.user_name = "user"
         mock_settings.panvat_no = "123456789"
-        mock_settings.sales_api_url = "https://test"
-        mock_settings.credit_note_api_url = "https://test"
+        mock_settings.sales_api_url = "http://test"
+        mock_settings.credit_note_api_url = "http://test"
         mock_settings.get_password.return_value = "pass"
 
         mock_get_doc.return_value = mock_settings
@@ -86,8 +86,8 @@ class TestCBMSSend(unittest.TestCase):
         )
 
         self.cbms.cbms_settings = MagicMock(
-            sales_api_url="https://test.api",
-            credit_note_api_url="https://test.credit.api"
+            sales_api_url="http://test.api",
+            credit_note_api_url="http://test.credit.api"
         )
 
     @patch("nepal_compliance.cbms_api.frappe.db.commit")
@@ -103,6 +103,7 @@ class TestCBMSSend(unittest.TestCase):
 
         self.assertEqual(result["status"], "success")
         self.assertEqual(self.test_doc.cbms_status, "Success")
+        mock_commit.assert_called_once()
 
     @patch("nepal_compliance.cbms_api.frappe.db.commit")
     @patch("nepal_compliance.cbms_api.requests.post")
@@ -117,6 +118,7 @@ class TestCBMSSend(unittest.TestCase):
 
         self.assertEqual(result["status"], "failed")
         self.assertEqual(self.test_doc.cbms_status, "Failed")
+        mock_commit.assert_called_once()
 
     @patch("nepal_compliance.cbms_api.frappe.db.commit")
     @patch("nepal_compliance.cbms_api.requests.post")
@@ -131,7 +133,7 @@ class TestCBMSSend(unittest.TestCase):
 
         self.assertEqual(result["status"], "failed")
         self.assertEqual(self.test_doc.cbms_status, "Failed")
-
+        mock_commit.assert_called_once()
 
 # Whitelist method tests
 class TestCBMSWhitelist(unittest.TestCase):
