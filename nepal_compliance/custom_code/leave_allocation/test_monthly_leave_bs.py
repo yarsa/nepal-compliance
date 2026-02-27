@@ -53,7 +53,7 @@ class TestMonthlyLeaveBS(unittest.TestCase):
                     debug=lambda *a, **kw: None,
                     exception=lambda *a, **kw: None,
                 ),
-                throw=lambda exc=Exception, title=None, **kwargs: (_ for _ in ()).throw(exc(msg)),
+                throw=lambda msg="", exc=Exception, title=None, **kwargs: (_ for _ in ()).throw(exc(msg)),
             )
         )
 
@@ -100,7 +100,7 @@ class TestMonthlyLeaveBS(unittest.TestCase):
         with self.patch_frappe():
             with patch("nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.frappe.db.get_single_value",
                        side_effect=[2080, 2]):
-                with self.assertRaises(Exception):
+                with self.assertRaisesRegex(Exception, "Leave already allocated"):
                     allocate_monthly_leave_bs(2080, 2, ["Casual Leave"], force=False, silent=False)
 
     def test_skip_if_no_leave_types(self):
