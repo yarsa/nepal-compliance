@@ -167,8 +167,9 @@ class CustomPayrollEntry(PayrollEntry):
         bank_entry = None
         if salary_slip_total != 0:
             remark = "withheld salaries" if for_withheld_salaries else "salaries"
-            bank_entry = self.set_accounting_entries_for_bank_entry(salary_slip_total, remark)
-
+            bank_entry = self.set_accounting_entries_for_bank_entry(
+ 		   salary_slip_total, remark, employee_wise_accounting_enabled
+	    )
             if for_withheld_salaries:
                 link_bank_entry_in_salary_withholdings(salary_details, bank_entry.name)
 
