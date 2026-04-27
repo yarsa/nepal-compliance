@@ -30,7 +30,7 @@ def get_max_amount_eligible(employee: str, claim_date: Optional[Union[str, date]
             "docstatus": 1,  
             "from_date": ["<=", claim_date or date.today()]  
         },  
-        fields=["salary_structure", "from_date"],  
+        fields=["salary_structure", "from_date", "base"],  
         order_by="from_date desc",  
         limit=1  
     )  
@@ -38,18 +38,7 @@ def get_max_amount_eligible(employee: str, claim_date: Optional[Union[str, date]
     if not salary_structure_assignments:  
         return 0.0
         
-    salary_structure_assignment = salary_structure_assignments[0]
-
-    # Get base from Basic Salary component in the salary structure  
-    base_salary_sal_str = frappe.db.get_value(  
-        "Salary Detail",  
-        {  
-            "parent": salary_structure_assignment.salary_structure,  
-            "salary_component": "Basic Salary",  
-            "parenttype": "Salary Structure"  
-        },  
-        "amount"  
-    ) or 0  
+    base_salary_sal_str = flt(salary_structure_assignments[0].base)
     
     doj = getdate(emp.date_of_joining)
     claim_dt = getdate(claim_date) if claim_date else date.today()
