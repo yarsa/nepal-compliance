@@ -28,7 +28,7 @@ def get_max_amount_eligible(employee: str, claim_date: Optional[Union[str, date]
         filters={  
             "employee": employee,  
             "docstatus": 1,  
-            "from_date": ["<=", claim_date or date.today()]  
+            "from_date": ["<=", claim_date]  
         },  
         fields=["salary_structure", "from_date", "base"],  
         order_by="from_date desc",  
