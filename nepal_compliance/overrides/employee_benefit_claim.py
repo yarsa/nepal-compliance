@@ -5,7 +5,7 @@ from datetime import date
 from hrms.hr.utils import validate_active_employee
 from hrms.payroll.doctype.payroll_period.payroll_period import get_payroll_period
 from hrms.payroll.doctype.employee_benefit_claim.employee_benefit_claim import EmployeeBenefitClaim as HRMSEmployeeBenefitClaim
-
+from nepal_compliance.api.employee_benefit_claim import get_max_amount_eligible
 
 class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
     def validate(self):
@@ -16,7 +16,8 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
 
         self.ensure_festival_allowance_not_already_claimed()
 
-        max_benefits = self.set_max_amount_eligible(self.employee, self.claim_date)
+        max_benefits = get_max_amount_eligible(self.employee, self.claim_date)
+        self.max_amount_eligible = max_benefits
 
         if not self.claimed_amount or flt(self.claimed_amount) == 0:
             self.claimed_amount = max_benefits
@@ -69,42 +70,3 @@ class CustomEmployeeBenefitClaim(HRMSEmployeeBenefitClaim):
                     formatdate(payroll_period.end_date),
                 )
             )
-
-    def set_max_amount_eligible(self, employee, claim_date):
-        if not employee:
-            self.max_amount_eligible = 0
-            return self.max_amount_eligible
-
-        emp = frappe.get_doc("Employee", employee)
-
-        if not emp.date_of_joining:
-            self.max_amount_eligible = 0
-            return self.max_amount_eligible
-
-        base_salary = flt(emp.revised_salary) if emp.revised_salary else flt(emp.ctc)
-        if not base_salary:
-            self.max_amount_eligible = 0
-            return self.max_amount_eligible
-
-        doj = getdate(emp.date_of_joining)
-        source_date = claim_date or getattr(self, "claim_date", None)
-        claim_dt = getdate(source_date) if source_date else date.today()
-
-        if doj > claim_dt:
-            self.max_amount_eligible = 0
-            return self.max_amount_eligible
-
-        months_worked = (claim_dt.year - doj.year) * 12 + (claim_dt.month - doj.month)
-        if claim_dt.day < doj.day:
-            months_worked -= 1
-
-        if months_worked < 0:
-            months_worked = 0
-
-        if months_worked >= 12:
-            self.max_amount_eligible = flt(base_salary * 0.6)
-        else:
-            per_month_ctc = flt((base_salary * 0.6) / 12.0)
-            self.max_amount_eligible = flt(per_month_ctc * months_worked)
-
-        return self.max_amount_eligible
