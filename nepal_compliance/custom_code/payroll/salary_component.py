@@ -122,7 +122,7 @@ def create_multiple_salary_components():
             },
             {
                 "amount_based_on_formula": 1,
-                "formula": "(revised_salary if revised_salary else ctc) * .6",
+                "formula": "base if base else (revised_salary if revised_salary else ctc) * .6",
                 "name": "Basic Salary",
                 "salary_component": "Basic Salary",
                 "salary_component_abbr": "basic_salary",
