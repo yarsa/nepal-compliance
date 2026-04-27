@@ -21,7 +21,8 @@ def get_max_amount_eligible(employee: str, claim_date: Optional[Union[str, date]
     if not base_salary:
         return 0.0
 
-    #check if base exists in salary structure assignment
+    # Fetch the latest active Salary Structure Assignment as of the claim date
+    # and use its `base` (per-employee override) as the eligibility floor.
     # Get active salary structure assignment  
     salary_structure_assignments = frappe.db.get_all(  
         "Salary Structure Assignment",  
