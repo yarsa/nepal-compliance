@@ -179,6 +179,8 @@ def build_report() -> dict[str, object]:
     backend_years = sorted(backend)
     frontend_years = sorted(frontend)
     overlap_years = sorted(set(backend_years) & set(frontend_years))
+    overlap_min = min(overlap_years) if overlap_years else None
+    overlap_max = max(overlap_years) if overlap_years else None
 
     month_mismatches: list[MonthMismatch] = []
     for year in overlap_years:
@@ -265,7 +267,7 @@ def build_report() -> dict[str, object]:
         "frontend_base": asdict(frontend_base),
         "backend_bs_range": {"min": min(backend_years), "max": max(backend_years)},
         "frontend_bs_range": {"min": min(frontend_years), "max": max(frontend_years)},
-        "overlap_bs_range": {"min": min(overlap_years), "max": max(overlap_years)},
+        "overlap_bs_range": {"min": overlap_min, "max": overlap_max},
         "range_differences": {
             "classification": "informational",
             "note": "Different supported ranges may be intentional; this script treats only overlapping month-length/year-total divergence as failing.",
@@ -290,6 +292,7 @@ def build_report() -> dict[str, object]:
 def _format_report(report: dict[str, object]) -> str:
     backend_range = report["backend_bs_range"]
     frontend_range = report["frontend_bs_range"]
+    overlap_range = report["overlap_bs_range"]
     range_diff = report["range_differences"]
     month_mismatches = report["overlapping_month_length_mismatches"]
     year_total_mismatches = report["year_total_mismatches"]
@@ -301,6 +304,9 @@ def _format_report(report: dict[str, object]) -> str:
         "",
         f"Backend BS range: {backend_range['min']}-{backend_range['max']}",  # type: ignore[index]
         f"Frontend BS range: {frontend_range['min']}-{frontend_range['max']}",  # type: ignore[index]
+        "Overlapping BS range: {min}-{max}".format(**overlap_range)  # type: ignore[arg-type]
+        if overlap_range["min"] is not None  # type: ignore[index]
+        else "Overlapping BS range: none",
         "",
         "Range differences:",
     ]
