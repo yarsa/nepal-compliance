@@ -7,17 +7,17 @@ import argparse
 import csv
 import json
 import re
-import sys
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
 
-BACKEND_SOURCE = Path("nepal_compliance/nepali_date_utils/data/nepali_calendar.csv")
-BACKEND_RUNTIME = Path("nepal_compliance/nepali_date_utils/nepali_date.py")
-FRONTEND_SOURCE = Path("nepal_compliance/public/js/nepali_date_lib.js")
-FRONTEND_RUNTIME = Path("nepal_compliance/public/js/nepali_date_override.js")
-FRONTEND_DATEPICKER_RUNTIME = Path("nepal_compliance/public/js/report_filter.js")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_SOURCE = REPO_ROOT / "nepal_compliance/nepali_date_utils/data/nepali_calendar.csv"
+BACKEND_RUNTIME = REPO_ROOT / "nepal_compliance/nepali_date_utils/nepali_date.py"
+FRONTEND_SOURCE = REPO_ROOT / "nepal_compliance/public/js/nepali_date_lib.js"
+FRONTEND_RUNTIME = REPO_ROOT / "nepal_compliance/public/js/nepali_date_override.js"
+FRONTEND_DATEPICKER_RUNTIME = REPO_ROOT / "nepal_compliance/public/js/report_filter.js"
 
 MONTH_NAMES = [
     "Baisakh",
@@ -86,6 +86,13 @@ def _compact_ranges(years: list[int]) -> list[str]:
     return ranges
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _parse_backend_base() -> CalendarBase:
     text = BACKEND_RUNTIME.read_text(encoding="utf-8")
     ad_match = re.search(r"BASE_AD\s*=\s*date\((\d+),\s*(\d+),\s*(\d+)\)", text)
@@ -132,9 +139,25 @@ def load_frontend_calendar() -> dict[int, list[int]]:
     rows: dict[int, list[int]] = {}
     for key, value in re.findall(r"([0-9]+(?:e[0-9]+)?): \[([^\]]+)\]", match.group(1)):
         year = int(float(key)) if "e" in key else int(key)
-        months = [int(part.strip()) for part in value.split(",")]
+        raw_values = [part.strip() for part in value.split(",")]
+        try:
+            months = [int(part) for part in raw_values]
+        except ValueError as exc:
+            raise ValueError(
+                f"{_display_path(FRONTEND_SOURCE)}: frontend year {year} contains non-integer month values: "
+                f"{raw_values}"
+            ) from exc
         if len(months) != 12:
-            raise ValueError(f"Frontend year {year} has {len(months)} month values")
+            raise ValueError(
+                f"{_display_path(FRONTEND_SOURCE)}: frontend year {year} has {len(months)} month values; "
+                f"expected 12; parsed values: {months}"
+            )
+        invalid_values = [month for month in months if month < 28 or month > 33]
+        if invalid_values:
+            raise ValueError(
+                f"{_display_path(FRONTEND_SOURCE)}: frontend year {year} has out-of-range month values "
+                f"{invalid_values}; expected values in 28-33; parsed values: {months}"
+            )
         rows[year] = months
     return rows
 
@@ -227,11 +250,15 @@ def build_report() -> dict[str, object]:
                     f"first day after {mismatch.bs_year} {mismatch.month_name} mismatch",
                 )
             )
-    if 2087 in backend and 2087 in frontend:
+    has_2087_mangsir_mismatch = any(
+        mismatch.bs_year == 2087 and mismatch.bs_month == 8
+        for mismatch in month_mismatches
+    )
+    if has_2087_mangsir_mismatch:
         example_dates.extend(
             [
-                (2088, 1, 1, "overlap example after BS 2087 Mangsir mismatch"),
-                (2089, 12, 30, "downstream overlap example after BS 2087 Mangsir mismatch"),
+                (2088, 1, 1, "overlap example after detected BS 2087 Mangsir mismatch"),
+                (2089, 12, 30, "downstream overlap example after detected BS 2087 Mangsir mismatch"),
             ]
         )
 
@@ -259,10 +286,10 @@ def build_report() -> dict[str, object]:
             )
 
     return {
-        "backend_calendar_source": str(BACKEND_SOURCE),
-        "frontend_calendar_source": str(FRONTEND_SOURCE),
-        "backend_runtime_usage": str(BACKEND_RUNTIME),
-        "frontend_runtime_usage": [str(FRONTEND_RUNTIME), str(FRONTEND_DATEPICKER_RUNTIME)],
+        "backend_calendar_source": _display_path(BACKEND_SOURCE),
+        "frontend_calendar_source": _display_path(FRONTEND_SOURCE),
+        "backend_runtime_usage": _display_path(BACKEND_RUNTIME),
+        "frontend_runtime_usage": [_display_path(FRONTEND_RUNTIME), _display_path(FRONTEND_DATEPICKER_RUNTIME)],
         "backend_base": asdict(backend_base),
         "frontend_base": asdict(frontend_base),
         "backend_bs_range": {"min": min(backend_years), "max": max(backend_years)},
