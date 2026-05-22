@@ -33,12 +33,14 @@ class CustomSalarySlip(SalarySlip):
         """
         super().compute_taxable_earnings_for_year()
 
-        if getattr(self, "payroll_period", None):
+        payroll_period = getattr(self, "payroll_period", None)
+        if payroll_period:
+            payroll_period_name = getattr(payroll_period, "name", payroll_period)
             has_app = frappe.db.exists(
                 "Employee Benefit Application",
                 {
                     "employee": self.employee,
-                    "payroll_period": self.payroll_period.name,
+                    "payroll_period": payroll_period_name,
                     "docstatus": 1,
                 },
             )
