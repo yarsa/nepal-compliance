@@ -93,6 +93,13 @@ def _display_path(path: Path) -> str:
         return path.as_posix()
 
 
+def _parse_frontend_year_key(key: str) -> int:
+    if "e" not in key.lower():
+        return int(key)
+    base, exponent = re.split("e", key, maxsplit=1, flags=re.I)
+    return int(base) * (10 ** int(exponent))
+
+
 def _parse_backend_base() -> CalendarBase:
     text = BACKEND_RUNTIME.read_text(encoding="utf-8")
     ad_match = re.search(r"BASE_AD\s*=\s*date\((\d+),\s*(\d+),\s*(\d+)\)", text)
@@ -101,7 +108,7 @@ def _parse_backend_base() -> CalendarBase:
         text,
     )
     if not ad_match or not bs_match:
-        raise ValueError(f"Could not parse backend base constants from {BACKEND_RUNTIME}")
+        raise ValueError(f"Could not parse backend base constants from {_display_path(BACKEND_RUNTIME)}")
     ad = date(*(int(part) for part in ad_match.groups()))
     bs_year, bs_month, bs_day = (int(part) for part in bs_match.groups())
     return CalendarBase(bs_year=bs_year, bs_month=bs_month, bs_day=bs_day, ad_date=ad.isoformat())
@@ -109,10 +116,16 @@ def _parse_backend_base() -> CalendarBase:
 
 def _parse_frontend_base() -> CalendarBase:
     text = FRONTEND_SOURCE.read_text(encoding="utf-8")
-    bs_match = re.search(r"var N = \{ year: (\d+), monthIndex: (\d+), day: (\d+) \}", text)
-    ad_match = re.search(r"B = new Date\(Date\.UTC\((\d+),\s*(\d+),\s*(\d+)\)\)", text)
+    bs_match = re.search(
+        r"var\s+N\s*=\s*\{\s*year:\s*(\d+),\s*monthIndex:\s*(\d+),\s*day:\s*(\d+)\s*\}",
+        text,
+    )
+    ad_match = re.search(
+        r"B\s*=\s*new\s+Date\(Date\.UTC\((\d+),\s*(\d+),\s*(\d+)\)\)",
+        text,
+    )
     if not bs_match or not ad_match:
-        raise ValueError(f"Could not parse frontend base constants from {FRONTEND_SOURCE}")
+        raise ValueError(f"Could not parse frontend base constants from {_display_path(FRONTEND_SOURCE)}")
     bs_year = int(bs_match.group(1))
     bs_month = int(bs_match.group(2)) + 1
     bs_day = int(bs_match.group(3))
@@ -125,20 +138,54 @@ def _parse_frontend_base() -> CalendarBase:
 def load_backend_calendar() -> dict[int, list[int]]:
     rows: dict[int, list[int]] = {}
     with BACKEND_SOURCE.open(encoding="utf-8", newline="") as handle:
-        for row in csv.DictReader(handle):
-            year = int(row["Year"])
-            rows[year] = [int(row[month]) for month in MONTH_NAMES]
+        reader = csv.DictReader(handle)
+        missing_columns = [column for column in ["Year", *MONTH_NAMES] if column not in (reader.fieldnames or [])]
+        if missing_columns:
+            raise ValueError(f"{_display_path(BACKEND_SOURCE)}: backend CSV is missing columns: {missing_columns}")
+
+        for row in reader:
+            try:
+                year = int(row["Year"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"{_display_path(BACKEND_SOURCE)}: backend CSV contains non-integer year value: "
+                    f"{row['Year']!r}"
+                ) from exc
+            if year in rows:
+                raise ValueError(f"{_display_path(BACKEND_SOURCE)}: duplicate backend year row parsed for {year}")
+            try:
+                months = [int(row[month]) for month in MONTH_NAMES]
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"{_display_path(BACKEND_SOURCE)}: backend year {year} contains non-integer month values"
+                ) from exc
+            invalid_values = [month for month in months if month < 28 or month > 33]
+            if invalid_values:
+                raise ValueError(
+                    f"{_display_path(BACKEND_SOURCE)}: backend year {year} has out-of-range month values "
+                    f"{invalid_values}; expected values in 28-33; parsed values: {months}"
+                )
+            rows[year] = months
+    if not rows:
+        raise ValueError(f"{_display_path(BACKEND_SOURCE)}: backend calendar CSV has no year rows")
     return rows
 
 
 def load_frontend_calendar() -> dict[int, list[int]]:
     text = FRONTEND_SOURCE.read_text(encoding="utf-8")
-    match = re.search(r"var c = \{(.*?)\}, E = Object\.keys\(c\)", text, flags=re.S)
+    match = re.search(r"var\s+c\s*=\s*\{(.*?)\}\s*,\s*E\s*=\s*Object\.keys\(c\)", text, flags=re.S)
     if not match:
-        raise ValueError(f"Could not find frontend month table in {FRONTEND_SOURCE}")
+        raise ValueError(f"Could not find frontend month table in {_display_path(FRONTEND_SOURCE)}")
     rows: dict[int, list[int]] = {}
-    for key, value in re.findall(r"([0-9]+(?:e[0-9]+)?): \[([^\]]+)\]", match.group(1)):
-        year = int(float(key)) if "e" in key else int(key)
+    entries = re.findall(r"([0-9]+(?:[eE][0-9]+)?)\s*:\s*\[([^\]]+)\]", match.group(1))
+    if not entries:
+        raise ValueError(
+            f"{_display_path(FRONTEND_SOURCE)}: frontend month table block was found, but no year rows were parsed"
+        )
+    for key, value in entries:
+        year = _parse_frontend_year_key(key)
+        if year in rows:
+            raise ValueError(f"{_display_path(FRONTEND_SOURCE)}: duplicate frontend year row parsed for {year}")
         raw_values = [part.strip() for part in value.split(",")]
         try:
             months = [int(part) for part in raw_values]
@@ -171,6 +218,8 @@ def _bs_to_ad(
 ) -> date:
     if base.bs_month != 1 or base.bs_day != 1:
         raise ValueError("This comparison script expects first-day BS base constants")
+    if bs_year < base.bs_year:
+        raise ValueError(f"BS year {bs_year} is before base year {base.bs_year}")
     if bs_year not in table:
         raise ValueError(f"BS year {bs_year} is outside this table")
     if not 1 <= bs_month <= 12:
@@ -181,6 +230,8 @@ def _bs_to_ad(
 
     ad = date.fromisoformat(base.ad_date)
     for year in range(base.bs_year, bs_year):
+        if year not in table:
+            raise ValueError(f"BS year {year} is missing from this table")
         ad += timedelta(days=sum(table[year]))
     for month in range(1, bs_month):
         ad += timedelta(days=table[bs_year][month - 1])
@@ -371,9 +422,10 @@ def _format_report(report: dict[str, object]) -> str:
     lines.extend(
         [
             "",
-            "Runtime usage observations:",
-            f"- Backend conversion/formatting code loads the CSV through {report['backend_runtime_usage']}.",
-            "- Frontend date conversion/date-picker code uses NepaliDateLib/NepaliCalendarLib from the bundled JS table.",
+            "Runtime-related files:",
+            f"- Backend calendar utility file: {report['backend_runtime_usage']}.",
+            "- Frontend date/date-picker files: "
+            f"{', '.join(report['frontend_runtime_usage'])}.",
             "",
             "Exit policy:",
             "- exits 1 when overlapping month-length or year-total mismatches exist",
