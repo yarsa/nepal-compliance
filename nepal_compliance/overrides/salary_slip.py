@@ -47,21 +47,32 @@ class CustomSalarySlip(SalarySlip):
             if has_app:
                 return
 
+        candidate_components = {
+             e.salary_component
+             for e in self.earnings
+             if e.is_tax_applicable and e.is_flexible_benefit and e.amount and e.salary_component
+         }
+        if not candidate_components:
+            return
+
+        included = {
+            row.name
+            for row in frappe.get_all(
+                "Salary Component",
+                filters={"name": ("in", list(candidate_components))},
+                fields=["name", "include_in_taxable_salary"],
+            )
+            if cint(row.include_in_taxable_salary)
+        }
+
         extra = 0.0
         for earning in self.earnings:
-            if not earning.is_tax_applicable or not earning.is_flexible_benefit:
-                continue
-            if not earning.amount:
-                continue
-            include = frappe.db.get_value(
-                "Salary Component",
-                earning.salary_component,
-                "include_in_taxable_salary",
-                cache=True,
-            )
-            if not include:
-                continue
-            extra += flt(earning.amount)
+            if (
+                earning.is_tax_applicable
+                and earning.is_flexible_benefit
+                and earning.salary_component in included
+            ):
+                extra += flt(earning.amount)
 
         if extra:
             self.unclaimed_taxable_benefits = flt(getattr(self, "unclaimed_taxable_benefits", 0)) + extra
