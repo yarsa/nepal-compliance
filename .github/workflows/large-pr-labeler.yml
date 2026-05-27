@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  issues: write
+  pull-requests: read
+
 jobs:
   label-large-pr:
     runs-on: ubuntu-slim
