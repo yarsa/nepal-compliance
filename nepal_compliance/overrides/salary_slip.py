@@ -2,7 +2,7 @@ import frappe, traceback
 from frappe import _
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 from hrms.payroll.doctype.salary_slip.salary_slip import make_loan_repayment_entry
-from frappe.utils import cint
+from frappe.utils import cint, flt
 from typing import Optional
 from frappe.model.document import Document
 
@@ -22,6 +22,110 @@ class CustomSalarySlip(SalarySlip):
                 self.email_salary_slip()
 
         self.update_payment_status_for_gratuity_and_leave_encashment()
+
+    def compute_taxable_earnings_for_year(self):
+        """Wire up include_in_taxable_salary into the tax base.
+
+        Components flagged with include_in_taxable_salary=1 are added to
+        unclaimed_taxable_benefits and total_taxable_earnings so they flow
+        into both CTC and the slab tax engine. Skipped when an active
+        Employee Benefit Application exists for the period.
+        """
+        super().compute_taxable_earnings_for_year()
+
+        payroll_period = getattr(self, "payroll_period", None)
+        if payroll_period:
+            payroll_period_name = getattr(payroll_period, "name", payroll_period)
+            has_app = frappe.db.exists(
+                "Employee Benefit Application",
+                {
+                    "employee": self.employee,
+                    "payroll_period": payroll_period_name,
+                    "docstatus": 1,
+                },
+            )
+            if has_app:
+                return
+
+        candidate_components = {
+             e.salary_component
+             for e in self.earnings
+             if e.is_tax_applicable and e.is_flexible_benefit and e.amount and e.salary_component
+         }
+        if not candidate_components:
+            return
+
+        included = {
+            row.name
+            for row in frappe.get_all(
+                "Salary Component",
+                filters={"name": ("in", list(candidate_components))},
+                fields=["name", "include_in_taxable_salary"],
+            )
+            if cint(row.include_in_taxable_salary)
+        }
+
+        extra = 0.0
+        for earning in self.earnings:
+            if (
+                earning.is_tax_applicable
+                and earning.is_flexible_benefit
+                and earning.salary_component in included
+            ):
+                extra += flt(earning.amount)
+
+        if extra:
+            self.unclaimed_taxable_benefits = flt(getattr(self, "unclaimed_taxable_benefits", 0)) + extra
+            self.total_taxable_earnings = flt(getattr(self, "total_taxable_earnings", 0)) + extra
+            self.total_taxable_earnings_without_full_tax_addl_components = (
+                flt(getattr(self, "total_taxable_earnings_without_full_tax_addl_components", 0)) + extra
+            )
+    def get_taxable_earnings_for_prev_period(self, start_date, end_date, allow_tax_exemption=False):
+        """Include prior-period flex-benefit earnings flagged with
+        include_in_taxable_salary=1 in previous_taxable_earnings.
+
+        Vanilla hrms's get_salary_slip_details filters previous-period
+        earnings with is_flexible_benefit=0, so flex amounts paid in
+        earlier slips of the same payroll period are invisible to the
+        current slip's tax base. This means a festival paid in Asoj
+        affects only the Asoj slip's tax; subsequent slips (Kartik
+        onwards) see annual income without the festival and recompute
+        tax against the pre-festival amount, clawing back the marginal
+        tax that was correctly deducted in Asoj.
+
+        This override adds prior-period flex-benefit earnings (filtered
+        by include_in_taxable_salary=1 on the Salary Component) to the
+        taxable_earnings figure returned by the parent. Combined with the
+        compute_taxable_earnings_for_year override, the festival amount
+        contributes to annual taxable across every slip in the period,
+        not just the festival month.
+        """
+        taxable_earnings, exempted_amount = super().get_taxable_earnings_for_prev_period(
+            start_date, end_date, allow_tax_exemption
+        )
+
+        # Find prior-period flex-benefit components that are flagged
+        # for inclusion in taxable salary.
+        flagged_components = frappe.db.sql_list("""
+            SELECT name FROM `tabSalary Component`
+            WHERE include_in_taxable_salary = 1
+              AND is_flexible_benefit = 1
+              AND is_tax_applicable = 1
+        """)
+        if not flagged_components:
+            return taxable_earnings, exempted_amount
+
+        flex_taxable = 0.0
+        for component in flagged_components:
+            flex_taxable += flt(self.get_salary_slip_details(
+                start_date, end_date,
+                parentfield="earnings",
+                salary_component=component,
+                is_tax_applicable=1,
+                is_flexible_benefit=1,
+            ))
+
+        return taxable_earnings + flex_taxable, exempted_amount
 
 from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry
 from hrms.payroll.doctype.payroll_entry.payroll_entry import (
