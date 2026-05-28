@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import now_datetime 
+from erpnext.accounts.utils import get_fiscal_year
 
 def create_income_tax_slabs_for_all_companies():
     
@@ -17,17 +17,15 @@ def create_income_tax_slabs_for_all_companies():
             frappe.msgprint(f"No fiscal year found for company: {company['name']}")
 
 def get_fiscal_year_for_company(company_name):
-
-    fiscal_years = frappe.get_all("Fiscal Year", filters={"company": company_name}, fields=["name", "year_start_date"])
-
-    if fiscal_years:
-        return frappe.get_doc("Fiscal Year", fiscal_years[0]["name"])
-
-    return None
+    try:
+        fy = get_fiscal_year(frappe.utils.today(), company=company_name, as_dict=True)
+        return frappe.get_doc("Fiscal Year", fy.name) if fy else None
+    except frappe.exceptions.ValidationError:
+        return None
 
 def create_income_tax_slab_for_company(company_name, year_start_date, company_currency, nepali_date):
 
-    income_tax_slab_name = f"{company_name}-{nepali_date}"
+    income_tax_slab_name = f"{company_name} - Income Tax Slab"
     existing_slab = frappe.get_all("Income Tax Slab", filters={"name": income_tax_slab_name}, fields=["name"])
     
     if existing_slab:
@@ -41,11 +39,54 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
         income_tax_slab.nepali_date = nepali_date
 
     slabs = [{
-        "from_amount": 0.00,  
-        "to_amount": 1.00,  
-        "percent_deduction": 0.00,  
-        "condition": "" 
-    }]
+        "from_amount": 600001,
+        "to_amount": 800000,
+        "percent_deduction": 10,
+        "condition": "marital_status == 'Married'"
+    },
+    {
+        "from_amount": 800001,
+        "to_amount": 1100000,
+        "percent_deduction": 20,
+        "condition": "marital_status == 'Married'"
+    },
+    {
+        "from_amount": 1100001,
+        "to_amount": 2000000,
+        "percent_deduction": 30,
+        "condition": "marital_status == 'Married'"
+    },
+    {
+        "from_amount": 2000001,
+        "to_amount": 5000000,
+        "percent_deduction": 36,
+        "condition": None
+    },
+    {
+        "from_amount": 5000001,
+        "to_amount": 0,
+        "percent_deduction": 39,
+        "condition": None
+    },
+    {
+        "from_amount": 500001,
+        "to_amount": 700000,
+        "percent_deduction": 10,
+        "condition": "marital_status != 'Married'"
+    },
+    {
+        "from_amount": 700001,
+        "to_amount": 1000000,
+        "percent_deduction": 20,
+        "condition": "marital_status != 'Married'"
+    },
+    {
+        "from_amount": 1000001,
+        "to_amount": 2000000,
+        "percent_deduction": 30,
+        "condition": "marital_status != 'Married'"
+    }
+    ]
 
     for slab in slabs:
         existing_slab = next((s for s in income_tax_slab.slabs if 
@@ -64,4 +105,4 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
         else:
             frappe.msgprint(f"Slab already exists: {slab['from_amount']} - {slab['to_amount']}")
 
-    income_tax_slab.save()
+    income_tax_slab.save(ignore_permissions=True)

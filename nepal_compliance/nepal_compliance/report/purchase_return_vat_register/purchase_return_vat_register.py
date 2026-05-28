@@ -9,9 +9,9 @@ def execute(filters=None):
     
     columns = [
         {
-            'fieldname': 'nepali_date',
+            'fieldname': 'posting_date',
             'label': _('Date'),
-            'fieldtype': 'Data'
+            'fieldtype': 'Date'
         },
         {
             'fieldname': 'invoice_no',
@@ -53,13 +53,13 @@ def execute(filters=None):
         {
             'fieldname': 'amount',
             'label': _('Amount'),
-            'fieltype': 'Currency'
+            'fieldtype': 'Currency'
         },
         {
-			'fiedlname': 'discount',
-			'label': _('Discount'),
-			'fieldtype': 'Currency'
-		},
+            'fieldname': 'discount',
+            'label': _('Discount'),
+            'fieldtype': 'Currency'
+        },
         {
             'fieldname': 'gross_amount',
             'label': _('Gross Amount'),
@@ -131,13 +131,13 @@ def execute(filters=None):
         values.append(f"%{filters['bill']}%")
 
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date >= %s AND nepali_date <= %s")
+        conditions.append("pi.posting_date >= %s AND pi.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
-        conditions.append("pi.nepali_date >= %s")
+        conditions.append("pi.posting_date >= %s")
         values.append(filters["from_nepali_date"])
     elif filters.get("to_nepali_date"):
-        conditions.append("pi.nepali_date <= %s")
+        conditions.append("pi.posting_date <= %s")
         values.append(filters["to_nepali_date"])
 
     if filters.get("warehouse"):
@@ -166,13 +166,11 @@ def execute(filters=None):
         tds = 0
         sum_vat = 0
         invoice_total = purchase.grand_total
-        net_total = purchase.net_total if purchase.additional_discount_percentage else invoice_total
+        net_total = purchase.net_total if purchase.additional_discount_percentage or purchase.discount_amount else purchase.net_total
         for item in items:
             total += item.amount
             gross_amount += item.amount
-            sum_gross_amount += gross_amount
-            vat = gross_amount * 13/100
-            sum_vat += vat
+            sum_gross_amount = gross_amount
             total_rate += item.rate
             total_qty += item.qty
         for t in tax:
@@ -181,7 +179,6 @@ def execute(filters=None):
             elif t.rate in [1.5, 15]:
                 tds += t.tax_amount
         for item in items:
-            data.append([purchase.nepali_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, purchase.vat_number, '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
+            data.append([purchase.posting_date, purchase.name, purchase.supplier, purchase.bill_no,purchase.bill_date, purchase.vat_number, '', item.qty, item.amount, item.discount_amount if item.discount_amount !=0 else '', item.amount, item.net_amount, item.warehouse, '', '', '', '','', purchase.return_against])
         data.append(['', '', '', '', '', '', 'Total', total_qty, total, purchase.discount_amount, total, net_total, '', vat, tds, purchase.grand_total,purchase.outstanding_amount, purchase.total_taxes_and_charges, ''])
     return columns, data
-

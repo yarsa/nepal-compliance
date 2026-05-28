@@ -4,39 +4,41 @@ app_publisher = "Yarsa Labs Pvt. Ltd."
 app_description = "ERPNext app to comply with Nepali laws and regulations"
 app_email = "support@yarsalabs.com"
 app_license = "GNU General Public License (v3)"
+source_link = "https://github.com/yarsa/nepal-compliance"
+app_logo_url = "/assets/nepal_compliance/icon/app-icon.svg"
+app_home = "/desk/nepal-compliance"
 
-# Apps
-# ------------------
-
-# required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "nepal_compliance",
-# 		"logo": "/assets/nepal_compliance/logo.png",
-# 		"title": "Nepal Compliance",
-# 		"route": "/nepal_compliance",
-# 		"has_permission": "nepal_compliance.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": app_name,
+		"logo": "/assets/nepal_compliance/icon/app-icon.svg",
+		"title": app_title,
+		"route": app_home,
+		"has_permission": "nepal_compliance.utils.check_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/nepal_compliance/css/nepal_compliance.css"
-app_include_css = ["/assets/nepal_compliance/css/calendar.css",
-                   "assets/nepal_compliance/css/date.css",
-                   "/assets/nepal_compliance/css/doctype.css"]
-# app_include_js = "/assets/nepal_compliance/js/nepal_compliance.js"
+app_include_css = [
+    "/assets/nepal_compliance/css/nepali_calendar.css",
+    "/assets/nepal_compliance/css/date.css"]
+
 app_include_js = [
-                 "/assets/nepal_compliance/js/bs_module.js",
-                 "/assets/nepal_compliance/js/nepali_date.js",
-                 "/assets/nepal_compliance/js/formatter.js",
-                 "/assets/nepal_compliance/js/report_filter.js",
-                 "/assets/nepal_compliance/js/icon_patch.js"
-                 ]
+    "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
+    "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
+    "/assets/nepal_compliance/js/nepali_date_lib.js",
+    "/assets/nepal_compliance/js/nepali_calendar_lib.js",
+    "/assets/nepal_compliance/js/nepali_date_override.js",
+    "/assets/nepal_compliance/js/filter_patch.js",
+    "/assets/nepal_compliance/js/formatter.js",
+    "/assets/nepal_compliance/js/report_filter.js",
+    "/assets/nepal_compliance/js/icon_patch.js",
+    "/assets/nepal_compliance/js/employee_benefit_claim.js"]
 
 boot_session = "nepal_compliance.boot.get_boot_info"
 
@@ -55,46 +57,20 @@ boot_session = "nepal_compliance.boot.get_boot_info"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
 doctype_js = {
     "Company": "public/js/validate.js",
-    "User": "public/js/nepali_date.js",
-    "Salary Slip" : "public/js/salary_slip.js",
-    "Expense Claim": "public/js/bs_date.js",
-    "Leave Application": "public/js/bs_date.js",
-    "Holiday List": ["public/js/bs_date.js","public/js/holiday_list.js"],
-    "Holiday": "public/js/holiday_list.js",
-    "Leave Allocation": "public/js/bs_date.js",
-    "Attendance": "public/js/bs_date.js",
-    "Fiscal Year": "public/js/bs_date.js",
-    "Stock Entry": "public/js/hrms_bs_date.js",
-    "Material Request": "public/js/hrms_bs_date.js",
-    "Purchase Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
-    "Purchase Order": "public/js/bs_date.js","Purchase Receipt": "public/js/bs_date.js",
-    "Sales Order": "public/js/bs_date.js","Delivery Note": "public/js/bs_date.js",
-    "Sales Invoice": ["public/js/bs_date.js", "public/js/validate.js", "public/js/email.js", "public/js/utils.js"],
+    "Purchase Invoice": "public/js/purchase_invoice.js",
+    "Sales Invoice": "public/js/sales_invoice.js",
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
-    "Payment Entry": "public/js/bs_date.js",
-    "Journal Entry": "public/js/bs_date.js",
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
-    "Request for Quotation": "public/js/bs_date.js","Supplier Quotation": "public/js/bs_date.js", "Quotation": "public/js/bs_date.js",
-    "Blanket Order": "public/js/bs_date.js",
-    "Landed Cost Voucher": "public/js/bs_date.js",
-    "Asset": "public/js/bs_date.js", "Asset Repair": "public/js/bs_date.js", "Asset Movement": "public/js/bs_date.js", "Asset Value Adjustment": "public/js/bs_date.js", "Asset Capitalization": "public/js/bs_date.js",
-    "POS Opening Entry": "public/js/bs_date.js", "POS Closing Entry": "public/js/bs_date.js",
-    "Loyalty Program": "public/js/bs_date.js", "Promotional Scheme": "public/js/bs_date.js", "Pricing Rule": "public/js/bs_date.js", "Coupon Code": "public/js/bs_date.js",
-    "Serial No": "public/js/bs_date.js", "Batch": "public/js/bs_date.js",
-    "Installation Note": "public/js/bs_date.js", "Stock Reconciliation": "public/js/bs_date.js", "Quality Inspection": "public/js/bs_date.js", "Quick Stock Balance": "public/js/bs_date.js",
-    "Payroll Entry": "public/js/payroll_bs_date.js", "Income Tax Slab": "public/js/payroll_bs_date.js", "Payroll Period": "public/js/payroll_bs_date.js", "Salary Structure Assignment": ["public/js/payroll_bs_date.js"], "Salary Withholding": "public/js/payroll_bs_date.js", "Additional Salary": "public/js/payroll_bs_date.js", "Employee Incentive": "public/js/payroll_bs_date.js", "Retention Bonus": "public/js/payroll_bs_date.js",
-    "Employee Tax Exemption Proof Submission": "public/js/payroll_bs_date.js", "Employee Benefit Application": "public/js/payroll_bs_date.js", "Employee Benefit Claim": "public/js/hrms_bs_date.js",
-    "Attendance Request": "public/js/hrms_bs_date.js", "Compensatory Leave Request": "public/js/hrms_bs_date.js", "Employee Advance": "public/js/hrms_bs_date.js", "Shift Assignment": "public/js/hrms_bs_date.js", "Shift Request": "public/js/hrms_bs_date.js", "Job Offer": "public/js/hrms_bs_date.js", "Employee Referral": "public/js/hrms_bs_date.js", "Shift Assignment Tool": "public/js/hrms_bs_date.js",
-    "Upload Attendance": "public/js/hrms_bs_date.js", "Leave Period": "public/js/hrms_bs_date.js", "Leave Policy Assignment": "public/js/hrms_bs_date.js", "Leave Control Panel": "public/js/hrms_bs_date.js", "Leave Encashment": "public/js/hrms_bs_date.js",
-    "Bulk Salary Structure Assignment": "public/js/bs_date.js", "Employee Attendance Tool": 'public/js/bs_date.js'
+    "Salary Slip": "public/js/salary_slip.js"
 }
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+
 doctype_list_js = {
-    "Salary Component": "public/js/custom_button.js"
+    "Salary Component": "public/js/custom_button.js",
+    "Leave Allocation": "public/js/utils.js",
+    "Sales Invoice" : "public/js/bulk_update_nepali_date.js"
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -125,25 +101,23 @@ doctype_list_js = {
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "nepal_compliance.utils.jinja_methods",
-# 	"filters": "nepal_compliance.utils.jinja_filters"
-# }
+jinja = {
+    "methods": ["nepal_compliance.nepali_date_utils.nepali_date.format_bs",
+                "nepal_compliance.nepali_date_utils.nepali_date.format_bs_datetime",
+                "nepal_compliance.nepali_date_utils.utils.bs_date"
+                ]
+}
 
 # Installation
 # ------------
-
-# before_install = "nepal_compliance.install.before_install"
 after_install = "nepal_compliance.install.install"
 after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
               "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
-# after_install = "nepal_compliance.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "nepal_compliance.uninstall.before_uninstall"
-# after_uninstall = "nepal_compliance.uninstall.after_uninstall"
+before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 
 # Integration Setup
 # ------------------
@@ -182,56 +156,45 @@ after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_sala
 # DocType Class
 # ---------------
 # Override standard doctype classes
-
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+    "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
+    "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
+    "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
+    "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
+    "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
+    "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment"
+}
 
 # Document Events
 # ---------------
 # Hook on document methods and events
-
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
 doc_events = {
-
     "*": {
         "validate": "nepal_compliance.backdated_doctype_restriction.validate_backdate_and_sequence"
     },
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
-        "on_submit": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit"]
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "on_submit": "nepal_compliance.qr_code.create_qr_code",
+        "before_submit": "nepal_compliance.utils.bill_no_required"
     },
     "Sales Invoice" : {
-        "on_submit": ["nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms", "nepal_compliance.qr_code.create_qr_code", "nepal_compliance.email_utils.send_email_on_submit",
-        ]
+        "autoname": "nepal_compliance.utils.custom_autoname",
+        "before_insert": ["nepal_compliance.utils.set_vat_numbers", "nepal_compliance.utils.load_nepali_date"],
+        "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
+        "validate": "nepal_compliance.qr_code.create_qr_code"
+    },
+    "Salary Slip": {
+        "after_insert": "nepal_compliance.patches.payroll_entry.execute",
     }
 }
 # Scheduled Tasks
 # ---------------
-
-# scheduler_events = {
-# 	"all": [
-# 		"nepal_compliance.tasks.all"
-# 	],
-# 	"daily": [
-# 		"nepal_compliance.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"nepal_compliance.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"nepal_compliance.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"nepal_compliance.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+    "daily": [
+        "nepal_compliance.custom_code.leave_allocation.scheduled_tasks.run_daily_bs_tasks"
+    ]
+}
 
 # Testing
 # -------
@@ -309,34 +272,8 @@ doc_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-fixtures = [
-     {
-        "dt": "Custom Field",
-        "filters": [
-            [
-               "module", "in", ["nepal_compliance"]
-            ]
-        ]
-    },
-    {
-        "doctype": "Salary Component",
-        "filters": [
-            ["name", "in", ["Basic Salary", "Other Allowance", "Income Tax Unmarried", "Overtime", "Gratuity", "Earning Adjustment", "Deduction Adjustment",
-                            "Employer's Contribution SSF Deduction", "Insurance", "CIT", "Employee's Contribution SSF", "Employer's Contribution SSF",
-                            "Grade Amount", "Income Tax Married", "Income Tax Unmarried", "Provident Fund Employer", "Provident Fund Employee", "Leave and Late Deduction",
-                            "Provident Fund Employer Deduction", "Gratuity Deduction"]]
-        ]
-    },
-    {
-        "doctype": "Leave Type",
-        "filters": [
-            ["name", "in", ["Annual Sick Leave", "Home Leave"]]
-        ]
-    }
-]
-
 purchase_sales = ["Purchase Invoice", "Sales Invoice"]
 
 doctype_lists = ["Asset","Asset Capitalization","Asset Repair","Dunning","Invoice Discounting","Journal Entry",
                  "Landed Cost Voucher","Payment Entry","Period Closing Voucher","Process Deferred Accounting","Purchase Invoice",
-                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation","Subcontracting Receipt",]
+                 "Purchase Receipt","POS Invoice","Sales Invoice","Stock Entry","Stock Reconciliation"]

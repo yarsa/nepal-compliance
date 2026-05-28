@@ -10,8 +10,8 @@ frappe.call({
                 var year_start_date = fy.year_start_date.split(" ")[0];
                 var year_end_date = fy.year_end_date.split(" ")[0];
 
-                var nepali_year_start_date = NepaliFunctions.AD2BS(year_start_date, "YYYY-MM-DD", "YYYY-MM-DD");
-                var nepali_year_end_date = NepaliFunctions.AD2BS(year_end_date, "YYYY-MM-DD", "YYYY-MM-DD");
+                var nepali_year_start_date = NepaliFunctions.AD2BS(year_start_date);
+                var nepali_year_end_date = NepaliFunctions.AD2BS(year_end_date);
 
                 frappe.call({
                     method: "frappe.client.set_value",
@@ -32,5 +32,5 @@ frappe.call({
 frappe.provide("nepal_compliance.public.js.update_fiscal_year_dates");
 
 nepal_compliance.public.js.update_fiscal_year_dates.convert_to_nepali_date = function(date) {
-    return NepaliFunctions.AD2BS(date, "YYYY-MM-DD", "YYYY-MM-DD");
+    return NepaliFunctions.AD2BS(date);
 };

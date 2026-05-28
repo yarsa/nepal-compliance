@@ -7,7 +7,7 @@ from frappe import _
 
 def execute(filters=None):
 	columns = [
-		{'fieldname': 'nepali_date','label': _('Date'),'fieldtype': 'Data'},
+		{'fieldname': 'posting_date','label': _('Date'),'fieldtype': 'Date'},
 		{'fieldname': 'voucher_no','label': _('Voucher Number'),'fieldtype': 'Link','options': 'Landed Cost Voucher'},
 		{'fieldname': 'receipt_document_type','label': _('Voucher type'),'fieldtype': 'Select','options': '\nPurchase Invoice\nPurchase Receipt',},
 		{'fieldname': 'receipt_document','label': _('Voucher'),'fieldtype': 'Dynamic Link','options': 'receipt_document_type'},
@@ -53,13 +53,13 @@ def execute(filters=None):
 		conditions.append("lc.name = %s")
 		values.append(filters["document_number"])
 	if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-		conditions.append("lc.nepali_date BETWEEN %s AND %s")
+		conditions.append("lc.posting_date BETWEEN %s AND %s")
 		values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
 	elif filters.get("from_nepali_date"):
-		conditions.append("lc.nepali_date >= %s")
+		conditions.append("lc.posting_date >= %s")
 		values.append(filters["from_nepali_date"])
 	elif filters.get("to_nepali_date"):
-		conditions.append("lc.nepali_date <= %s")
+		conditions.append("lc.posting_date <= %s")
 		values.append(filters["to_nepali_date"])
 
 
@@ -79,5 +79,5 @@ def execute(filters=None):
 				supplier_vat_number = frappe.db.get_value("Supplier", r.supplier, "supplier_vat_number")
 				grand_totals = 0
 			for t in taxes: 
-				data.append([land.nepali_date, land.name, item.receipt_document_type, item.receipt_document, item.item_code, item.description, item.qty, item.rate, item.amount, item.applicable_charges, r.supplier, supplier_vat_number, t.expense_account, land.distribute_charges_based_on, land.total_taxes_and_charges])
+				data.append([land.posting_date, land.name, item.receipt_document_type, item.receipt_document, item.item_code, item.description, item.qty, item.rate, item.amount, item.applicable_charges, r.supplier, supplier_vat_number, t.expense_account, land.distribute_charges_based_on, land.total_taxes_and_charges])
 	return columns, data

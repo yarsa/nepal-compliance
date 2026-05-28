@@ -9,7 +9,7 @@ from frappe.utils import flt, getdate
 def execute(filters=None):
     columns, data = [], []
     columns = [
-        _("Date") + ":Data:150",
+        _("Date") + ":Date:150",
         _("Customer") + ":Link/Customer:150",
         _("VAT/PAN Number") + ":Data:120",
         _("Invoice Number") + ":Link/Sales Invoice:200",
@@ -30,13 +30,13 @@ def execute(filters=None):
     conditions = ["si.docstatus IN (1, 2)"]
     values = []
     if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date >= %s AND nepali_date <= %s")
+        conditions.append("si.posting_date >= %s AND si.posting_date <= %s")
         values.extend([filters["from_nepali_date"], filters["to_nepali_date"]])
     elif filters.get("from_nepali_date"):
-        conditions.append("si.nepali_date >= %s")
+        conditions.append("si.posting_date >= %s")
         values.append(filters["from_nepali_date"])
     elif filters.get("to_nepali_date"):
-        conditions.append("si.nepali_date <= %s")
+        conditions.append("si.posting_date <= %s")
         values.append(filters["to_nepali_date"])
 
     if filters.get("status"):
@@ -51,11 +51,13 @@ def execute(filters=None):
         conditions.append("si.name = %s")
         values.append(filters["invoice_number"])
 
-    query = f"""
+    conditions_sql = " AND ".join(conditions)
+
+    query = """
         SELECT
-            si.nepali_date,
+            si.posting_date,
             si.customer,
-            si.vat_number,
+            COALESCE(NULLIF(si.vat_number, ''), NULLIF(si.tax_id, '')) AS vat_pan_number,
             si.name AS invoice_number,
             item.item_code,
             item.item_name,
@@ -74,10 +76,12 @@ def execute(filters=None):
             `tabSales Invoice` si
         JOIN
             `tabSales Invoice Item` item ON item.parent = si.name
-        WHERE { " AND ".join(conditions) }
+        WHERE {conditions}
         ORDER BY si.posting_date DESC
     """
-    
+
+    query = query.replace("{conditions}", conditions_sql)
+
     result = frappe.db.sql(query, values=values, as_dict=True)
     invoice_totals = {}
     current_invoice = None
@@ -99,7 +103,7 @@ def execute(filters=None):
         if current_invoice != row.invoice_number:
             if current_invoice:
                 data.append([
-                    "", "", "", "", "", "Total", 
+                    "", "", "", "", "", "Total",
                     invoice_totals[current_invoice]["qty"],
                     invoice_totals[current_invoice]["rate"], 
                     invoice_totals[current_invoice]["amount"],
@@ -138,9 +142,9 @@ def execute(filters=None):
             }
 
         data.append([
-            row.nepali_date,
+            row.posting_date,
             row.customer,
-            row.vat_number,
+            row.vat_pan_number,
             row.invoice_number,
             row.item_code,
             row.item_name,

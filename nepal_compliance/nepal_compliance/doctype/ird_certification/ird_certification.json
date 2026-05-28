@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-14 09:48:01.894690",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "test_data_created",
+  "column_break_ltaq",
+  "company",
+  "computer_billings_documents_section",
+  "column_break_hnpe",
+  "list_of_required_documents_for_ird_approval"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "Generate sample data with a button click \u2014 including test Company, Customer, Supplier, Addresses and Invoices.",
+   "fieldname": "test_data_created",
+   "fieldtype": "Check",
+   "label": "Test Data Created",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ltaq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "computer_billings_documents_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_hnpe",
+   "fieldtype": "Column Break",
+   "label": "Computer Billing Documents"
+  },
+  {
+   "fieldname": "list_of_required_documents_for_ird_approval",
+   "fieldtype": "HTML",
+   "label": "List of Required Documents for IRD Approval"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-11-06 11:50:17.671659",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "IRD Certification",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

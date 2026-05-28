@@ -1,0 +1,2 @@
+from nepal_compliance.nepali_date_utils.patch import apply_runtime_patches
+apply_runtime_patches()

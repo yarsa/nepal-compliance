@@ -6,9 +6,27 @@ from frappe import _
 from frappe.utils import getdate
 import json
 
+DOCTYPE_DATE_FIELD_MAP = {
+    "Sales Invoice": "posting_date",
+    "Purchase Invoice": "posting_date",
+    "Journal Entry": "posting_date",
+    "Payment Entry": "posting_date",
+    "Delivery Note": "posting_date",
+    "Purchase Receipt": "posting_date",
+    "POS Invoice": "posting_date",
+    "Stock Entry": "posting_date",
+    "Stock Reconciliation": "posting_date",
+    "Sales Order": "transaction_date",
+    "Purchase Order": "transaction_date",
+    "Asset": "purchase_date",
+    "Expense Claim": "posting_date",
+}
+
+ALLOWED_DOCTYPES = list(DOCTYPE_DATE_FIELD_MAP.keys())
 
 def execute(filters=None):
 	columns, data = [], []
+	filters = filters or {}
 	columns = get_columns()
 	data = get_audit_log(filters, columns)
 	return columns, data
@@ -36,15 +54,21 @@ def get_columns():
             "width": 180
         },
         {
+            "fieldname": "operation",
+            "label": _("Operation"),
+            "fieldtype": "Data",
+            "width": 120
+        },
+        {
             "fieldname": "modified",
             "label": _("Last Modified Date and Time"),
             "fieldtype": "Datetime",
             "width": 180
         },
         {
-            "fieldname": "nepali_date",
-            "label": _("Nepali Date"),
-            "fieldtype": "Data",
+            "fieldname": "posting_date",
+            "label": _("Date"),
+            "fieldtype": "Date",
             "width": 150
         },
 		{
@@ -62,137 +86,143 @@ def get_columns():
     ]
     return columns
 
-def get_conditions(filters):
-    conditions = "1=1"
-    allowed_doctypes = ["Sales Invoice", "Purchase Invoice"]
-    
-    if filters.get("ref_doctype"):
-        if filters["ref_doctype"] not in allowed_doctypes:
-            frappe.throw(_("The selected document type is not allowed."))
-        conditions += " AND v.ref_doctype = %(ref_doctype)s"
-    else:
-        conditions += " AND v.ref_doctype IN %(allowed_doctypes)s"
-        
-    if filters.get('docname'):
-        conditions += " AND v.docname = %(docname)s"
-
-    if filters.get('from_date') and filters.get('to_date'):
-        conditions += " AND DATE(v.modified) >= %(from_date)s AND DATE(v.modified) <= %(to_date)s"
-        
-    if filters.get("doc_status"):
-        conditions += " AND d.status = %(doc_status)s"
-        
-    return conditions, allowed_doctypes
-
 def get_audit_log(filters, columns):
-    
-    conditions, allowed_doctypes = get_conditions(filters)
-    filters_values = {}
-    if filters:
-        filters_values.update(filters)
-    else:
-        filters_values = {}
-        
-    if not filters.get("ref_doctype"):
-        filters_values['allowed_doctypes'] = tuple(allowed_doctypes)
-    
-    ref_doctype = filters.get("ref_doctype", "Sales Invoice")
-    
-    if ref_doctype == "Sales Invoice":
-        table_name = "Sales Invoice"
-    elif ref_doctype == "Purchase Invoice":
-        table_name = "Purchase Invoice"
-    else:
-        frappe.throw(_("Invalid ref_doctype"))
 
-    query = '''
-        SELECT v.ref_doctype,
-               v.docname,
-               v.data AS "audit_detail",
-               v.owner,
-               v.modified_by,
-               v.modified,
-               IFNULL (d.nepali_date, '') AS nepali_date,
-               d.status AS doc_status 
-        FROM tabVersion v
-        LEFT JOIN `tab{table_name}` d ON v.docname = d.name
-        WHERE {conditions}
-        ORDER BY v.docname
-    '''.format(table_name=ref_doctype, conditions=conditions)
-    
-    data = frappe.db.sql(query, filters_values, as_dict=1)
-    dl = list(data)
-    dict_submit = {}
+    queries = []
+    common_conditions = []
+
+    if filters.get("docname"):
+        common_conditions.append(f"v.docname = {frappe.db.escape(filters['docname'])}")
+
+    if filters.get("modified_by"):
+        common_conditions.append(f"v.modified_by = {frappe.db.escape(filters['modified_by'])}")
+
+    common_condition_sql = " AND ".join(common_conditions) if common_conditions else "1=1"
+
+    if filters.get("ref_doctype"):
+        doctypes = [filters["ref_doctype"]]
+        if doctypes[0] not in ALLOWED_DOCTYPES:
+            frappe.throw(_("Invalid Document Type"))
+    else:
+        doctypes = ALLOWED_DOCTYPES
+
+    for doctype in doctypes:
+        meta = frappe.get_meta(doctype)
+        date_field = DOCTYPE_DATE_FIELD_MAP.get(doctype)
+        has_status = "status" in [df.fieldname for df in meta.fields]
+
+        conditions = [
+            f"v.ref_doctype = {frappe.db.escape(doctype)}",
+            common_condition_sql
+        ]
+
+        if date_field and filters.get("from_nepali_date"):
+            conditions.append(f"d.{date_field} >= {frappe.db.escape(filters['from_nepali_date'])}")
+
+        if date_field and filters.get("to_nepali_date"):
+            conditions.append(f"d.{date_field} <= {frappe.db.escape(filters['to_nepali_date'])}")
+
+        if filters.get("doc_status") and has_status:
+            conditions.append(f"d.status = {frappe.db.escape(filters['doc_status'])}")
+
+        where_clause = " AND ".join(conditions)
+
+        queries.append(f"""
+            SELECT
+                v.ref_doctype,
+                v.docname,
+                v.data AS audit_detail,
+                v.owner,
+                v.modified_by,
+                v.modified,
+                {f"d.{date_field}" if date_field else "NULL"} AS posting_date,
+                {"d.status" if has_status else "''"} AS doc_status
+            FROM tabVersion v
+            LEFT JOIN `tab{doctype}` d ON v.docname = d.name
+            WHERE {where_clause}
+        """)
+
+    final_query = " UNION ALL ".join(queries) + " ORDER BY modified DESC"
+
+    data = frappe.db.sql(final_query, as_dict=True)
+
+    return post_process_rows(data, columns, filters)
+
+def post_process_rows(data, columns, filters):
+
     changed_fields = set()
-    
-    for row in dl:
-        temp_json = json.loads(row['audit_detail'])
-        changes = []
-        row['submit_status'] = "No"
+    submit_map = {}
 
-        if "changed" in temp_json:
-            for d in temp_json['changed']:
-                if d[0] == 'docstatus':
-                    if d[1] == 0 and d[2] == 1:
-                        row['submit_status'] = "Yes"
-                        dict_submit.setdefault(row['docname'], frappe._dict()).setdefault("modified", []).append(row["modified"])
-                    else:
-                        row['submit_status'] = "No"
-                else:
-                    changed_fields.add(d[0])
-                    row[d[0]] = f"{d[1]} -> {d[2]}"
-                    changes.append(f"- **{d[0]}**: {d[1]} -> {d[2]}")
-        if 'nepali_date' not in row:
-            row['nepali_date'] = ""
+    for row in data:
+        try:
+            payload = json.loads(row["audit_detail"])
+        except (json.JSONDecodeError, TypeError):
+            row.update({
+                "submit_status": "No",
+                "operation": "Unknown",
+                "audit_detail_summary": "Error parsing audit detail"
+            })
+            continue
+        summary_lines = []
+        row["submit_status"] = "No"
+        row["operation"] = payload.get("operation", "Update").capitalize()
 
-        if "data" in temp_json:
-            for d in temp_json['data']:
-                if d[0] == 'sql_query':
-                    row['sql_query'] = d[1]
-                    changed_fields.add('sql_query')
-                    changes.append(f"- **SQL Query**: {d[1]}")
-                elif d[0] == 'data_import':
-                    row['data_import'] = d[1]
-                    changed_fields.add('data_import')
-                    changes.append(f"- **Data Import**: {d[1]}")
-                elif d[0] == 'user_activity':
-                    row['user_activity'] = d[1]
-                    changed_fields.add('user_activity')
-                    changes.append(f"- **User Activity**: {d[1]}")
-        doc = frappe.get_doc(row['ref_doctype'], row['docname'])
-        
-        row['doc_status'] = doc.get("status")
-        row['audit_detail_summary'] = "\n".join(changes)
-        
+        for changes in payload.get("changed", []):
+            if not isinstance(changes, list) or len(changes) < 3:
+                continue
+            field, old, new = changes[0], changes[1], changes[2]
+            if field == "docstatus":
+                if old == 0 and new == 1:
+                    row["submit_status"] = "Yes"
+                    row["operation"] = "Submit"
+                    submit_map.setdefault(row["docname"], []).append(row["modified"])
+                elif old == 1 and new == 2:
+                    row["operation"] = "Cancel"
+            else:
+                changed_fields.add(field)
+                if field != "posting_date":
+                    row[field] = f"{old} → {new}"
+                summary_lines.append(f"- **{field.replace('_',' ').title()}**: {old} → {new}")
+
+        for d in payload.get("data", []):
+            if not isinstance(d, list) or len(d) < 2:
+                continue
+            field, value = d[0], d[1]
+            changed_fields.add(field)
+            if field != "posting_date":
+                row[field] = value
+            summary_lines.append(f"- **{field.replace('_',' ').title()}**: {value}")
+
+        row["audit_detail_summary"] = "\n".join(summary_lines)
+
+    for row in data:
+        if row["docname"] in submit_map and row["submit_status"] == "No":
+            if row["modified"] > submit_map[row["docname"]][0]:
+                row["submit_status"] = "After Submit"
+
     for field in changed_fields:
-        if field != "nepali_date":
+        if field != "posting_date":
             columns.append({
                 "label": _(field.replace("_", " ").title()),
-                "fieldtype": "Data",
                 "fieldname": field,
-                "width": 200
+                "fieldtype": "Data",
+                "width": 200,
             })
+
     columns.append({
         "label": _("Audit Detail Summary"),
-        "fieldtype": "Text",
         "fieldname": "audit_detail_summary",
-        "width": 500
+        "fieldtype": "Text",
+        "width": 500,
     })
-    
-    for row in dl:
-        modified = ''
-        if row['docname'] in dict_submit:
-            modified = dict_submit.get(row['docname'], {}).get("modified", [])[0]
-        if modified:
-            if (row['modified'] - modified).days > 0 and row['submit_status'] == 'No':
-                row['submit_status'] = "After Submit"
-            elif (row['modified'] - modified).days == 0 and row['submit_status'] == 'No' and (row['modified'] - modified).seconds > 0:
-                row['submit_status'] = "After Submit"
-    
+
+    if filters.get("operation"):
+        data = [d for d in data if d.get("operation") == filters["operation"]]
+
     if filters.get("status"):
-        dl = [row for row in dl if row['submit_status'] == filters["status"]]
+        data = [d for d in data if d.get("submit_status") == filters["status"]]
 
     if filters.get("doc_status"):
-        dl = [row for row in dl if row['doc_status'] == filters["doc_status"]]
-        
-    return dl
+        data = [d for d in data if d.get("doc_status") == filters["doc_status"]]
+
+    return data

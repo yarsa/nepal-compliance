@@ -281,7 +281,7 @@ frappe.ui.form.on('Salary Slip', {
  
     start_date(frm) {
         if (frm.doc.start_date) {
-            const nepaliStartDate = NepaliFunctions.AD2BS(frm.doc.start_date, "YYYY-MM-DD", "YYYY-MM-DD");
+            const nepaliStartDate = NepaliFunctions.AD2BS(frm.doc.start_date);
             frappe.model.set_value(frm.doctype, frm.docname, "nepali_start_date", nepaliStartDate);
             frm.refresh_field('nepali_start_date');
         }
@@ -289,21 +289,21 @@ frappe.ui.form.on('Salary Slip', {
  
     end_date(frm) {
         if (frm.doc.end_date) {
-            const nepaliEndDate = NepaliFunctions.AD2BS(frm.doc.end_date, "YYYY-MM-DD", "YYYY-MM-DD");
+            const nepaliEndDate = NepaliFunctions.AD2BS(frm.doc.end_date);
             frappe.model.set_value(frm.doctype, frm.docname, "nepali_end_date", nepaliEndDate);
             frm.refresh_field('nepali_end_date');
         }
     },
     nepali_start_date(frm) {
         if (frm.doc.nepali_start_date) {
-            const startDate = NepaliFunctions.BS2AD(frm.doc.nepali_start_date, "YYYY-MM-DD", "YYYY-MM-DD");
+            const startDate = NepaliFunctions.BS2AD(frm.doc.nepali_start_date);
             frappe.model.set_value(frm.doctype, frm.docname, "start_date", startDate);
             frm.refresh_field('start_date');
         }
     },
     nepali_end_date(frm) {
         if (frm.doc.nepali_end_date) {
-            const endDate = NepaliFunctions.BS2AD(frm.doc.nepali_end_date, "YYYY-MM-DD", "YYYY-MM-DD");
+            const endDate = NepaliFunctions.BS2AD(frm.doc.nepali_end_date);
             frappe.model.set_value(frm.doctype, frm.docname, "end_date", endDate);
             frm.refresh_field('end_date');
         }
@@ -342,7 +342,7 @@ function calculate_selected_earnings(frm) {
     let total_deductions = 0;
     
     const selected_components = [
-        "Basic Salary", "Other Allowance", "Grade Amount", "Blog Allowance", "Earning Adjustment","Overtime", "Gratuity", 
+        "Basic Salary", "Other Allowance", "Employee Grade Amount", "Blog Allowance", "Earning Adjustment","Overtime", "Gratuity", 
         "Provident Fund Employer", "Employer's Contribution SSF", 
     ];
     
