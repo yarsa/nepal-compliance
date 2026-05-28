@@ -65,20 +65,5 @@ jobs:
               });
               console.log('Label "large-pr" added.');
             } else {
-              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
-                owner,
-                repo,
-                issue_number: prNumber,
-              });
-              if (labels.some(label => label.name === 'large-pr')) {
-                await github.rest.issues.removeLabel({
-                  owner,
-                  repo,
-                  issue_number: prNumber,
-                  name: 'large-pr',
-                });
-                console.log('Label "large-pr" removed.');
-              } else {
-                console.log('Label "large-pr" not present, nothing to remove.');
-              }
+              console.log('Label "large-pr" not present, nothing to remove.');
             }
