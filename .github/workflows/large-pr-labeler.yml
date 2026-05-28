@@ -69,16 +69,5 @@ jobs:
               });
               console.log('Label "large-pr" added.');
             } else {
-              try {
-                await github.rest.issues.removeLabel({
-                  owner,
-                  repo,
-                  issue_number: prNumber,
-                  name: 'large-pr',
-                });
-                console.log('Label "large-pr" removed.');
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                console.log('Label "large-pr" not present, nothing to remove.');
-              }
+              console.log('Label "large-pr" not present, nothing to remove.');
             }
