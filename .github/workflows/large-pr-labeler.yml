@@ -1,13 +1,8 @@
 name: Label Large PR
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
   label-large-pr:
@@ -70,7 +65,12 @@ jobs:
               });
               console.log('Label "large-pr" added.');
             } else {
-              try {
+              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                owner,
+                repo,
+                issue_number: prNumber,
+              });
+              if (labels.some(label => label.name === 'large-pr')) {
                 await github.rest.issues.removeLabel({
                   owner,
                   repo,
@@ -78,8 +78,7 @@ jobs:
                   name: 'large-pr',
                 });
                 console.log('Label "large-pr" removed.');
-              } catch (error) {
-                if (error.status !== 404) throw error;
+              } else {
                 console.log('Label "large-pr" not present, nothing to remove.');
               }
             }
