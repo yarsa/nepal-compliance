@@ -1,5 +1,6 @@
 import frappe, traceback
 from frappe import _
+from collections import defaultdict
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 from hrms.payroll.doctype.salary_slip.salary_slip import make_loan_repayment_entry
 from frappe.utils import cint, flt
@@ -138,7 +139,7 @@ class CustomPayrollEntry(PayrollEntry):
     def submit_salary_slips(self):
         self.check_permission("write")
         salary_slips = self.get_sal_slip_list(ss_status=0)
-        
+
         if len(salary_slips) > 30 or frappe.flags.enqueue_payroll_entry:
             self.db_set("status", "Queued")
             frappe.enqueue(
@@ -203,12 +204,19 @@ class CustomPayrollEntry(PayrollEntry):
     def make_bank_entry(self, for_withheld_salaries: bool = False) -> Optional[Document]:
         self.check_permission("write")
         self.employee_based_payroll_payable_entries = {}
-        employee_wise_accounting_enabled = frappe.db.get_single_value(
-        "Payroll Settings", "process_payroll_accounting_entry_based_on_employee"
-    )
+        employee_wise_accounting_enabled = cint(frappe.db.get_single_value(
+            "Payroll Settings", "process_payroll_accounting_entry_based_on_employee"
+        ))
 
         salary_slip_total = 0
         salary_details = self.get_salary_slip_details(for_withheld_salaries)
+
+        # Accumulator for flex-benefit components paid via separate JE.
+        # Keyed by salary_component, value is list of
+        # (employee, amount, salary_structure) tuples for every claimant.
+        # Emitted as one consolidated JE per component AFTER the main
+        # bank entry, with employee-wise rows so each claim is traceable.
+        flex_benefit_claims = defaultdict(list)
 
         for sd in salary_details:
             if not sd.salary_component:
@@ -216,16 +224,16 @@ class CustomPayrollEntry(PayrollEntry):
 
             if sd.parentfield == "earnings":
                 result = frappe.db.get_value(
-                "Salary Component",
-                sd.salary_component,
-                (
-                    "is_flexible_benefit",
-                    "only_tax_impact",
-                    "create_separate_payment_entry_against_benefit_claim",
-                    "statistical_component",
-                ),
-                cache=True,
-            )
+                    "Salary Component",
+                    sd.salary_component,
+                    (
+                        "is_flexible_benefit",
+                        "only_tax_impact",
+                        "create_separate_payment_entry_against_benefit_claim",
+                        "statistical_component",
+                    ),
+                    cache=True,
+                )
 
                 if result:
                     is_flexible_benefit, only_tax_impact, create_separate_je, statistical_component = result
@@ -234,50 +242,95 @@ class CustomPayrollEntry(PayrollEntry):
 
                 if only_tax_impact != 1 and statistical_component != 1:
                     if is_flexible_benefit == 1 and create_separate_je == 1:
-                        self.set_accounting_entries_for_bank_entry(
-                        sd.amount, sd.salary_component
-                    )
+                        # Defer: don't create a JE inside the loop. Collect
+                        # every (employee, amount) so we can produce ONE
+                        # consolidated JE per component after the main run.
+                        flex_benefit_claims[sd.salary_component].append(
+                            (sd.employee, sd.amount, sd.salary_structure)
+                        )
                     else:
                         if employee_wise_accounting_enabled:
                             self.set_employee_based_payroll_payable_entries(
-                            "earnings",
-                            sd.employee,
-                            sd.amount,
-                            sd.salary_structure,
-                        )
-                    salary_slip_total += sd.amount
+                                "earnings",
+                                sd.employee,
+                                sd.amount,
+                                sd.salary_structure,
+                            )
+                        salary_slip_total += sd.amount
 
             elif sd.parentfield == "deductions":
                 statistical_component = frappe.db.get_value(
-                "Salary Component",
-                sd.salary_component,
-                "statistical_component",
-                cache=True,
-            ) or 0
+                    "Salary Component",
+                    sd.salary_component,
+                    "statistical_component",
+                    cache=True,
+                ) or 0
 
                 if not statistical_component:
                     if employee_wise_accounting_enabled:
                         self.set_employee_based_payroll_payable_entries(
-                        "deductions",
-                        sd.employee,
-                        sd.amount,
-                        sd.salary_structure,
-                    )
+                            "deductions",
+                            sd.employee,
+                            sd.amount,
+                            sd.salary_structure,
+                        )
                     salary_slip_total -= sd.amount
 
         total_loan_repayment = self.process_loan_repayments_for_bank_entry(salary_details) or 0
         salary_slip_total -= total_loan_repayment
 
+        # ---- 1. Main consolidated bank entry for regular salary ----
         bank_entry = None
         if salary_slip_total != 0:
             remark = "withheld salaries" if for_withheld_salaries else "salaries"
             bank_entry = self.set_accounting_entries_for_bank_entry(
- 		   salary_slip_total, remark, employee_wise_accounting_enabled
-	    )
+                salary_slip_total, remark, employee_wise_accounting_enabled
+            )
             if for_withheld_salaries:
                 link_bank_entry_in_salary_withholdings(salary_details, bank_entry.name)
-
-        else:
+        elif not flex_benefit_claims:
             frappe.msgprint(_("Total Net Pay is zero; Bank Entry will not be created."))
+
+        # ---- 2. One consolidated JE per flex-benefit component ----
+        # Each component gets its own JE so multi-component runs stay
+        # readable in the GL. Within each JE, every claimant is a separate
+        # party-tagged debit row when employee-wise accounting is enabled.
+        for component, claimants in flex_benefit_claims.items():
+            saved_entries = self.employee_based_payroll_payable_entries
+            component_total = sum(amount for _emp, amount, _ss in claimants)
+
+            if employee_wise_accounting_enabled:
+                # Aggregate per employee in case a claimant appears more
+                # than once for the same component (e.g. two Festival
+                # Allowance Benefit Claims by the same employee in one
+                # payroll run). Without this, the dict comprehension
+                # silently overwrites earlier rows while component_total
+                # has already summed both, producing an unbalanced JE.
+                per_employee_earnings = defaultdict(float)
+                per_employee_structure = {}
+                for employee, amount, salary_structure in claimants:
+                    per_employee_earnings[employee] += amount
+                    per_employee_structure[employee] = salary_structure
+
+                self.employee_based_payroll_payable_entries = {
+                    employee: {
+                        "earnings": total,
+                        "deductions": 0,
+                        "total_loan_repayment": 0,
+                        "salary_structure": per_employee_structure[employee],
+                    }
+                    for employee, total in per_employee_earnings.items()
+                }
+            else:
+                self.employee_based_payroll_payable_entries = {}
+
+            try:
+                self.set_accounting_entries_for_bank_entry(
+                    component_total,
+                    component,
+                    employee_wise_accounting_enabled,
+                )
+            finally:
+                self.employee_based_payroll_payable_entries = saved_entries
 
         return bank_entry
