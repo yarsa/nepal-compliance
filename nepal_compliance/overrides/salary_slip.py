@@ -100,9 +100,9 @@ class CustomPayrollEntry(PayrollEntry):
     def make_bank_entry(self, for_withheld_salaries: bool = False) -> Optional[Document]:
         self.check_permission("write")
         self.employee_based_payroll_payable_entries = {}
-        employee_wise_accounting_enabled = frappe.db.get_single_value(
+        employee_wise_accounting_enabled = cint(frappe.db.get_single_value(
             "Payroll Settings", "process_payroll_accounting_entry_based_on_employee"
-        )
+        ))
 
         salary_slip_total = 0
         salary_details = self.get_salary_slip_details(for_withheld_salaries)
