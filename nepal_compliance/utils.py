@@ -81,14 +81,28 @@ def set_vat_numbers(doc, method):
                     doc.supplier_vat_number = company_vat
 
 def load_nepali_date(doc, method):
-    if not hasattr(doc, "nepali_date") or not hasattr(doc, "posting_date"):
+    if not hasattr(doc, "nepali_date"):
         return
 
-    posting_date_str = str(doc.posting_date).strip()
-    nepali_date_str = str(doc.nepali_date).strip() if doc.nepali_date else ""
+    ad_field = "posting_date" if hasattr(doc, "posting_date") else (
+        "transaction_date" if hasattr(doc, "transaction_date") else None
+    )
+    if not ad_field:
+        return
 
-    if nepali_date_str and posting_date_str != nepali_date_str:
+    ad_value = doc.get(ad_field)
+    if not ad_value:
         doc.nepali_date = None
+        return
+
+    from nepal_compliance.nepali_date_utils.utils import bs_date, nepal_compliance_enabled
+
+    if not nepal_compliance_enabled():
+        return
+
+    bs = bs_date(ad_value)
+    if bs:
+        doc.nepali_date = str(bs).strip()
 
 def bill_no_required(doc, method):
     if doc.doctype != "Purchase Invoice":
