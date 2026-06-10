@@ -101,7 +101,9 @@ def load_nepali_date(doc, method):
         return
 
     bs = bs_date(ad_value)
-    if bs:
+    # bs_date() returns the input unchanged when conversion is skipped or fails;
+    # only store the result when it actually differs from the AD value.
+    if bs and str(bs).strip() != str(ad_value).strip():
         doc.nepali_date = str(bs).strip()
 
 def bill_no_required(doc, method):
