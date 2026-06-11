@@ -1,20 +1,21 @@
-name: Build and Push Docker Image
+name: Build and Push
 on:
-  release:
-    types: [published]
   push:
     branches:
-      - ci/custom-image-tags
-      - develop
+      - master
     paths-ignore:
       - '**/*.md'
 
 env:
   TZ: /usr/share/zoneinfo/Asia/Kathmandu
+  # 1m cache segment restore timeout to stop wasting resource time
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
   REGISTRY: docker.io
-  IMAGE_NAME: dockmyapp0/nepal-compliance
+  IMAGE_NAME: yarsalabs/nepal-compliance
+  APPS_JSON: ${{ vars.APPS_JSON }}
 
+# workflow can only read this repo’s code but cannot change
+# workflow can push Docker or GHCR images
 permissions:
   contents: read
   packages: write
@@ -35,7 +36,6 @@ jobs:
       image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.build.outputs.digest }}
       metadata: ${{ steps.meta.outputs.json }}
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -46,8 +46,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,41 +58,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.tag.outputs.tag }}
-
-      - name: Generate image tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            # For releases: use the tag name (e.g., v0.1.3)
-            TAG="${{ github.event.release.tag_name }}"
-            echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref_name }}" = "ci/custom-image-tags" ]; then
-            # For master branch: use latest
-            echo "tag=latest" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref_name }}" = "develop" ]; then
-            # For develop branch: use develop
-            echo "tag=develop" >> $GITHUB_OUTPUT
-          else
-            # Fallback for other branches (shouldn't happen with current triggers)
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT  
-          fi
-
-      - name: Set APPS_JSON based on branch
-        run: |
-          if [ "${{ github.ref_name }}" = "develop" ]; then
-            echo "APPS_JSON_RAW<<EOF" >> $GITHUB_ENV
-            echo '${{ vars.APPS_JSON_DEVELOP }}' >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          else
-            echo "APPS_JSON_RAW<<EOF" >> $GITHUB_ENV
-            echo '${{ vars.APPS_JSON }}' >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          fi
+            type=raw,value=latest
 
       - name: Encode APPS_JSON to base64
         run: |
-          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON_RAW }}' | base64 -w 0)" >> $GITHUB_ENV
+          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON }}' | base64 -w 0)" >> $GITHUB_ENV
 
       - name: Clone frappe_docker
         run: git clone --depth=1 https://github.com/frappe/frappe_docker
@@ -149,8 +119,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Extract metadata
         id: meta
@@ -158,15 +128,15 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.tag.outputs.tag }}
+            type=raw,value=latest
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.tag }} \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.tag }}
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
