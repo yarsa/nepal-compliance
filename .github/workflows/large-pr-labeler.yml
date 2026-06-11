@@ -1,27 +1,34 @@
 name: Label Large PR
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  workflow_run:
+    workflows: ["PR Size Check"]
+    types: [completed]
 
 jobs:
   label-large-pr:
     runs-on: ubuntu-slim
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+      pull-requests: write
 
     steps:
-      - name: Check if "large-pr" label exists
+      - name: Download size result
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-size
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Ensure "large-pr" label exists
         uses: actions/github-script@v7
         with:
           script: |
             const labelName = 'large-pr';
-            const labelColor = 'BC5834';
-            const labelDescription = 'Pull request with over 300 LOC changed.';
-
             try {
               await github.rest.issues.getLabel({
                 owner: context.repo.owner,
@@ -34,34 +41,25 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   name: labelName,
-                  color: labelColor,
-                  description: labelDescription,
+                  color: 'BC5834',
+                  description: 'Pull request with over 300 LOC changed.',
                 });
               } else {
                 throw error;
               }
             }
 
-      - name: Label Large PR
+      - name: Apply or remove label
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = context.payload.pull_request;
+            const fs = require('fs');
+            const { prNumber, isLarge } = JSON.parse(fs.readFileSync('pr-size.json', 'utf8'));
+
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const prNumber = pr.number;
 
-            const { data: files } = await github.rest.pulls.listFiles({
-              owner,
-              repo,
-              pull_number: prNumber,
-            });
-
-            const totalChanges = files.reduce((sum, file) => {
-              return sum + file.additions + file.deletions;
-            }, 0);
-
-            if (totalChanges > 300) {
+            if (isLarge) {
               await github.rest.issues.addLabels({
                 owner,
                 repo,
@@ -80,6 +78,6 @@ jobs:
                 console.log('Label "large-pr" removed.');
               } catch (error) {
                 if (error.status !== 404) throw error;
-                console.log('Label "large-pr" not present, nothing to remove.');
+                console.log('Label large-pr not present.');
               }
             }
