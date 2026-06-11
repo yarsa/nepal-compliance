@@ -3,8 +3,10 @@ name: Label Large PR
 on:
   pull_request:
 permissions:
-  pull-requests: write
     types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
 
 jobs:
   label-large-pr:
