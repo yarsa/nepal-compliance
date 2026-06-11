@@ -2,8 +2,9 @@ name: Label Large PR
 
 on:
   pull_request:
-permissions:
     types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
+
 
 permissions:
   pull-requests: write
