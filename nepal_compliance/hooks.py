@@ -61,10 +61,12 @@ doctype_js = {
     "Company": "public/js/validate.js",
     "Purchase Invoice": "public/js/purchase_invoice.js",
     "Sales Invoice": "public/js/sales_invoice.js",
+    "Sales Order": "public/js/sales_order.js",
     "CBMS Settings": "nepal_compliance/doctype/cbms_settings/cbms_settings.js",
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
-    "Salary Slip": "public/js/salary_slip.js"
+    "Salary Slip": "public/js/salary_slip.js",
+    "Payroll Entry": "public/js/payroll_entry.js"
 }
 
 doctype_list_js = {
@@ -162,7 +164,8 @@ override_doctype_class = {
     "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
     "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
-    "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment"
+    "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment",
+    "Item": "nepal_compliance.overrides.item.CustomItem"
 }
 
 # Document Events
@@ -180,9 +183,12 @@ doc_events = {
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
-        "before_insert": ["nepal_compliance.utils.set_vat_numbers", "nepal_compliance.utils.load_nepali_date"],
+        "before_insert": "nepal_compliance.utils.set_vat_numbers",
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
-        "validate": "nepal_compliance.qr_code.create_qr_code"
+        "validate": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.utils.load_nepali_date"]
+    },
+    "Sales Order" : {
+        "validate": "nepal_compliance.utils.load_nepali_date"
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",

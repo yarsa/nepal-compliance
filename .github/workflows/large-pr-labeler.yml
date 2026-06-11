@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: ["PR Size Check"]
     types: [completed]
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   label-large-pr:
@@ -80,4 +82,5 @@ jobs:
                 if (error.status !== 404) throw error;
                 console.log('Label large-pr not present.');
               }
+              console.log('Label "large-pr" not present, nothing to remove.');
             }
