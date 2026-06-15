@@ -73,10 +73,12 @@ jobs:
       - name: Validate APPS_JSON and write apps.json
         run: |
           test -n "$APPS_JSON" || { echo "::error::APPS_JSON repository variable is empty"; exit 1; }
-          printf '%s' "$APPS_JSON" | jq -e 'type == "array" and length > 0' >/dev/null \
-            || { echo "::error::APPS_JSON must be a non-empty JSON array"; exit 1; }
+          printf '%s' "$APPS_JSON" \
+            | jq -e 'type == "array" and length > 0 and all(.[]; (.url | type == "string" and (length > 0)) and (.branch | type == "string" and (length > 0)))' >/dev/null \
+            || { echo "::error::APPS_JSON must be a non-empty JSON array of {\"url\", \"branch\"} string entries"; exit 1; }
           printf '%s' "$APPS_JSON" > "$GITHUB_WORKSPACE/apps.json"
-          echo "APPS_JSON OK: $(jq -r 'map(.url) | join(", ")' "$GITHUB_WORKSPACE/apps.json")"
+          # Log only repo names + count — never the raw URLs, which may carry credentials.
+          echo "APPS_JSON OK: $(jq 'length' "$GITHUB_WORKSPACE/apps.json") apps: $(jq -r '[.[].url | sub("\\.git$"; "") | sub(".*/"; "")] | join(", ")' "$GITHUB_WORKSPACE/apps.json")"
 
       - name: Build and push by digest
         id: build
