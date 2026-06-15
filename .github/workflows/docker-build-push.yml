@@ -13,6 +13,10 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: yarsalabs/nepal-compliance
   APPS_JSON: ${{ vars.APPS_JSON }}
+  # Pin frappe_docker to a known-good commit so upstream Containerfile changes
+  # can't silently break the build (e.g. ae275df moved the app list from the
+  # APPS_JSON_BASE64 build-arg to a BuildKit secret). Bump deliberately after testing.
+  FRAPPE_DOCKER_REF: 7ef1d3e66435624dd5faddd7984a97764be75f36
 
 # workflow can only read this repo’s code but cannot change
 # workflow can push Docker or GHCR images
@@ -60,12 +64,18 @@ jobs:
           tags: |
             type=raw,value=latest
 
-      - name: Encode APPS_JSON to base64
+      - name: Clone frappe_docker (pinned)
         run: |
-          echo "APPS_JSON_BASE64=$(echo '${{ env.APPS_JSON }}' | base64 -w 0)" >> $GITHUB_ENV
+          git clone --filter=blob:none https://github.com/frappe/frappe_docker
+          git -C frappe_docker checkout --detach "${FRAPPE_DOCKER_REF}"
+          git -C frappe_docker --no-pager log -1 --format='Pinned frappe_docker to %H %s'
 
-      - name: Clone frappe_docker
-        run: git clone --depth=1 https://github.com/frappe/frappe_docker
+      - name: Validate APPS_JSON
+        run: |
+          test -n "$APPS_JSON" || { echo "::error::APPS_JSON repository variable is empty"; exit 1; }
+          printf '%s' "$APPS_JSON" | jq -e 'type == "array" and length > 0' >/dev/null \
+            || { echo "::error::APPS_JSON must be a non-empty JSON array"; exit 1; }
+          echo "APPS_JSON OK: $(printf '%s' "$APPS_JSON" | jq -r 'map(.url) | join(", ")')"
 
       - name: Build and push by digest
         id: build
@@ -78,12 +88,15 @@ jobs:
           file: frappe_docker/images/custom/Containerfile
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          # apps.json is passed as a BuildKit secret (id=apps_json) — the Containerfile
+          # mounts it at /opt/frappe/apps.json. Passing it as a build-arg no longer works.
+          secrets: |
+            apps_json=${{ env.APPS_JSON }}
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-15
             PYTHON_VERSION=3.11.9
             NODE_VERSION=18.20.2
-            APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
 
       - name: Export digest
         id: digest
