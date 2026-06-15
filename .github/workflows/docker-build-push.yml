@@ -70,6 +70,13 @@ jobs:
           git -C frappe_docker checkout --detach "${FRAPPE_DOCKER_REF}"
           git -C frappe_docker --no-pager log -1 --format='Pinned frappe_docker to %H %s'
 
+      - name: Validate APPS_JSON
+        run: |
+          test -n "$APPS_JSON" || { echo "::error::APPS_JSON repository variable is empty"; exit 1; }
+          printf '%s' "$APPS_JSON" | jq -e 'type == "array" and length > 0' >/dev/null \
+            || { echo "::error::APPS_JSON must be a non-empty JSON array"; exit 1; }
+          echo "APPS_JSON OK: $(printf '%s' "$APPS_JSON" | jq -r 'map(.url) | join(", ")')"
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
