@@ -5,6 +5,10 @@ on:
     workflows: ["PR Size Check"]
     types: [completed]
 
+
+permissions:
+  pull-requests: write
+
 jobs:
   label-large-pr:
     runs-on: ubuntu-slim
