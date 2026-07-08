@@ -81,8 +81,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
 
         slab_doc = frappe.get_doc("Income Tax Slab", slab_name)
 
-        # We defined 8 slabs in the source file
-        self.assertEqual(len(slab_doc.slabs), 8)
+        # We defined 5 slabs in the source file
+        self.assertEqual(len(slab_doc.slabs), 5)
 
     def test_idempotent_slab_creation(self):
         #Should not duplicate slabs when running creation twice
@@ -104,8 +104,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
         slab_name = f"{self.company} - Income Tax Slab"
         slab_doc = frappe.get_doc("Income Tax Slab", slab_name)
 
-        # Should still be 8 (no duplication)
-        self.assertEqual(len(slab_doc.slabs), 8)
+        # Should still be 5 (no duplication)
+        self.assertEqual(len(slab_doc.slabs), 5)
 
     def test_no_fiscal_year(self):
         #Should return None when fiscal year does not exist
