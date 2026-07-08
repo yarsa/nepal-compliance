@@ -47,25 +47,25 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
         "condition": None
     },
     {
-        "from_amount": 1000001,
+        "from_amount": 1000000,
         "to_amount": 1500000,
         "percent_deduction": 10,
         "condition": None
     },
     {
-        "from_amount": 1500001,
+        "from_amount": 1500000,
         "to_amount": 2500000,
         "percent_deduction": 20,
         "condition": None
     },
     {
-        "from_amount": 2500001,
+        "from_amount": 2500000,
         "to_amount": 4000000,
         "percent_deduction": 27,
         "condition": None
     },
     {
-        "from_amount": 4000001,
+        "from_amount": 4000000,
         "to_amount": 0,
         "percent_deduction": 29,
         "condition": None
