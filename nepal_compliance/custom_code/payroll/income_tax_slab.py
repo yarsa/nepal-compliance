@@ -72,21 +72,13 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
     }
     ]
 
+    income_tax_slab.set("slabs", [])
     for slab in slabs:
-        existing_slab = next((s for s in income_tax_slab.slabs if 
-                             s.from_amount == slab["from_amount"] and 
-                             s.to_amount == slab["to_amount"] and
-                             s.percent_deduction == slab["percent_deduction"] and
-                             s.condition == slab["condition"]), None)
-
-        if not existing_slab:
-            income_tax_slab.append("slabs", {
-                "from_amount": slab["from_amount"],
-                "to_amount": slab["to_amount"],
-                "percent_deduction": slab["percent_deduction"],
-                "condition": slab["condition"],
-            })
-        else:
-            frappe.msgprint(f"Slab already exists: {slab['from_amount']} - {slab['to_amount']}")
+        income_tax_slab.append("slabs", {
+            "from_amount": slab["from_amount"],
+            "to_amount": slab["to_amount"],
+            "percent_deduction": slab["percent_deduction"],
+            "condition": slab["condition"],
+        })
 
     income_tax_slab.save(ignore_permissions=True)
