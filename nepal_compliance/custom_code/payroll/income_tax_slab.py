@@ -38,53 +38,37 @@ def create_income_tax_slab_for_company(company_name, year_start_date, company_cu
         income_tax_slab.effective_from = year_start_date
         income_tax_slab.nepali_date = nepali_date
 
+    # Nepal income tax slabs (single set, identical for married and unmarried).
+    # condition is None on every slab so the brackets apply regardless of marital status.
     slabs = [{
-        "from_amount": 600001,
-        "to_amount": 800000,
-        "percent_deduction": 10,
-        "condition": "marital_status == 'Married'"
-    },
-    {
-        "from_amount": 800001,
-        "to_amount": 1100000,
-        "percent_deduction": 20,
-        "condition": "marital_status == 'Married'"
-    },
-    {
-        "from_amount": 1100001,
-        "to_amount": 2000000,
-        "percent_deduction": 30,
-        "condition": "marital_status == 'Married'"
-    },
-    {
-        "from_amount": 2000001,
-        "to_amount": 5000000,
-        "percent_deduction": 36,
-        "condition": None
-    },
-    {
-        "from_amount": 5000001,
-        "to_amount": 0,
-        "percent_deduction": 39,
-        "condition": None
-    },
-    {
-        "from_amount": 500001,
-        "to_amount": 700000,
-        "percent_deduction": 10,
-        "condition": "marital_status != 'Married'"
-    },
-    {
-        "from_amount": 700001,
+        "from_amount": 0,
         "to_amount": 1000000,
-        "percent_deduction": 20,
-        "condition": "marital_status != 'Married'"
+        "percent_deduction": 1,
+        "condition": None
     },
     {
         "from_amount": 1000001,
-        "to_amount": 2000000,
-        "percent_deduction": 30,
-        "condition": "marital_status != 'Married'"
+        "to_amount": 1500000,
+        "percent_deduction": 10,
+        "condition": None
+    },
+    {
+        "from_amount": 1500001,
+        "to_amount": 2500000,
+        "percent_deduction": 20,
+        "condition": None
+    },
+    {
+        "from_amount": 2500001,
+        "to_amount": 4000000,
+        "percent_deduction": 27,
+        "condition": None
+    },
+    {
+        "from_amount": 4000001,
+        "to_amount": 0,
+        "percent_deduction": 29,
+        "condition": None
     }
     ]
 
