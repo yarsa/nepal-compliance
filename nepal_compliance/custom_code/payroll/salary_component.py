@@ -78,7 +78,7 @@ def create_multiple_salary_components():
         salary_components = [
             {
                 "amount_based_on_formula": 1,
-                "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <=600000 else (((600000 * 0.01) + (((taxable_salary) * 12) - 600000) * 0.1)/12) if ((taxable_salary) * 12) <= 800000 else (((600000*0.01) + (200000*0.1) + (((taxable_salary)*12) - 800000) * 0.2)/12) if ((taxable_salary)*12) <= 1100000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + ((taxable_salary)*12 - 1100000) *0.3)/12) if ((taxable_salary)*12)<=2000000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + (900000*0.3) + ((taxable_salary)*12 - 2000000)*0.36)/12) if ((taxable_salary)*12)<=5000000 else (((600000*0.01) + (200000*0.1) + (300000*0.2) + (900000*0.3) + (3000000*0.36) + ((taxable_salary)*12 - 5000000)*0.39)/12) if ((taxable_salary)*12)>5000000 else -1",
+                "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <= 1000000 else (((1000000 * 0.01) + (((taxable_salary) * 12) - 1000000) * 0.1)/12) if ((taxable_salary) * 12) <= 1500000 else (((1000000*0.01) + (500000*0.1) + (((taxable_salary)*12) - 1500000) * 0.2)/12) if ((taxable_salary)*12) <= 2500000 else (((1000000*0.01) + (500000*0.1) + (1000000*0.2) + ((taxable_salary)*12 - 2500000) *0.27)/12) if ((taxable_salary)*12)<=4000000 else (((1000000*0.01) + (500000*0.1) + (1000000*0.2) + (1500000*0.27) + ((taxable_salary)*12 - 4000000)*0.29)/12) if ((taxable_salary)*12)>4000000 else 0",
                 "exempted_from_income_tax": 0,
                 "name": "Income Tax Married",
                 "salary_component": "Income Tax Married",
@@ -87,7 +87,7 @@ def create_multiple_salary_components():
             },
             {
                 "amount_based_on_formula": 1,
-                "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <=500000 else (((500000 * 0.01) + (((taxable_salary) * 12) - 500000) * 0.1)/12) if ((taxable_salary) * 12) <= 700000 else (((500000*0.01) + (200000*0.1) + (((taxable_salary)*12) - 700000) * 0.2)/12) if ((taxable_salary)*12) <= 1000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + ((taxable_salary)*12 - 1000000) *0.3)/12) if ((taxable_salary)*12)<=2000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + ((taxable_salary)*12 - 2000000)*0.36)/12) if ((taxable_salary)*12)<=5000000 else (((500000*0.01) + (200000*0.1) + (300000*0.2) + (1000000*0.3) + (3000000*0.36) + ((taxable_salary)*12 - 5000000)*0.39)/12) if ((taxable_salary)*12)>5000000 else -1",
+                "formula": "((((taxable_salary) * 12) * 0.01)/12) if ((taxable_salary) * 12) <= 1000000 else (((1000000 * 0.01) + (((taxable_salary) * 12) - 1000000) * 0.1)/12) if ((taxable_salary) * 12) <= 1500000 else (((1000000*0.01) + (500000*0.1) + (((taxable_salary)*12) - 1500000) * 0.2)/12) if ((taxable_salary)*12) <= 2500000 else (((1000000*0.01) + (500000*0.1) + (1000000*0.2) + ((taxable_salary)*12 - 2500000) *0.27)/12) if ((taxable_salary)*12)<=4000000 else (((1000000*0.01) + (500000*0.1) + (1000000*0.2) + (1500000*0.27) + ((taxable_salary)*12 - 4000000)*0.29)/12) if ((taxable_salary)*12)>4000000 else 0",
                 "exempted_from_income_tax": 0,
                 "name": "Income Tax Unmarried",
                 "salary_component": "Income Tax Unmarried",
@@ -105,7 +105,7 @@ def create_multiple_salary_components():
             {
                 "amount_based_on_formula": 1,
                 "exempted_from_income_tax": 0,
-                "formula": "0.01/12*(annual_taxable_amount if annual_taxable_amount <= 500000 else 500000) if marital_status != 'Married' else 0.01/12 * (annual_taxable_amount if annual_taxable_amount <= 600000 else 600000) if marital_status == 'Married' else 0",
+                "formula": "0.01/12 * (annual_taxable_amount if annual_taxable_amount <= 1000000 else 1000000)",
                 "name": "Social Security Tax",
                 "salary_component": "Social Security Tax",
                 "salary_component_abbr": "social_security_tax",
