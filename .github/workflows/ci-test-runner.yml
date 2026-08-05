@@ -150,6 +150,10 @@ jobs:
           bench --site test_site install-app nepal_compliance
           bench --site test_site set-config allow_tests true
 
+      - name: Install test dependencies
+        working-directory: frappe-bench
+        run: ./env/bin/pip install coverage
+
       - name: Run tests
         working-directory: frappe-bench
         run: bench --site test_site run-tests --app nepal_compliance --coverage
