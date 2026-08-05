@@ -133,9 +133,7 @@ jobs:
       - name: Install nepal_compliance into bench
         working-directory: frappe-bench
         run: |
-          # Move the checked-out source into the bench's apps directory.
-          mv "${GITHUB_WORKSPACE}/apps/nepal_compliance" apps/nepal_compliance
-          bench get-app --soft-link nepal_compliance src/nepal_compliance
+          bench get-app --soft-link "${GITHUB_WORKSPACE}/src/nepal_compliance"
 
       - name: Create test site and install apps
         working-directory: frappe-bench
