@@ -1,6 +1,7 @@
 import frappe
+from unittest.mock import patch
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils import today, add_years, add_days
+from frappe.utils import today, add_years, add_days, getdate
 from frappe import _
 import hashlib
 from erpnext.accounts.utils import get_fiscal_year
@@ -60,12 +61,15 @@ class TestIncomeTaxSlab(FrappeTestCase):
 
     # Test Cases
     def test_get_fiscal_year_for_company(self):
-        #Should return fiscal year document for company
-        fy = get_fiscal_year_for_company(self.company)
-        self.assertIsNotNone(fy)
-        self.assertTrue(
-            any(c.company == self.company for c in fy.companies)
-        )
+    # Should return the fiscal year applicable to the company for today.
+    fy = get_fiscal_year_for_company(self.company)
+    self.assertIsNotNone(fy)
+    # ERPNext FYs may be global (no company restriction) or company-specific;
+    # a global FY applies to every company, so accept either.
+    linked = [c.company for c in fy.companies]
+    self.assertTrue(not linked or self.company in linked)
+    self.assertLessEqual(getdate(fy.year_start_date), getdate(today()))
+    self.assertGreaterEqual(getdate(fy.year_end_date), getdate(today()))
 
     def test_create_income_tax_slab(self):
         #Should create income tax slab with correct slab count
@@ -108,7 +112,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
         self.assertEqual(len(slab_doc.slabs), 5)
 
     def test_no_fiscal_year(self):
-        #Should return None when fiscal year does not exist
-        non_existing_company = "Invalid Company"
-        fy = get_fiscal_year_for_company(non_existing_company)
-        self.assertIsNone(fy)
+    with patch(
+        "nepal_compliance.custom_code.payroll.income_tax_slab.get_fiscal_year",
+        side_effect=frappe.exceptions.ValidationError,
+    ):
+        self.assertIsNone(get_fiscal_year_for_company("Any Company"))
