@@ -79,6 +79,11 @@ def load_calendar() -> None:
                     if any(m <= 0 for m in months):
                         _throw(f"Invalid day count in year {year}: {months}")
 
+                    # TODO: 2096 in nepali_calendar.csv sums to 364 days, so this check is commented out until 2096 is verified against an authoritative source.
+                    # total = sum(months)
+                    # if total not in (365, 366):
+                    #     _throw(f"BS year {year} has {total} days (must be 365 or 366): {months}")
+
                     parsed[year] = months
 
         except OSError as e:
