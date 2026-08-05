@@ -19,4 +19,3 @@ def before_tests():
     frappe.clear_cache()
     from erpnext.setup.utils import before_tests as erpnext_before_tests
     erpnext_before_tests()
-    frappe.db.commit()
