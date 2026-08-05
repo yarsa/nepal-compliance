@@ -69,8 +69,7 @@ jobs:
       - name: Checkout nepal_compliance
         uses: actions/checkout@v4
         with:
-          # frappe alongside this, then we `bench get-app` from this local path
-          path: apps/nepal_compliance
+          path: src/nepal_compliance
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -86,7 +85,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('apps/nepal_compliance/pyproject.toml') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('src/nepal_compliance/pyproject.toml') }}
           restore-keys: ${{ runner.os }}-pip-
 
       - name: Install system dependencies
@@ -136,7 +135,7 @@ jobs:
         run: |
           # Move the checked-out source into the bench's apps directory.
           mv "${GITHUB_WORKSPACE}/apps/nepal_compliance" apps/nepal_compliance
-          bench get-app nepal_compliance apps/nepal_compliance
+          bench get-app --soft-link nepal_compliance src/nepal_compliance
 
       - name: Create test site and install apps
         working-directory: frappe-bench
