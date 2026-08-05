@@ -205,7 +205,7 @@ scheduler_events = {
 # Testing
 # -------
 
-# before_tests = "nepal_compliance.install.before_tests"
+before_tests = "nepal_compliance.install.before_tests"
 
 # Overriding Methods
 # ------------------------------

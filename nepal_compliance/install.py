@@ -14,3 +14,9 @@ def install():
     modify_email_salary_slip_default()
     setup_default_leave_types()
     print_cancelled_invoice()
+
+def before_tests():
+    frappe.clear_cache()
+    from erpnext.setup.utils import before_tests as erpnext_before_tests
+    erpnext_before_tests()
+    frappe.db.commit()
