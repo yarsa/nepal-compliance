@@ -1,0 +1,168 @@
+name: CI Test Runner
+
+on:
+  push:
+    branches: ["master", "develop"]
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+    branches: ["master", "develop"]
+    paths-ignore:
+      - "**/*.md"
+
+# cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# only read code
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Frappe Tests (v15)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    env:
+      # match versions used by Docker build
+      FRAPPE_BRANCH: version-15
+      ERPNEXT_BRANCH: version-15
+      HRMS_BRANCH: version-15
+      TZ: Asia/Kathmandu
+
+    services:
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis-cache:
+        image: redis:6.2-alpine
+        ports:
+          - 13000:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis-queue:
+        image: redis:6.2-alpine
+        ports:
+          - 11000:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout nepal_compliance
+        uses: actions/checkout@v4
+        with:
+          path: src/nepal_compliance
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('src/nepal_compliance/pyproject.toml') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libmysqlclient-dev mariadb-client redis-tools wkhtmltopdf
+          # yarn for building assets
+          sudo npm install -g yarn
+
+      - name: Configure MariaDB for Frappe
+        run: |
+          # Frappe requires utf8mb4 + a few server settings for tests to pass.
+          mysql -h 127.0.0.1 -P 3306 -u root -proot <<'SQL'
+          SET GLOBAL character_set_server = 'utf8mb4';
+          SET GLOBAL collation_server = 'utf8mb4_unicode_ci';
+          SQL
+
+      - name: Install bench
+        run: pip install frappe-bench
+
+      - name: Initialise bench
+        run: |
+          bench init \
+            --skip-redis-config-generation \
+            --frappe-branch "${FRAPPE_BRANCH}" \
+            --python "$(which python)" \
+            frappe-bench
+          # Point bench at the CI service containers.
+          cd frappe-bench
+          bench set-config -g redis_cache "redis://127.0.0.1:13000"
+          bench set-config -g redis_queue "redis://127.0.0.1:11000"
+          bench set-config -g redis_socketio "redis://127.0.0.1:11000"
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g db_port 3306
+
+      - name: Get dependent apps (erpnext, hrms)
+        working-directory: frappe-bench
+        run: |
+          # nepal_compliance's tests import from erpnext and hrms, so both must
+          # be present in the bench before we install this app.
+          bench get-app --branch "${ERPNEXT_BRANCH}" erpnext https://github.com/frappe/erpnext
+          bench get-app --branch "${HRMS_BRANCH}" hrms https://github.com/frappe/hrms
+
+      - name: Install nepal_compliance into bench
+        working-directory: frappe-bench
+        run: |
+          bench get-app --soft-link "${GITHUB_WORKSPACE}/src/nepal_compliance"
+
+      - name: Create test site and install apps
+        working-directory: frappe-bench
+        run: |
+          bench new-site test_site \
+            --mariadb-root-password root \
+            --admin-password admin \
+            --no-mariadb-socket \
+            --db-host 127.0.0.1 \
+            --db-port 3306
+          # Order matters: erpnext -> hrms -> nepal_compliance.
+          bench --site test_site install-app erpnext
+          bench --site test_site install-app hrms
+          bench --site test_site install-app nepal_compliance
+          bench --site test_site set-config allow_tests true
+
+      - name: Install test dependencies
+        working-directory: frappe-bench
+        run: ./env/bin/pip install coverage
+
+      - name: Run tests
+        working-directory: frappe-bench
+        run: bench --site test_site run-tests --app nepal_compliance --coverage
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: frappe-bench/sites/coverage.xml
+          if-no-files-found: ignore
+          retention-days: 7
