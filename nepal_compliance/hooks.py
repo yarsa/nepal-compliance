@@ -158,7 +158,8 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # DocType Class
 # ---------------
 # Override standard doctype classes
-override_doctype_class = {
+# `extend_doctype_class` does not exist in v15. `override_doctype_class` is only available mechanism
+override_doctype_class = {  # nosemgrep: frappe-semgrep-rules.rules.override-doctype-class
     "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
     "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
     "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
