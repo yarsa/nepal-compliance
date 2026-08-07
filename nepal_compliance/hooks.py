@@ -166,7 +166,6 @@ override_doctype_class = {  # nosemgrep: frappe-semgrep-rules.rules.override-doc
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
     "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
     "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment",
-    "Item": "nepal_compliance.overrides.item.CustomItem"
 }
 
 # Document Events
