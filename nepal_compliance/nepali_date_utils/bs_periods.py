@@ -26,6 +26,20 @@ def end_of(y, m):
     return bs_to_ad(ny, nm, 1) - timedelta(days=1)
 
 
+def next_fiscal_period_end(y, m, freq):
+    """First BS month on or after (y, m) that ends a Nepali fiscal period.
+
+    The Nepali fiscal year runs 1 Shrawan to end of Ashadh (months 4..3), so a
+    month closes a fiscal period exactly when (m - 3) % freq == 0:
+    monthly (1) -> every month; quarterly (3) -> Ashwin/Poush/Chaitra/Ashadh;
+    half-yearly (6) -> Poush/Ashadh; yearly (12) -> Ashadh (FY end).
+    """
+    freq = max(cint(freq), 1)
+    while (m - 3) % freq != 0:
+        y, m = advance(y, m, 1)
+    return y, m
+
+
 @frappe.whitelist()
 def bs_month_end_series(start_date, count, skip=0):
     """`count` consecutive BS month-end AD dates, starting from the BS month
