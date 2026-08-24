@@ -1,1 +1,617 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");.nepali-calendar-popover{animation:fadeIn .12s ease-out;border-radius:.5rem;box-shadow:0 4px 10px 2px hsla(226,5%,51%,.18);overflow:hidden;width:max-content}.nepali-calendar-popover html[data-theme=dark],.nepali-calendar-popover[data-theme=dark],:root[data-theme=dark] .nepali-calendar-popover{border:1px solid hsla(0,0%,97%,.1);box-shadow:none}@keyframes fadeIn{0%{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}.calendar-wrapper{--color-background:#fff;--color-text:#040609;--color-text-secondary:#4a5565;--color-selected:#1c46ed;--color-selected-bg:rgba(28,70,237,.18);--color-holiday:#ec0b15;--color-hover:#f3f3f3;--color-click:#e7e7e7;--color-border:rgba(4,6,9,.06)}.calendar-wrapper html[data-theme=dark],.calendar-wrapper[data-theme=dark],:root[data-theme=dark] .calendar-wrapper{--color-background:#171717;--color-text:#f8f8f8;--color-text-secondary:#9c9c9c;--color-selected:#007be0;--color-selected-bg:rgba(0,123,224,.18);--color-holiday:#e02d2d;--color-hover:hsla(0,0%,97%,.06);--color-click:hsla(0,0%,97%,.2);--color-border:hsla(0,0%,97%,.1)}.calendar-wrapper *,.calendar-wrapper :after,.calendar-wrapper :before{border:0 solid;box-sizing:border-box;margin:0;padding:0}.calendar-wrapper h1,.calendar-wrapper h2,.calendar-wrapper h3,.calendar-wrapper h4,.calendar-wrapper h5,.calendar-wrapper h6{font-size:inherit;font-weight:inherit}.calendar-wrapper button{font-feature-settings:inherit;background-color:transparent;border-radius:0;color:inherit;font:inherit;font-variation-settings:inherit;letter-spacing:inherit;opacity:1}.calendar-wrapper button,.calendar-wrapper input:where([type=button],[type=reset],[type=submit]){appearance:button}.calendar-wrapper{background-color:var(--color-background);color:var(--color-text);font-family:Inter,sans-serif;font-optical-sizing:auto;font-style:normal;user-select:none;width:16rem}.calendar-wrapper .picker-action-bar{border-bottom:1px solid var(--color-border);font-size:.875rem;font-weight:500;padding:.25rem}.calendar-wrapper .picker-action-bar .back-button{align-items:center;border-radius:.375rem;display:flex;gap:.5rem;padding:.375rem .5rem;width:100%}.calendar-wrapper .picker-action-bar .back-button:hover{background-color:var(--color-hover)}.calendar-wrapper .picker-action-bar .back-button svg{stroke-width:2.5;height:1rem;width:1rem}.calendar-wrapper .content-scroll{max-height:16rem;overflow:auto}.calendar-wrapper .year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:.5rem}.calendar-wrapper .year-grid .year{cursor:pointer;font-size:1rem;padding:.5rem}.calendar-wrapper .year-grid .year.current{color:var(--color-selected)}.calendar-wrapper .year-grid .year:hover{background-color:var(--color-hover)}.calendar-wrapper .year-grid .year:active{background-color:var(--color-click)}.calendar-wrapper .month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:.5rem}.calendar-wrapper .month-grid .month{cursor:pointer;font-size:.75rem;padding:.5rem}.calendar-wrapper .month-grid .month:hover{background-color:var(--color-hover)}.calendar-wrapper .month-grid .month .np{font-weight:500}.calendar-wrapper .month-grid .month .ad{font-size:.6875rem;line-height:1.8;opacity:.8}.calendar-wrapper .month-grid .month.current{color:var(--color-selected)}.calendar-wrapper .month-grid .month:active{background-color:var(--color-click)}.calendar-wrapper .days-header .header-actions{align-items:center;display:flex;flex-direction:row}.calendar-wrapper .days-header .month-button{color:currentColor;cursor:pointer}.calendar-wrapper .days-header .month-button:not(:disabled):hover>*{background-color:var(--color-hover)}.calendar-wrapper .days-header .month-button:not(:disabled):active>*{background-color:var(--color-click)}.calendar-wrapper .days-header .month-button{padding:.25rem}.calendar-wrapper .days-header .month-button:disabled{cursor:not-allowed;opacity:.6}.calendar-wrapper .days-header .month-button .button-feedback{align-items:center;border-radius:.375rem;display:flex;font-size:1.25rem;height:2rem;justify-content:center;line-height:1.4;width:2rem}.calendar-wrapper .days-header .month-button .button-feedback svg{stroke-width:2.5;height:.8em;width:.8em}.calendar-wrapper .days-header .year-wrapper{flex:1}.calendar-wrapper .days-header .year-wrapper .year-button{align-items:center;cursor:pointer;display:flex;justify-content:center;margin:0 auto;padding:.25rem .75rem}.calendar-wrapper .days-header .year-wrapper .year-button .ad{font-size:.6875rem;opacity:.7;padding-inline:.25rem}.calendar-wrapper .days-header .year-wrapper .year-button:hover{background-color:var(--color-hover)}.calendar-wrapper .days-header .year-wrapper .year-button:active{background-color:var(--color-click)}.calendar-wrapper .days-header .year-wrapper .year-button{border-radius:.375rem;font-size:1rem;font-weight:500}.calendar-wrapper .days-header .year-wrapper .year-button svg{stroke-width:2;height:1rem;width:1rem}.calendar-wrapper .days-header .selected-month{align-items:center;display:flex;font-size:.68rem;font-weight:500;justify-content:space-between;padding:.25rem .5rem}.calendar-wrapper .week-days{border-block:1px solid var(--color-border);display:grid;font-size:.7rem;grid-template-columns:repeat(7,minmax(0,1fr));line-height:1.4286;text-align:center}.calendar-wrapper .week-days>:not(:last-child){border-inline-end:1px solid var(--color-background)}.calendar-wrapper .week-days .day{background-color:var(--color-background);padding:.25rem}.calendar-wrapper .week-days .day.holiday{color:var(--color-holiday)}.calendar-wrapper .days-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:.25rem;text-align:center}.calendar-wrapper .days-grid>:not(:last-child){border-bottom:1px solid var(--color-background);border-inline-end:1px solid var(--color-background)}.calendar-wrapper .days-grid .day{align-items:center;aspect-ratio:1/1;border-radius:.375rem;display:flex;font-size:.875rem;justify-content:center;padding-right:4px;position:relative;text-align:center;width:100%}.calendar-wrapper .days-grid .day.holiday{color:var(--color-holiday)}.calendar-wrapper .days-grid .day.today{border:1px solid var(--color-selected);color:var(--color-selected);font-weight:500}.calendar-wrapper .days-grid .day.selected{background-color:var(--color-selected-bg);color:var(--color-selected);font-weight:500}.calendar-wrapper .days-grid .day:not(.empty,.selected){cursor:pointer}.calendar-wrapper .days-grid .day:not(.empty,.selected):hover{background-color:var(--color-hover)}.calendar-wrapper .days-grid .day:not(.empty,.selected):active{background-color:var(--color-click)}.calendar-wrapper .days-grid .day .ad{bottom:.2rem;font-size:.475rem;font-weight:500;position:absolute;right:.2rem}.footer{align-items:center;border-top:1px solid var(--color-border);display:flex;justify-content:center;padding:.25rem}.footer .today-button{border-radius:.3rem;color:var(--color-text);cursor:pointer;font-size:.875rem;height:2rem;width:100%}.footer .today-button:hover{background-color:var(--color-hover)}.footer .today-button:active{background-color:var(--color-click)}
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:wght@300;400;500;600;700&display=swap");
+
+.nepali-calendar-popover {
+    animation: fadeIn .12s ease-out;
+    border-radius: .5rem;
+    box-shadow: 0 4px 10px 2px hsla(226, 5%, 51%, .18);
+    overflow: hidden;
+    width: max-content
+}
+
+.nepali-calendar-popover html[data-theme=dark],
+.nepali-calendar-popover[data-theme=dark],
+:root[data-theme=dark] .nepali-calendar-popover {
+    border: 1px solid hsla(0, 0%, 97%, .1);
+    box-shadow: none
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-4px)
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0)
+    }
+}
+
+.calendar-wrapper {
+    --color-background: #fff;
+    --color-text: #040609;
+    --color-text-secondary: #4a5565;
+    --color-selected: #1c46ed;
+    --color-selected-bg: rgba(28, 70, 237, .18);
+    --color-holiday: #ec0b15;
+    --color-hover: #f3f3f3;
+    --color-click: #e7e7e7;
+    --color-border: rgba(4, 6, 9, .06);
+    --status-present: #4ade80;
+    --status-absent: #f87171;
+    --status-half-day: #fbbf24;
+    --status-on-leave: #60a5fa;
+    --status-work-from-home: #34d399;
+}
+
+.calendar-wrapper html[data-theme=dark],
+.calendar-wrapper[data-theme=dark],
+:root[data-theme=dark] .calendar-wrapper {
+    --color-background: #171717;
+    --color-text: #f8f8f8;
+    --color-text-secondary: #9c9c9c;
+    --color-selected: #007be0;
+    --color-selected-bg: rgba(0, 123, 224, .18);
+    --color-holiday: #e02d2d;
+    --color-hover: hsla(0, 0%, 97%, .06);
+    --color-click: hsla(0, 0%, 97%, .2);
+    --color-border: hsla(0, 0%, 97%, .1)
+}
+
+.calendar-wrapper *,
+.calendar-wrapper :after,
+.calendar-wrapper :before {
+    border: 0 solid;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0
+}
+
+.calendar-wrapper h1,
+.calendar-wrapper h2,
+.calendar-wrapper h3,
+.calendar-wrapper h4,
+.calendar-wrapper h5,
+.calendar-wrapper h6 {
+    font-size: inherit;
+    font-weight: inherit
+}
+
+.calendar-wrapper button {
+    font-feature-settings: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    color: inherit;
+    font: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    opacity: 1
+}
+
+.calendar-wrapper button,
+.calendar-wrapper input:where([type=button], [type=reset], [type=submit]) {
+    appearance: button
+}
+
+.calendar-wrapper {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    user-select: none;
+    width: 100% !important;
+    /* Allow it to be responsive in bshrms */
+    max-width: 24rem;
+}
+
+.calendar-wrapper .picker-action-bar {
+    border-bottom: 1px solid var(--color-border);
+    font-size: .875rem;
+    font-weight: 500;
+    padding: .25rem
+}
+
+.calendar-wrapper .picker-action-bar .back-button {
+    align-items: center;
+    border-radius: .375rem;
+    display: flex;
+    gap: .5rem;
+    padding: .375rem .5rem;
+    width: 100%
+}
+
+.calendar-wrapper .picker-action-bar .back-button:hover {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .picker-action-bar .back-button svg {
+    stroke-width: 2.5;
+    height: 1rem;
+    width: 1rem
+}
+
+.calendar-wrapper .content-scroll {
+    max-height: 16rem;
+    overflow: auto
+}
+
+.calendar-wrapper .year-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: .5rem
+}
+
+.calendar-wrapper .year-grid .year {
+    cursor: pointer;
+    font-size: 1rem;
+    padding: .5rem
+}
+
+.calendar-wrapper .year-grid .year.current {
+    color: var(--color-selected)
+}
+
+.calendar-wrapper .year-grid .year:hover {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .year-grid .year:active {
+    background-color: var(--color-click)
+}
+
+.calendar-wrapper .month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: .5rem
+}
+
+.calendar-wrapper .month-grid .month {
+    cursor: pointer;
+    font-size: .75rem;
+    padding: .5rem
+}
+
+.calendar-wrapper .month-grid .month:hover {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .month-grid .month .np {
+    font-weight: 500
+}
+
+.calendar-wrapper .month-grid .month .ad {
+    font-size: .6875rem;
+    line-height: 1.8;
+    opacity: .8
+}
+
+.calendar-wrapper .month-grid .month.current {
+    color: var(--color-selected)
+}
+
+.calendar-wrapper .month-grid .month:active {
+    background-color: var(--color-click)
+}
+
+.calendar-wrapper .days-header .header-actions {
+    align-items: center;
+    display: flex;
+    flex-direction: row
+}
+
+.calendar-wrapper .days-header .month-button {
+    color: currentColor;
+    cursor: pointer
+}
+
+.calendar-wrapper .days-header .month-button:not(:disabled):hover>* {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .days-header .month-button:not(:disabled):active>* {
+    background-color: var(--color-click)
+}
+
+.calendar-wrapper .days-header .month-button {
+    padding: .25rem
+}
+
+.calendar-wrapper .days-header .month-button:disabled {
+    cursor: not-allowed;
+    opacity: .6
+}
+
+.calendar-wrapper .days-header .month-button .button-feedback {
+    align-items: center;
+    border-radius: .375rem;
+    display: flex;
+    font-size: 1.25rem;
+    height: 2rem;
+    justify-content: center;
+    line-height: 1.4;
+    width: 2rem
+}
+
+.calendar-wrapper .days-header .month-button .button-feedback svg {
+    stroke-width: 2.5;
+    height: .8em;
+    width: .8em
+}
+
+.calendar-wrapper .days-header .year-wrapper {
+    flex: 1
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    padding: .25rem .75rem
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button .ad {
+    font-size: .6875rem;
+    opacity: .7;
+    padding-inline: .25rem
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button:hover {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button:active {
+    background-color: var(--color-click)
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button {
+    border-radius: .375rem;
+    font-size: 1rem;
+    font-weight: 500
+}
+
+.calendar-wrapper .days-header .year-wrapper .year-button svg {
+    stroke-width: 2;
+    height: 1rem;
+    width: 1rem
+}
+
+.calendar-wrapper .days-header .selected-month {
+    align-items: center;
+    display: flex;
+    font-size: .68rem;
+    font-weight: 500;
+    justify-content: space-between;
+    padding: .25rem .5rem
+}
+
+.calendar-wrapper .week-days {
+    border-block: 1px solid var(--color-border);
+    display: grid;
+    font-size: .7rem;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    line-height: 1.4286;
+    text-align: center
+}
+
+.calendar-wrapper .week-days>:not(:last-child) {
+    border-inline-end: 1px solid var(--color-background)
+}
+
+.calendar-wrapper .week-days .day {
+    background-color: var(--color-background);
+    padding: .25rem
+}
+
+.calendar-wrapper .week-days .day.holiday {
+    color: var(--color-holiday)
+}
+
+.calendar-wrapper .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    padding: .25rem;
+    text-align: center
+}
+
+.calendar-wrapper .days-grid>:not(:last-child) {
+    border-bottom: 1px solid var(--color-background);
+    border-inline-end: 1px solid var(--color-background)
+}
+
+.calendar-wrapper .days-grid .day {
+    align-items: center;
+    aspect-ratio: 1/1;
+    border-radius: .375rem;
+    display: flex;
+    font-size: .875rem;
+    justify-content: center;
+    padding-right: 4px;
+    position: relative;
+    text-align: center;
+    width: 100%
+}
+
+.calendar-wrapper .days-grid .day.holiday {
+    color: var(--color-holiday)
+}
+
+.calendar-wrapper .days-grid .day.today {
+    border: 1px solid var(--color-selected);
+    color: var(--color-selected);
+    font-weight: 500
+}
+
+.calendar-wrapper .days-grid .day.selected {
+    background-color: var(--color-selected-bg);
+    color: var(--color-selected);
+    font-weight: 500
+}
+
+.calendar-wrapper .days-grid .day:not(.empty, .selected) {
+    cursor: pointer
+}
+
+.calendar-wrapper .days-grid .day:not(.empty, .selected):hover {
+    background-color: var(--color-hover)
+}
+
+.calendar-wrapper .days-grid .day[class*="status-"]:not(.empty, .selected):hover {
+    /* status tiles keep their fill; only dim slightly via filter in status rules */
+    background-color: inherit;
+}
+
+.calendar-wrapper .days-grid .day:not(.empty, .selected):active {
+    background-color: var(--color-click)
+}
+
+.calendar-wrapper .days-grid .day .ad {
+    bottom: .35rem;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    font-size: .55rem;
+    font-weight: 500;
+    position: absolute;
+    line-height: 1;
+    opacity: .85;
+}
+
+.footer {
+    align-items: center;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: center;
+    padding: .25rem
+}
+
+.footer .today-button {
+    border-radius: .3rem;
+    color: var(--color-selected);
+    background-color: var(--color-selected-bg);
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: .875rem;
+    font-weight: 500;
+    height: 2rem;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.footer .today-button:hover {
+    opacity: 0.85;
+}
+
+.footer .today-button:active {
+    transform: scale(0.97);
+}
+
+.footer .fiscal-button {
+    color: #059669;
+    background-color: #d1fae5;
+}
+
+.calendar-wrapper html[data-theme=dark] .footer .fiscal-button,
+.calendar-wrapper[data-theme=dark] .footer .fiscal-button,
+:root[data-theme=dark] .calendar-wrapper .footer .fiscal-button {
+    color: #34d399;
+    background-color: rgba(52, 211, 153, 0.15);
+}
+
+/* Soft rounded status tiles — inset so day cell size stays the same */
+.calendar-wrapper .days-grid .day[class*="status-"] {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    position: relative;
+    z-index: 0;
+}
+
+.calendar-wrapper .days-grid .day[class*="status-"]::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 0.45rem;
+    z-index: -1;
+    pointer-events: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.calendar-wrapper .days-grid .day.status-present::before {
+    background-color: #dcfce7;
+    box-shadow: inset 0 0 0 1.5px #4ade80;
+}
+
+.calendar-wrapper .days-grid .day.status-work-from-home::before {
+    background-color: #ccfbf1;
+    box-shadow: inset 0 0 0 1.5px #2dd4bf;
+}
+
+.calendar-wrapper .days-grid .day.status-half-day::before {
+    background-color: #fef9c3;
+    box-shadow: inset 0 0 0 1.5px #facc15;
+}
+
+.calendar-wrapper .days-grid .day.status-absent::before {
+    background-color: #fee2e2;
+    box-shadow: inset 0 0 0 1.5px #f87171;
+}
+
+.calendar-wrapper .days-grid .day.status-on-leave::before {
+    background-color: #93c5fd;
+    box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.calendar-wrapper .days-grid .day.status-leave-pending::before {
+    background-color: #fff7ed;
+    box-shadow: inset 0 0 0 2px #f59e0b;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 3px,
+        rgba(245, 158, 11, 0.12) 3px,
+        rgba(245, 158, 11, 0.12) 6px
+    );
+}
+
+.calendar-wrapper .days-grid .day.status-leave-rejected::before {
+    background-color: #ffe4e6;
+    box-shadow: inset 0 0 0 1.5px #fb7185;
+}
+
+.calendar-wrapper .days-grid .day.status-holiday::before,
+.calendar-wrapper .days-grid .day.status-weekly-off::before {
+    background-color: #e9d5ff;
+    box-shadow: inset 0 0 0 1.5px #c084fc;
+}
+
+/* Hover States for status tiles */
+.calendar-wrapper .days-grid .day.status-present:hover::before,
+.calendar-wrapper .days-grid .day.status-work-from-home:hover::before,
+.calendar-wrapper .days-grid .day.status-half-day:hover::before,
+.calendar-wrapper .days-grid .day.status-absent:hover::before,
+.calendar-wrapper .days-grid .day.status-on-leave:hover::before,
+.calendar-wrapper .days-grid .day.status-leave-pending:hover::before,
+.calendar-wrapper .days-grid .day.status-leave-rejected:hover::before,
+.calendar-wrapper .days-grid .day.status-holiday:hover::before,
+.calendar-wrapper .days-grid .day.status-weekly-off:hover::before {
+    filter: brightness(0.97);
+}
+
+/* Selected or Today state inside status tiles */
+.calendar-wrapper .days-grid .day.status-present.selected,
+.calendar-wrapper .days-grid .day.status-work-from-home.selected,
+.calendar-wrapper .days-grid .day.status-half-day.selected,
+.calendar-wrapper .days-grid .day.status-absent.selected,
+.calendar-wrapper .days-grid .day.status-on-leave.selected,
+.calendar-wrapper .days-grid .day.status-leave-pending.selected,
+.calendar-wrapper .days-grid .day.status-leave-rejected.selected,
+.calendar-wrapper .days-grid .day.status-holiday.selected,
+.calendar-wrapper .days-grid .day.status-weekly-off.selected {
+    outline: 2px solid var(--color-selected) !important;
+    outline-offset: -2px;
+}
+
+.calendar-wrapper .days-grid .day.status-present.today,
+.calendar-wrapper .days-grid .day.status-work-from-home.today,
+.calendar-wrapper .days-grid .day.status-half-day.today,
+.calendar-wrapper .days-grid .day.status-absent.today,
+.calendar-wrapper .days-grid .day.status-on-leave.today,
+.calendar-wrapper .days-grid .day.status-leave-pending.today,
+.calendar-wrapper .days-grid .day.status-leave-rejected.today,
+.calendar-wrapper .days-grid .day.status-holiday.today,
+.calendar-wrapper .days-grid .day.status-weekly-off.today {
+    border: 2px solid var(--color-selected) !important;
+}
+
+/* Marker dots: leave / late / early — top-right so they don't clash with AD date */
+.calendar-wrapper .days-grid .day {
+    position: relative;
+}
+
+.calendar-wrapper .days-grid .day .day-markers {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+/* Compact "L" badge for leave days — reads as leave, not a vague dot */
+.calendar-wrapper .days-grid .day .day-markers .marker.leave {
+    width: auto;
+    min-width: 12px;
+    height: 12px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background-color: #1d4ed8;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 12px;
+    text-align: center;
+    font-style: normal;
+    box-shadow: none;
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.leave::before {
+    content: "L";
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.leave.pending {
+    background-color: #d97706;
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.leave.rejected {
+    background-color: #e11d48;
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.late {
+    background-color: #ea580c; /* orange — late */
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.early {
+    background-color: #7c3aed; /* purple — early exit */
+}
+
+/* Compact "O" badge — mid-day gap needs Out of Office Application */
+.calendar-wrapper .days-grid .day .day-markers .marker.ooo {
+    width: auto;
+    min-width: 12px;
+    height: 12px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background-color: #0f766e; /* teal */
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 12px;
+    text-align: center;
+    font-style: normal;
+    box-shadow: none;
+}
+
+.calendar-wrapper .days-grid .day .day-markers .marker.ooo::before {
+    content: "O";
+}
+
+.calendar-wrapper .days-grid .day.has-markers .ad {
+    bottom: 0.28rem;
+}

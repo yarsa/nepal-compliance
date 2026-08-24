@@ -1,15 +1,15 @@
 (function (global, factory) {
   typeof exports === "object" && typeof module !== "undefined"
     ? factory(
-        exports,
-        require("react"),
-        require("nepali-date"),
-        require("react-dom/client"),
-      )
+      exports,
+      require("react"),
+      require("nepali-date"),
+      require("react-dom/client"),
+    )
     : typeof define === "function" && define.amd
       ? define(["exports", "react", "nepali-date", "react-dom/client"], factory)
       : ((global =
-          typeof globalThis !== "undefined" ? globalThis : global || self),
+        typeof globalThis !== "undefined" ? globalThis : global || self),
         factory(
           (global.NepaliCalendarLib = {}),
           global.React,
@@ -40,7 +40,7 @@
 
   const MONTH_START_INDEX = 0;
   const MONTH_END_INDEX = 11;
-  function NepaliCalendarView({ selectedDateAD, selectedDateBS, onSelect }) {
+  function NepaliCalendarView({ selectedDateAD, selectedDateBS, onSelect, onMonthChange, events, minBsYear, minBsMonthIndex }) {
     const today = React.useMemo(() => new nepaliDate.NepaliDate(), []);
     const selectedNepaliDate = React.useMemo(() => {
       if (selectedDateBS) return nepaliDate.NepaliDate.fromBS(selectedDateBS);
@@ -71,9 +71,18 @@
       () => calendar.getMonth(currentMonthIndex),
       [calendar, currentMonthIndex],
     );
+    const isBeforeMin = (year, monthIndex) =>
+      minBsYear != null &&
+      (year < minBsYear ||
+        (year === minBsYear && monthIndex < (minBsMonthIndex || 0)));
     const canGoPrev =
-      currentYear > nepaliDate.NepaliCalendar.minYear ||
-      currentMonthIndex > MONTH_START_INDEX;
+      (currentYear > nepaliDate.NepaliCalendar.minYear ||
+        currentMonthIndex > MONTH_START_INDEX) &&
+      !(
+        minBsYear != null &&
+        (currentYear < minBsYear ||
+          (currentYear === minBsYear && currentMonthIndex <= (minBsMonthIndex || 0)))
+      );
     const canGoNext =
       currentYear < nepaliDate.NepaliCalendar.maxYear ||
       currentMonthIndex < MONTH_END_INDEX;
@@ -99,14 +108,22 @@
       setCurrentYear(y);
       setCurrentMonthIndex(m);
     }, [currentYear, currentMonthIndex, canGoNext]);
-    const handleYearSelect = React.useCallback((year) => {
-      setCurrentYear(year);
-      setMode("month");
-    }, []);
-    const handleMonthSelect = React.useCallback((month) => {
-      setCurrentMonthIndex(month);
-      setMode("day");
-    }, []);
+    const handleYearSelect = React.useCallback(
+      (year) => {
+        if (minBsYear != null && year < minBsYear) year = minBsYear;
+        setCurrentYear(year);
+        setMode("month");
+      },
+      [minBsYear],
+    );
+    const handleMonthSelect = React.useCallback(
+      (month) => {
+        if (isBeforeMin(currentYear, month)) month = minBsMonthIndex || 0;
+        setCurrentMonthIndex(month);
+        setMode("day");
+      },
+      [currentYear, minBsYear, minBsMonthIndex],
+    );
     const handleDateSelect = React.useCallback(
       (date) =>
         onSelect === null || onSelect === void 0 ? void 0 : onSelect(date),
@@ -119,10 +136,51 @@
       setCurrentMonthIndex(today.monthIndex);
       setMode("day");
     }, [today, onSelect]);
+    const handleFiscalYearStartClick = React.useCallback(() => {
+      const today = new nepaliDate.NepaliDate();
+      const isBeforeShrawan = today.monthIndex < 3;
+      let fiscalYear = isBeforeShrawan ? today.year - 1 : today.year;
+      // Respect past-month navigation restriction
+      if (
+        minBsYear != null &&
+        (fiscalYear < minBsYear ||
+          (fiscalYear === minBsYear && 3 < (minBsMonthIndex || 0)))
+      ) {
+        fiscalYear = minBsYear;
+        setCurrentYear(minBsYear);
+        setCurrentMonthIndex(minBsMonthIndex || 0);
+        setMode("day");
+        return;
+      }
+      const shrawanFirst = new nepaliDate.NepaliDate(fiscalYear, 3, 1);
+      onSelect === null || onSelect === void 0 ? void 0 : onSelect(shrawanFirst);
+      setCurrentYear(fiscalYear);
+      setCurrentMonthIndex(3);
+      setMode("day");
+    }, [onSelect, minBsYear, minBsMonthIndex]);
     const currentMonthStartADYear = React.useMemo(
       () => calendar.getMonthAdYear(currentMonthIndex),
       [calendar, currentMonthIndex],
     );
+    React.useEffect(() => {
+      if (!onMonthChange || !monthData || !monthData.days) return;
+      const days = monthData.days.filter((d) => d && d.date);
+      if (!days.length) return;
+      const from_date = days[0].date.format({
+        format: "YYYY-MM-DD",
+        calendar: "AD",
+      });
+      const to_date = days[days.length - 1].date.format({
+        format: "YYYY-MM-DD",
+        calendar: "AD",
+      });
+      onMonthChange({
+        from_date,
+        to_date,
+        year: currentYear,
+        monthIndex: currentMonthIndex,
+      });
+    }, [monthData, currentYear, currentMonthIndex, onMonthChange]);
     return /*#__PURE__*/ React.createElement(
       "div",
       {
@@ -132,41 +190,43 @@
       },
       mode === "year" &&
         /*#__PURE__*/ React.createElement(CalendarYears, {
-          currentYear: currentYear,
-          onSelect: handleYearSelect,
-          onBack: () => setMode("day"),
-        }),
+        currentYear: currentYear,
+        onSelect: handleYearSelect,
+        onBack: () => setMode("day"),
+      }),
       mode === "month" &&
         /*#__PURE__*/ React.createElement(CalendarMonths, {
-          currentMonth: currentMonthIndex,
-          currentYear: currentYear,
-          onSelect: handleMonthSelect,
-          onBack: () => setMode("year"),
-        }),
+        currentMonth: currentMonthIndex,
+        currentYear: currentYear,
+        onSelect: handleMonthSelect,
+        onBack: () => setMode("year"),
+      }),
       mode === "day" &&
         /*#__PURE__*/ React.createElement(CalendarDays, {
-          selectedADString:
-            selectedNepaliDate === null || selectedNepaliDate === void 0
-              ? void 0
-              : selectedNepaliDate.format({
-                  format: "YYYY-MM-DD",
-                  calendar: "AD",
-                }),
-          weeks: chunkWeeks(monthData.days),
-          today: today,
-          monthAd: monthData.month.ad,
-          monthNp: monthData.month.np,
-          yearNp: nepaliDate.formatNumber(currentYear, "ne"),
-          yearEn: currentYear,
-          yearAd: currentMonthStartADYear,
-          onClickPrev: handlePrevMonth,
-          onClickNext: handleNextMonth,
-          onClickYear: () => setMode("year"),
-          onClickToday: handleTodayClick,
-          onSelectDate: handleDateSelect,
-          nextDisabled: !canGoNext,
-          prevDisabled: !canGoPrev,
-        }),
+        selectedADString:
+          selectedNepaliDate === null || selectedNepaliDate === void 0
+            ? void 0
+            : selectedNepaliDate.format({
+              format: "YYYY-MM-DD",
+              calendar: "AD",
+            }),
+        weeks: chunkWeeks(monthData.days),
+        today: today,
+        monthAd: monthData.month.ad,
+        monthNp: monthData.month.np,
+        yearNp: nepaliDate.formatNumber(currentYear, "ne"),
+        yearEn: currentYear,
+        yearAd: currentMonthStartADYear,
+        onClickPrev: handlePrevMonth,
+        onClickNext: handleNextMonth,
+        onClickYear: () => setMode("year"),
+        onClickToday: handleTodayClick,
+        onClickFiscalYearFirstMonth: handleFiscalYearStartClick,
+        onSelectDate: handleDateSelect,
+        nextDisabled: !canGoNext,
+        prevDisabled: !canGoPrev,
+        events: events,
+      }),
     );
   }
   function chunkWeeks(days) {
@@ -281,6 +341,8 @@
     today,
     selectedADString,
     onClickToday,
+    onClickFiscalYearFirstMonth,
+    events,
   }) {
     return /*#__PURE__*/ React.createElement(
       "div",
@@ -425,14 +487,14 @@
         },
         nepaliDate.WEEKDAY_SHORT_NE.map((day, index) =>
           /*#__PURE__*/ React.createElement(
-            "span",
-            {
-              key: day,
-              className: clsx("day", index === 6 && "holiday"),
-              "aria-label": day,
-            },
-            day,
-          ),
+          "span",
+          {
+            key: day,
+            className: clsx("day", index === 6 && "holiday"),
+            "aria-label": day,
+          },
+          day,
+        ),
         ),
       ),
       /*#__PURE__*/ React.createElement(
@@ -443,74 +505,184 @@
         },
         weeks.map((week, weekIndex) =>
           /*#__PURE__*/ React.createElement(
-            React.Fragment,
-            {
-              key: `week-${weekIndex}`,
-            },
-            week.map((day, dayIndex) => {
-              if (!day) {
-                return /*#__PURE__*/ React.createElement("div", {
-                  key: `day-${weekIndex}-${dayIndex}`,
-                  className: "day empty",
-                  role: "gridcell",
-                });
+          React.Fragment,
+          {
+            key: `week-${weekIndex}`,
+          },
+          week.map((day, dayIndex) => {
+            if (!day) {
+              return /*#__PURE__*/ React.createElement("div", {
+                key: `day-${weekIndex}-${dayIndex}`,
+                className: "day empty",
+                role: "gridcell",
+              });
+            }
+            const isToday =
+              day.date.year === today.year &&
+              day.date.monthIndex === today.monthIndex &&
+              day.date.day === today.day;
+            const isSelected =
+              selectedADString ===
+              day.date.format({
+                format: "YYYY-MM-DD",
+                calendar: "AD",
+              });
+            const adDate = day.date.toAD();
+            const adKey = [
+              adDate.getUTCFullYear(),
+              String(adDate.getUTCMonth() + 1).padStart(2, "0"),
+              String(adDate.getUTCDate()).padStart(2, "0"),
+            ].join("-");
+            const rawEvent = events && (events[adKey] || events[day.date.format({
+              format: "YYYY-MM-DD",
+              calendar: "AD",
+            })]);
+            let eventStatus = null;
+            const markers = { leave: false, late: false, early: false, ooo: false, leaveKind: "" };
+            if (typeof rawEvent === "string") {
+              eventStatus = rawEvent;
+              if (
+                rawEvent === "On Leave" ||
+                rawEvent === "Leave Pending" ||
+                rawEvent === "Leave Rejected"
+              ) {
+                markers.leave = true;
+                markers.leaveKind =
+                  rawEvent === "Leave Pending"
+                    ? "pending"
+                    : rawEvent === "Leave Rejected"
+                      ? "rejected"
+                      : "";
               }
-              const isToday =
-                day.date.year === today.year &&
-                day.date.monthIndex === today.monthIndex &&
-                day.date.day === today.day;
-              const isSelected =
-                selectedADString ===
-                day.date.format({
+            } else if (rawEvent && typeof rawEvent === "object") {
+              eventStatus = rawEvent.status || null;
+              const appStatus = rawEvent.leave_app_status || null;
+              const isRejectedOnly =
+                appStatus === "Rejected" || eventStatus === "Leave Rejected";
+              markers.leave =
+                !!rawEvent.leave ||
+                eventStatus === "On Leave" ||
+                eventStatus === "Leave Pending" ||
+                eventStatus === "Leave Rejected" ||
+                (appStatus === "Pending" || appStatus === "Approved");
+              // Rejected leave on a Present/Absent day must not keep the "L" badge
+              if (
+                isRejectedOnly &&
+                eventStatus &&
+                eventStatus !== "Leave Rejected"
+              ) {
+                markers.leave = false;
+              }
+              if (appStatus === "Pending" || eventStatus === "Leave Pending") {
+                markers.leaveKind = "pending";
+              } else if (appStatus === "Rejected" || eventStatus === "Leave Rejected") {
+                markers.leaveKind = "rejected";
+              } else if (markers.leave) {
+                markers.leaveKind = "";
+              }
+              markers.late = !!rawEvent.late;
+              markers.early = !!rawEvent.early;
+              markers.ooo = !!rawEvent.ooo_required;
+            }
+            // Weekly Off uses holiday-like styling
+            if (eventStatus === "Weekly Off") {
+              eventStatus = "Weekly Off";
+            }
+            const statusClass = eventStatus
+              ? `status-${String(eventStatus).toLowerCase().replace(/ /g, "-")}`
+              : "";
+            const hasMarkers = markers.leave || markers.late || markers.early || markers.ooo;
+            // Colored rectangle is CSS ::before on status-* (inset); no inline fill
+
+            return /*#__PURE__*/ React.createElement(
+              "button",
+              {
+                key: `day-${weekIndex}-${dayIndex}`,
+                type: "button",
+                onClick: () =>
+                  onSelectDate === null || onSelectDate === void 0
+                    ? void 0
+                    : onSelectDate(day.date),
+                className: clsx(
+                  "day",
+                  (dayIndex + 1) % 7 === 0 && "holiday",
+                  isToday && "today",
+                  isSelected && "selected",
+                  statusClass,
+                  hasMarkers && "has-markers",
+                ),
+                "data-ad": adKey,
+                "data-status": eventStatus || "",
+                role: "gridcell",
+                "aria-label": `Nepali date ${day.date.format({
                   format: "YYYY-MM-DD",
-                  calendar: "AD",
-                });
-              return /*#__PURE__*/ React.createElement(
-                "button",
+                  calendar: "BS",
+                })}${eventStatus ? `, ${eventStatus}` : ""}`,
+                "aria-current": isToday ? "date" : undefined,
+                "aria-selected": isSelected,
+              },
+              isToday &&
+                /*#__PURE__*/ React.createElement("span", {
+                  className: "today-indicator",
+                  "aria-hidden": "true",
+                }),
+              day.np,
+              /*#__PURE__*/ React.createElement(
+                "span",
                 {
-                  key: `day-${weekIndex}-${dayIndex}`,
-                  type: "button",
-                  onClick: () =>
-                    onSelectDate === null || onSelectDate === void 0
-                      ? void 0
-                      : onSelectDate(day.date),
-                  className: clsx(
-                    "day",
-                    (dayIndex + 1) % 7 === 0 && "holiday",
-                    isToday && "today",
-                    isSelected && "selected",
-                  ),
-                  role: "gridcell",
-                  "aria-label": `Nepali date ${day.date.format({
-                    format: "YYYY-MM-DD",
-                    calendar: "BS",
-                  })}`,
-                  "aria-current": isToday ? "date" : undefined,
-                  "aria-selected": isSelected,
+                  className: "ad",
+                  "aria-hidden": "true",
                 },
-                isToday &&
-                  /*#__PURE__*/ React.createElement("span", {
-                    className: "today-indicator",
-                    "aria-hidden": "true",
-                  }),
-                day.np,
+                day.ad,
+              ),
+              hasMarkers &&
                 /*#__PURE__*/ React.createElement(
                   "span",
                   {
-                    className: "ad",
+                    className: "day-markers",
                     "aria-hidden": "true",
                   },
-                  day.ad,
+                  markers.leave &&
+                    /*#__PURE__*/ React.createElement("i", {
+                      className: clsx(
+                        "marker",
+                        "leave",
+                        markers.leaveKind === "pending" && "pending",
+                        markers.leaveKind === "rejected" && "rejected",
+                      ),
+                      title:
+                        markers.leaveKind === "pending"
+                          ? "Leave pending"
+                          : markers.leaveKind === "rejected"
+                            ? "Leave rejected"
+                            : "Leave",
+                    }),
+                  markers.late &&
+                    /*#__PURE__*/ React.createElement("i", {
+                      className: "marker late",
+                      title: "Late",
+                    }),
+                  markers.early &&
+                    /*#__PURE__*/ React.createElement("i", {
+                      className: "marker early",
+                      title: "Early exit",
+                    }),
+                  markers.ooo &&
+                    /*#__PURE__*/ React.createElement("i", {
+                      className: "marker ooo",
+                      title: "Out of office form required",
+                    }),
                 ),
-              );
-            }),
-          ),
+            );
+          }),
+        ),
         ),
       ),
       /*#__PURE__*/ React.createElement(
         "div",
         {
           className: "footer",
+          style: { display: "flex", gap: "8px", justifyContent: "center" }
         },
         /*#__PURE__*/ React.createElement(
           "button",
@@ -521,6 +693,16 @@
             "aria-label": "Go to today's date",
           },
           /*#__PURE__*/ React.createElement("span", null, "\u0906\u091C"),
+        ),
+        /*#__PURE__*/ React.createElement(
+          "button",
+          {
+            onClick: onClickFiscalYearFirstMonth,
+            type: "button",
+            className: "today-button fiscal-button",
+            "aria-label": "Go to current fiscal year first month",
+          },
+          /*#__PURE__*/ React.createElement("span", null, "\u091A\u093E\u0932\u0941 \u0906.\u0935."),
         ),
       ),
     );
@@ -568,9 +750,9 @@
     }
     root.render(
       /*#__PURE__*/ React.createElement(
-        NepaliCalendarView,
-        Object.assign({}, props),
-      ),
+      NepaliCalendarView,
+      Object.assign({}, props),
+    ),
     );
   }
 
