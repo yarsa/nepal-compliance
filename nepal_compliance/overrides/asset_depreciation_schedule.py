@@ -1,4 +1,3 @@
-import frappe
 from frappe.utils import add_days, cint, flt, getdate
 
 from erpnext.assets.doctype.asset_depreciation_schedule.asset_depreciation_schedule import (
@@ -25,6 +24,25 @@ def bs_aligned_depreciation_start(available_for_use_date, depreciation_start_dat
     bs = ad_to_bs(anchor)
     y, m = next_fiscal_period_end(bs["year"], bs["month"], freq)
     return end_of(y, m)
+
+
+def resolve_bs_snap_anchor(posted, pending, available_for_use_date, frequency, opening_booked=0):
+    """Return (anchor_ad_date, skip_months) for snapping pending schedule rows.
+
+    Posted JE rows continue from the last posted date. Migrated assets with
+    opening_number_of_booked_depreciations but no journal_entry yet must skip
+    those opening periods instead of re-anchoring at available_for_use_date.
+    """
+    freq = max(cint(frequency), 1)
+    opening = cint(opening_booked)
+
+    if posted:
+        return posted[-1].schedule_date, freq
+    if opening and available_for_use_date:
+        return available_for_use_date, opening * freq
+    if available_for_use_date:
+        return available_for_use_date, 0
+    return pending[0].schedule_date, 0
 
 
 class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
@@ -94,7 +112,8 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
 
         Posted rows (with a journal entry) keep their historical dates. With no
         posted rows, the series starts at the next fiscal period end on or after
-        available_for_use (not ERPNext's first Gregorian date). Later rows
+        available_for_use (not ERPNext's first Gregorian date), unless opening
+        booked depreciations require skipping those periods first. Later rows
         advance by frequency_of_depreciation months.
         """
         rows = self.get("depreciation_schedule") or []
@@ -107,13 +126,14 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             return
 
         freq = cint(self.get("frequency_of_depreciation")) or 1
+        opening = cint(self.get("opening_number_of_booked_depreciations")) or cint(
+            (asset_doc or {}).get("opening_number_of_booked_depreciations")
+        )
+        available = asset_doc.get("available_for_use_date") if asset_doc else None
 
-        if posted:
-            anchor, skip = posted[-1].schedule_date, freq
-        elif asset_doc and asset_doc.get("available_for_use_date"):
-            anchor, skip = asset_doc.available_for_use_date, 0
-        else:
-            anchor, skip = pending[0].schedule_date, 0
+        anchor, skip = resolve_bs_snap_anchor(
+            posted, pending, available, freq, opening_booked=opening
+        )
 
         bs = ad_to_bs(getdate(anchor))
         y, m = advance(bs["year"], bs["month"], skip)
@@ -148,10 +168,23 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             flt(asset_doc.gross_purchase_amount) - flt(row.expected_value_after_useful_life)
         ) / flt(row.total_number_of_depreciations)
 
+        freq = cint(row.get("frequency_of_depreciation")) or cint(
+            self.get("frequency_of_depreciation")
+        ) or 1
+        opening = cint(self.get("opening_number_of_booked_depreciations")) or cint(
+            asset_doc.get("opening_number_of_booked_depreciations")
+        )
+
         posted = [r for r in rows if r.get("journal_entry")]
         if posted:
             accum = flt(posted[-1].accumulated_depreciation_amount)
             period_from = add_days(getdate(posted[-1].schedule_date), 1)
+        elif opening:
+            # First pending period begins the day after the last opening period end
+            accum = flt(self.opening_accumulated_depreciation)
+            first_bs = ad_to_bs(getdate(pending[0].schedule_date))
+            prev_y, prev_m = advance(first_bs["year"], first_bs["month"], -freq)
+            period_from = add_days(end_of(prev_y, prev_m), 1)
         else:
             accum = flt(self.opening_accumulated_depreciation)
             period_from = getdate(asset_doc.available_for_use_date)

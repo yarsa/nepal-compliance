@@ -1,9 +1,11 @@
-from datetime import timedelta
-
 import frappe
 from frappe.utils import cint, getdate
 
-from nepal_compliance.nepali_date_utils.nepali_date import ad_to_bs, bs_to_ad
+from nepal_compliance.nepali_date_utils.nepali_date import (
+    ad_to_bs,
+    bs_to_ad,
+    days_in_bs_month,
+)
 
 
 def advance(y, m, n):
@@ -15,15 +17,10 @@ def advance(y, m, n):
 def end_of(y, m):
     """AD date of the last day of BS month y-m.
 
-    Derived as 'first day of next BS month minus one day' rather than probing
-    days 32/31/30/29: the app's _validate_bs calls frappe.throw, which would push
-    entries into the message log and spray UI toasts even inside a try/except.
-
-    Known limit: end_of(2100, 12) needs BS 2101, outside the CSV, and will throw.
-    That is AD 2044 and out of scope.
+    Uses the known length of month y-m from the calendar CSV, so the last
+    supported month (e.g. Chaitra 2100) works without needing BS 2101 data.
     """
-    ny, nm = advance(y, m, 1)
-    return bs_to_ad(ny, nm, 1) - timedelta(days=1)
+    return bs_to_ad(y, m, days_in_bs_month(y, m))
 
 
 def next_fiscal_period_end(y, m, freq):
