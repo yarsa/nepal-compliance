@@ -1,6 +1,8 @@
 import unittest
 from types import SimpleNamespace
 
+from frappe.utils import date_diff, flt
+
 from nepal_compliance.overrides.asset_depreciation_schedule import (
     _get_recalc_bases,
     _get_recalc_target_total,
@@ -54,8 +56,10 @@ class TestRecalcBases(unittest.TestCase):
         asset = _asset(flags=SimpleNamespace(increase_in_asset_life=True))
         row = _row(value_after_depreciation=90000)
         full_amt, remaining = _get_recalc_bases(asset, row, pending_count=3, precision=2)
+        remaining_days = date_diff(asset.to_date, asset.available_for_use_date)
+        expected = flt(90000 / (remaining_days / 365.0), 2)
         self.assertEqual(remaining, 90000)
-        self.assertAlmostEqual(full_amt, 9000, places=0)
+        self.assertEqual(full_amt, expected)
 
     def test_target_total_after_write_down_does_not_reach_gross(self):
         row = _row(value_after_depreciation=60000)

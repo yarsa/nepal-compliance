@@ -13,12 +13,22 @@ from nepal_compliance.nepali_date_utils.bs_periods import (
 from nepal_compliance.nepali_date_utils.nepali_date import ad_to_bs
 
 
+def _flag(asset_doc, name):
+    """Read an ERPNext asset flag whether flags is a dict-like or namespace."""
+    flags = getattr(asset_doc, "flags", None)
+    if flags is None:
+        return False
+    if hasattr(flags, "get"):
+        return bool(flags.get(name))
+    return bool(getattr(flags, name, False))
+
+
 def _is_adjustment_schedule(asset_doc):
     """True when ERPNext rebuilds the schedule after repair or value adjustment."""
-    return bool(
-        asset_doc.flags.get("decrease_in_asset_value_due_to_value_adjustment")
-        or asset_doc.flags.get("increase_in_asset_value_due_to_repair")
-        or asset_doc.flags.get("increase_in_asset_life")
+    return (
+        _flag(asset_doc, "decrease_in_asset_value_due_to_value_adjustment")
+        or _flag(asset_doc, "increase_in_asset_value_due_to_repair")
+        or _flag(asset_doc, "increase_in_asset_life")
     )
 
 
@@ -33,7 +43,7 @@ def _get_recalc_bases(asset_doc, row, pending_count, precision):
     remaining_depreciable = flt(row.value_after_depreciation) - salvage
     pending_count = max(cint(pending_count), 1)
 
-    if asset_doc.flags.get("increase_in_asset_life"):
+    if _flag(asset_doc, "increase_in_asset_life"):
         if asset_doc.to_date and asset_doc.available_for_use_date:
             remaining_days = date_diff(asset_doc.to_date, asset_doc.available_for_use_date)
             divisor = remaining_days / 365.0 if remaining_days > 0 else 1
