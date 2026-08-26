@@ -26,18 +26,37 @@ def bs_aligned_depreciation_start(available_for_use_date, depreciation_start_dat
     return end_of(y, m)
 
 
+def is_bs_fiscal_period_end(ad_date, frequency):
+    """True when ad_date is the last day of a Nepali fiscal period for frequency."""
+    freq = max(cint(frequency), 1)
+    d = getdate(ad_date)
+    bs = ad_to_bs(d)
+    y, m = bs["year"], bs["month"]
+    if (m - 3) % freq != 0:
+        return False
+    return d == end_of(y, m)
+
+
 def resolve_bs_snap_anchor(posted, pending, available_for_use_date, frequency, opening_booked=0):
     """Return (anchor_ad_date, skip_months) for snapping pending schedule rows.
 
-    Posted JE rows continue from the last posted date. Migrated assets with
-    opening_number_of_booked_depreciations but no journal_entry yet must skip
-    those opening periods instead of re-anchoring at available_for_use_date.
+    Posted JE rows continue from the last posted date. Advance by a full
+    frequency only when that date is already a BS fiscal period end; otherwise
+    round up to the next period end so a mid-period posted date (e.g. Shrawan
+    with quarterly freq) still lands on Ashwin, not Poush.
+
+    Migrated assets with opening_number_of_booked_depreciations but no
+    journal_entry yet must skip those opening periods instead of re-anchoring
+    at available_for_use_date.
     """
     freq = max(cint(frequency), 1)
     opening = cint(opening_booked)
 
     if posted:
-        return posted[-1].schedule_date, freq
+        last = posted[-1].schedule_date
+        # Already on a period end → next period; else keep month and round up
+        skip = freq if is_bs_fiscal_period_end(last, freq) else 0
+        return last, skip
     if opening and available_for_use_date:
         return available_for_use_date, opening * freq
     if available_for_use_date:
@@ -110,11 +129,12 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
     def snap_schedule_dates_to_bs_month_end(self, asset_doc=None):
         """Move pending rows onto consecutive BS fiscal period ends.
 
-        Posted rows (with a journal entry) keep their historical dates. With no
+        Posted rows (with a journal entry) keep their historical dates. The first
+        pending date is the next BS fiscal period end after the last posted date
+        (without skipping a period when the posted date was mid-period). With no
         posted rows, the series starts at the next fiscal period end on or after
-        available_for_use (not ERPNext's first Gregorian date), unless opening
-        booked depreciations require skipping those periods first. Later rows
-        advance by frequency_of_depreciation months.
+        available_for_use, unless opening booked depreciations require skipping
+        those periods first. Later rows advance by frequency_of_depreciation months.
         """
         rows = self.get("depreciation_schedule") or []
         if not rows:
