@@ -90,8 +90,10 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             update_asset_finance_book_row=update_asset_finance_book_row,
             value_after_depreciation=value_after_depreciation,
         )
-        self.snap_schedule_dates_to_bs_month_end(asset_doc)
-        self.recalculate_amounts_after_bs_snap(asset_doc, row)
+        self.snap_schedule_dates_to_bs_month_end(asset_doc, date_of_disposal=date_of_disposal)
+        self.recalculate_amounts_after_bs_snap(
+            asset_doc, row, date_of_disposal=date_of_disposal
+        )
         self.sync_finance_book_start_to_first_pending(
             row, update_asset_finance_book_row=update_asset_finance_book_row
         )
@@ -126,7 +128,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         if getdate(row.depreciation_start_date) != aligned:
             row.depreciation_start_date = aligned
 
-    def snap_schedule_dates_to_bs_month_end(self, asset_doc=None):
+    def snap_schedule_dates_to_bs_month_end(self, asset_doc=None, date_of_disposal=None):
         """Move pending rows onto consecutive BS fiscal period ends.
 
         Posted rows (with a journal entry) keep their historical dates. The first
@@ -135,6 +137,10 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         posted rows, the series starts at the next fiscal period end on or after
         available_for_use, unless opening booked depreciations require skipping
         those periods first. Later rows advance by frequency_of_depreciation months.
+
+        When date_of_disposal is set, ERPNext already ended the schedule with a
+        mid-period disposal row. Keep that terminal date; only earlier pending
+        rows are snapped to BS period ends.
         """
         rows = self.get("depreciation_schedule") or []
         if not rows:
@@ -144,6 +150,12 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         pending = [r for r in rows if not r.get("journal_entry")]
         if not pending:
             return
+
+        # Disposal terminal row must stay on date_of_disposal (not a BS period end)
+        if date_of_disposal and getdate(pending[-1].schedule_date) == getdate(date_of_disposal):
+            pending = pending[:-1]
+            if not pending:
+                return
 
         freq = cint(self.get("frequency_of_depreciation")) or 1
         opening = cint(self.get("opening_number_of_booked_depreciations")) or cint(
@@ -163,13 +175,19 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             schedule_row.schedule_date = end_of(y, m)
             y, m = advance(y, m, freq)
 
-    def recalculate_amounts_after_bs_snap(self, asset_doc, row):
+    def recalculate_amounts_after_bs_snap(self, asset_doc, row, date_of_disposal=None):
         """Rebuild SL/Manual amounts from BS-snapped dates.
 
         First pending row is pro-rated from the period start through its snapped
         schedule_date (capped at one full period); middle rows use the full
         period amount; the last pending row takes the residual so accumulated
         depreciation hits salvage.
+
+        When date_of_disposal is set, leave the terminal disposal row's amount
+        alone (ERPNext already pro-rated it to disposal) and only rebuild prior
+        pending rows. A single pending row that is also last settles via residual
+        so book value reaches salvage — but only when there is no disposal row
+        after it.
         """
         if not asset_doc or not row:
             return
@@ -182,6 +200,13 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         pending = [r for r in rows if not r.get("journal_entry")]
         if not pending:
             return
+
+        disposal_row = None
+        if date_of_disposal and getdate(pending[-1].schedule_date) == getdate(date_of_disposal):
+            disposal_row = pending[-1]
+            pending = pending[:-1]
+            if not pending:
+                return
 
         precision = asset_doc.precision("gross_purchase_amount")
         full_amt = (
@@ -215,14 +240,17 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
 
         for idx, schedule_row in enumerate(pending):
             is_last = idx == len(pending) - 1
-            if idx == 0:
+            # Settle to salvage only on the true schedule end (no disposal after)
+            settle_residual = is_last and disposal_row is None
+
+            if settle_residual:
+                amount = flt(target_total - accum, precision)
+            elif idx == 0:
                 amount, _days, _months = _get_pro_rata_amt(
                     row, full_amt, period_from, schedule_row.schedule_date
                 )
                 # Never charge more than one frequency period in the first row
                 amount = flt(min(amount, full_amt), precision)
-            elif is_last:
-                amount = flt(target_total - accum, precision)
             else:
                 amount = flt(full_amt, precision)
 
@@ -235,6 +263,17 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             schedule_row.depreciation_amount = amount
             accum = flt(accum + amount, precision)
             schedule_row.accumulated_depreciation_amount = accum
+
+        if disposal_row is not None:
+            # Keep ERPNext disposal amount; only refresh running accumulated
+            remaining = flt(target_total - accum, precision)
+            amount = flt(disposal_row.depreciation_amount, precision)
+            if amount > remaining:
+                amount = remaining
+            if amount < 0:
+                amount = 0
+            disposal_row.depreciation_amount = amount
+            disposal_row.accumulated_depreciation_amount = flt(accum + amount, precision)
 
     def sync_finance_book_start_to_first_pending(self, row, update_asset_finance_book_row=True):
         """Persist the first pending BS period end as depreciation_start_date."""
