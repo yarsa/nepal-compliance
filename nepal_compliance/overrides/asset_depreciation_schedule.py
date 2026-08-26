@@ -1,4 +1,4 @@
-from frappe.utils import add_days, cint, flt, getdate
+from frappe.utils import add_days, cint, date_diff, flt, getdate
 
 from erpnext.assets.doctype.asset_depreciation_schedule.asset_depreciation_schedule import (
     AssetDepreciationSchedule,
@@ -11,6 +11,51 @@ from nepal_compliance.nepali_date_utils.bs_periods import (
     next_fiscal_period_end,
 )
 from nepal_compliance.nepali_date_utils.nepali_date import ad_to_bs
+
+
+def _is_adjustment_schedule(asset_doc):
+    """True when ERPNext rebuilds the schedule after repair or value adjustment."""
+    return bool(
+        asset_doc.flags.get("decrease_in_asset_value_due_to_value_adjustment")
+        or asset_doc.flags.get("increase_in_asset_value_due_to_repair")
+        or asset_doc.flags.get("increase_in_asset_life")
+    )
+
+
+def _get_recalc_bases(asset_doc, row, pending_count, precision):
+    """Return (full_period_amount, target_accumulated) for BS amount recalculation.
+
+    Mirrors ERPNext straight-line bases in ``get_straight_line_or_manual_depr_amount``,
+    but ``target_accumulated`` is anchored at the current book value so write-down
+    schedules do not re-depreciate impairment already expensed through AVA.
+    """
+    salvage = flt(row.expected_value_after_useful_life)
+    remaining_depreciable = flt(row.value_after_depreciation) - salvage
+    pending_count = max(cint(pending_count), 1)
+
+    if asset_doc.flags.get("increase_in_asset_life"):
+        if asset_doc.to_date and asset_doc.available_for_use_date:
+            remaining_days = date_diff(asset_doc.to_date, asset_doc.available_for_use_date)
+            divisor = remaining_days / 365.0 if remaining_days > 0 else 1
+        else:
+            divisor = pending_count
+        full_amt = remaining_depreciable / divisor
+    elif _is_adjustment_schedule(asset_doc):
+        full_amt = remaining_depreciable / pending_count
+    else:
+        full_amt = (flt(asset_doc.gross_purchase_amount) - salvage) / flt(
+            row.total_number_of_depreciations
+        )
+
+    return flt(full_amt, precision), flt(remaining_depreciable, precision)
+
+
+def _get_recalc_target_total(row, accum_start, precision):
+    """Final accumulated depreciation after all pending rows are booked."""
+    remaining_depreciable = flt(row.value_after_depreciation) - flt(
+        row.expected_value_after_useful_life
+    )
+    return flt(accum_start + remaining_depreciable, precision)
 
 
 def bs_aligned_depreciation_start(available_for_use_date, depreciation_start_date, frequency):
@@ -209,9 +254,10 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
                 return
 
         precision = asset_doc.precision("gross_purchase_amount")
-        full_amt = (
-            flt(asset_doc.gross_purchase_amount) - flt(row.expected_value_after_useful_life)
-        ) / flt(row.total_number_of_depreciations)
+        pending_count = len(pending)
+        full_amt, _remaining_depreciable = _get_recalc_bases(
+            asset_doc, row, pending_count, precision
+        )
 
         freq = cint(row.get("frequency_of_depreciation")) or cint(
             self.get("frequency_of_depreciation")
@@ -234,9 +280,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             accum = flt(self.opening_accumulated_depreciation)
             period_from = getdate(asset_doc.available_for_use_date)
 
-        target_total = flt(asset_doc.gross_purchase_amount) - flt(
-            row.expected_value_after_useful_life
-        )
+        target_total = _get_recalc_target_total(row, accum, precision)
 
         for idx, schedule_row in enumerate(pending):
             is_last = idx == len(pending) - 1
