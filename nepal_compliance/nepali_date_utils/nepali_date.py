@@ -79,6 +79,13 @@ def load_calendar() -> None:
                     if any(m <= 0 for m in months):
                         _throw(f"Invalid day count in year {year}: {months}")
 
+                    total = sum(months)
+                    if year == 2096:
+                        if total != 364:
+                            _throw(f"BS year 2096 has {total} days (expected 364): {months}")
+                    elif total not in (365, 366):
+                        _throw(f"BS year {year} has {total} days (must be 365 or 366): {months}")
+
                     parsed[year] = months
 
         except OSError as e:
@@ -100,13 +107,18 @@ def _ensure_loaded():
         load_calendar()
 
 
-def _validate_bs(year: int, month: int, day: int):
+def days_in_bs_month(year: int, month: int) -> int:
+    """Number of days in BS year-month (1-indexed month)."""
     _ensure_loaded()
     if year not in _bs_months:
         _throw(f"Year {year} outside supported BS range {min(_bs_months)}–{max(_bs_months)}")
     if not 1 <= month <= 12:
         _throw("Month must be between 1 and 12")
-    max_day = _bs_months[year][month - 1]
+    return _bs_months[year][month - 1]
+
+
+def _validate_bs(year: int, month: int, day: int):
+    max_day = days_in_bs_month(year, month)
     if not (1 <= day <= max_day):
         _throw(f"Invalid BS day {day} for {year}-{month} (max {max_day})")
 
@@ -229,4 +241,4 @@ def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
         "SS": f"{dt.second:02d}",
     })
 
-__all__ = ["ad_to_bs", "bs_to_ad", "format_bs", "format_bs_datetime"]
+__all__ = ["ad_to_bs", "bs_to_ad", "days_in_bs_month", "format_bs", "format_bs_datetime"]
