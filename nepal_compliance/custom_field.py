@@ -85,7 +85,14 @@ def create_custom_fields():
             {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "customer_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
-            {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no"}
+            {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no"},
+            {"fieldname": "attach_purchase_invoice", "label": "Attach Purchase Invoice", "fieldtype": "Attach", "insert_after": "bill_date", "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
+            {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "non_taxable_amount", "label": "Non-Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
+            {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "summary_grand_total", "label": "Grand Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1}
         ],
         "Sales Order":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1}
@@ -100,7 +107,13 @@ def create_custom_fields():
             {"fieldname": "cbms_response", "label": "CBMS Response", "fieldtype": "Small Text", "insert_after": "cbms_status", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "cost_center", "allow_on_submit": 1},
             {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "project", "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1}
+            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
+            {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "non_taxable_amount", "label": "Non-Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
+            {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "summary_grand_total", "label": "Grand Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}
@@ -321,10 +334,10 @@ def create_custom_fields():
                     **field
                 })
                 custom_field.save()
-                frappe.msgprint(_(f"Custom field '{field['label']}' added successfully to {doctype_name}!"))
+                frappe.msgprint(_(f"Custom field '{field.get('label') or field['fieldname']}' added successfully to {doctype_name}!"))
                 created_fields.append({"dt": doctype_name, "fieldname": field["fieldname"]})
             else:
-                frappe.msgprint(_(f"Field '{field['label']}' already exists in {doctype_name}."))
+                frappe.msgprint(_(f"Field '{field.get('label') or field['fieldname']}' already exists in {doctype_name}."))
 
     return created_fields  
 

@@ -38,7 +38,7 @@ def next_fiscal_period_end(y, m, freq):
 
 
 @frappe.whitelist()
-def bs_month_end_series(start_date, count, skip=0):
+def bs_month_end_series(start_date: str, count: int, skip: int = 0):
     """`count` consecutive BS month-end AD dates, starting from the BS month
     containing start_date, advanced by `skip` months."""
     bs = ad_to_bs(getdate(start_date))

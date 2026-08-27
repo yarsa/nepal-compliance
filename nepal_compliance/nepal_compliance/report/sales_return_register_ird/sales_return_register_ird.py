@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.utils import get_vat_breakup
 
 def execute(filters=None):
     columns = get_columns()
@@ -63,65 +64,49 @@ def get_data(filters):
             si.customer_name,
             si.tax_id as pan,
             si.customer,
+            si.company,
             si.total,
-            si.total_taxes_and_charges as total_tax,
             si.posting_date
         FROM `tabSales Invoice` si
         WHERE {conditions}
         ORDER BY si.posting_date
     """
-    
+
     query = query.replace("{conditions}", conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
+
+    vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
 
     grand_qty = grand_total = grand_tax_exempt = grand_taxable = grand_tax = 0.0
 
     for inv in invoices:
         item_filters = {"parent": inv.invoice}
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name", "item_tax_template"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name"])
 
-        item_codes = [item["item_code"] for item in items]
-        asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
+        item_vat_map = vat_breakup.get(inv.invoice, {}).get("item_vat", {})
+        total_vat = flt(vat_breakup.get(inv.invoice, {}).get("total_vat"))
 
-        total_invoice = tax_exempt_total = taxable_total = total_qty = 0.0
-        taxable_item_net_amounts = []
+        tax_exempt_total = taxable_total = total_qty = 0.0
 
         for item in items:
             amt = flt(item.get("net_amount"))
-            item_tax_template = item.get("item_tax_template")
-            is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
             qty = flt(item.get("qty") or 0)
+            item_vat = flt(item_vat_map.get(item.get("item_code") or item.get("item_name")))
+            is_nontaxable = item.get("is_nontaxable_item") or not item_vat
 
             total_qty += abs(qty)
 
-            if is_nontaxable or item["item_code"] in asset_items:
+            tax_exempt_item = taxable_amount_item = tax_amount_item = 0.0
+            if is_nontaxable:
+                tax_exempt_item = amt
                 tax_exempt_total += amt
             else:
-                taxable_total += amt
-                taxable_item_net_amounts.append((item, amt))
-
-        total_tax = flt(inv.total_tax)
-        for item, amt in taxable_item_net_amounts:
-            share = (amt / taxable_total) if taxable_total else 0
-            item["calculated_tax"] = share * total_tax
-
-        for item in items:
-            amt = flt(item.get("net_amount"))
-            qty = flt(item.get("qty") or 0)
-            item_tax_template = item.get("item_tax_template")
-            is_nontaxable = item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template)
-            is_fixed_asset = item["item_code"] in asset_items
-
-            tax_exempt_item = taxable_amount_item = tax_amount_item = 0.0
-            if is_nontaxable or is_fixed_asset:
-                tax_exempt_item = amt
-            else:
                 taxable_amount_item = amt
-                tax_amount_item = next(
-                    (i[0]["calculated_tax"] for i in taxable_item_net_amounts if i[0] == item), 0.0)
+                tax_amount_item = item_vat
+                taxable_total += amt
 
             data.append({
                 "posting_date": inv.posting_date or "",
@@ -148,14 +133,14 @@ def get_data(filters):
             "total": abs(flt(inv.rounded_total or inv.grand_total)),
             "tax_exempt": abs(flt(tax_exempt_total)),
             "taxable_amount": abs(flt(taxable_total)),
-            "tax_amount": abs(flt(total_tax))
+            "tax_amount": abs(total_vat)
         })
 
         grand_qty += abs(total_qty)
         grand_total += abs(flt(inv.rounded_total or inv.grand_total))
         grand_tax_exempt += abs(flt(tax_exempt_total))
         grand_taxable += abs(flt(taxable_total))
-        grand_tax += abs(flt(total_tax))
+        grand_tax += abs(total_vat)
 
     data.append({
         "posting_date": "",

@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.utils import get_vat_breakup
 
 def execute(filters=None):
     columns = get_columns()
@@ -62,16 +63,18 @@ def get_data(filters):
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
-            pi.total, pi.total_taxes_and_charges as total_tax
+            pi.total, pi.company
         FROM `tabPurchase Invoice` pi
         WHERE {conditions}
         ORDER BY pi.posting_date
     """
-    
+
     query = query.replace("{conditions}", conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
+
+    vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
         supplier_country = frappe.db.get_value("Supplier", inv.supplier_name, "country") or ""
@@ -80,43 +83,33 @@ def get_data(filters):
         pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
+        tax_domestic_nc = tax_import_nc = tax_capital = 0.0
 
         item_filters = {"parent": inv.invoice}
 
         items = frappe.get_all("Purchase Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_tax_template"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_code", "item_name"])
+
+        item_vat_map = vat_breakup.get(inv.invoice, {}).get("item_vat", {})
 
         for item in items:
             amt = flt(item.get("net_amount"))
+            item_vat = flt(item_vat_map.get(item.get("item_code") or item.get("item_name")))
 
-            item_tax_template = item.get("item_tax_template")
-
-            is_nontaxable = (
-                item.get("is_nontaxable_item") or 
-                (flt(inv.total_tax) == 0 and not item_tax_template)
-            )
-
-            if is_nontaxable:
+            if item.get("is_nontaxable_item") or not item_vat:
                 tax_exempt += amt
                 continue
 
             if item.get("asset_category"):
                 capital_taxable_amount += amt
+                tax_capital += item_vat
             else:
                 if is_import:
                     taxable_import_nc += amt
+                    tax_import_nc += item_vat
                 else:
                     taxable_domestic_nc += amt
-
-        total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        total_tax = flt(inv.total_tax)
-
-        if total_tax == 0 or total_taxable == 0:
-            tax_domestic_nc = tax_import_nc = tax_capital = 0
-        else:
-            tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax if total_taxable else 0
-            tax_import_nc = (taxable_import_nc / total_taxable) * total_tax if total_taxable else 0
-            tax_capital = (capital_taxable_amount / total_taxable) * total_tax if total_taxable else 0
+                    tax_domestic_nc += item_vat
 
         data.append({
             "posting_date": inv.posting_date,
