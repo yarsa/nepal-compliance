@@ -17,7 +17,12 @@
   "section_break_gjyo",
   "allowed_role",
   "column_break_ftxd",
-  "restricted_doctypes"
+  "restricted_doctypes",
+  "vat_accounts_section",
+  "vat_accounts",
+  "purchase_tab",
+  "require_purchase_invoice_attachment",
+  "enable_duplicate_bill_no_check"
  ],
  "fields": [
   {
@@ -95,6 +100,37 @@
    "fieldname": "enable_nepali_date",
    "fieldtype": "Check",
    "label": "Enable Nepali Date"
+  },
+  {
+   "fieldname": "vat_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "IRD VAT Accounts"
+  },
+  {
+   "description": "VAT amounts in IRD reports are picked only from the accounts configured here. Companies without a configured account will show VAT as 0 in IRD reports.",
+   "fieldname": "vat_accounts",
+   "fieldtype": "Table",
+   "label": "VAT Accounts",
+   "options": "Nepal Compliance VAT Account"
+  },
+  {
+   "fieldname": "purchase_tab",
+   "fieldtype": "Tab Break",
+   "label": "Purchase"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, a Purchase Invoice cannot be submitted unless the supplier's invoice document is attached in the 'Attach Purchase Invoice' field.",
+   "fieldname": "require_purchase_invoice_attachment",
+   "fieldtype": "Check",
+   "label": "Make Purchase Invoice Attachment Mandatory"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, saving a Purchase Invoice is blocked when another active invoice exists for the same supplier with the same bill number (leading zeros and letter case ignored) within the same fiscal year.",
+   "fieldname": "enable_duplicate_bill_no_check",
+   "fieldtype": "Check",
+   "label": "Restrict Duplicate Supplier Bill No"
   }
  ],
  "index_web_pages_for_search": 1,

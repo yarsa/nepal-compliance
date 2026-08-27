@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.utils import get_vat_breakup
 
 def execute(filters=None):
     columns = get_columns()
@@ -57,17 +58,19 @@ def get_data(filters):
 
     query = """
         SELECT
-            si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer,
-            si.total, si.net_total, si.grand_total, si.total_taxes_and_charges as total_tax, si.customs_declaration_number, si.customs_declaration_date_bs
+            si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer, si.company,
+            si.total, si.net_total, si.grand_total, si.customs_declaration_number, si.customs_declaration_date_bs
         FROM `tabSales Invoice` si
         WHERE {conditions}
         ORDER BY si.posting_date
     """
-    
+
     query = query.replace("{conditions}", conditions_sql)
 
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
+
+    vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
         customer_country = frappe.db.get_value("Customer", inv.customer_name, "territory") or ""
@@ -76,24 +79,23 @@ def get_data(filters):
         pan = inv.invoice_pan or frappe.db.get_value("Customer", inv.customer, "tax_id")
         
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
+        tax_domestic_nc = 0.0
 
         item_filters = {"parent": inv.invoice}
-        
+
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_tax_template"])
-        
+            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_name"])
+
         item_codes = [item["item_code"] for item in items]
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
-        
+
+        item_vat_map = vat_breakup.get(inv.invoice, {}).get("item_vat", {})
+
         for item in items:
             amt = flt(item.get("net_amount"))
+            item_vat = flt(item_vat_map.get(item.get("item_code") or item.get("item_name")))
 
-            item_tax_template = item.get("item_tax_template")
-
-            is_nontaxable = (
-                item.get("is_nontaxable_item") or (flt(inv.total_tax) == 0 and not item_tax_template))
-
-            if is_nontaxable:
+            if item.get("is_nontaxable_item") or (not item_vat and not is_export):
                 tax_exempt += amt
                 continue
 
@@ -104,14 +106,7 @@ def get_data(filters):
                     taxable_import_nc += amt
                 else:
                     taxable_domestic_nc += amt
-
-        total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        total_tax = flt(inv.total_tax)
-
-        if total_tax == 0 or total_taxable == 0:
-            tax_domestic_nc = tax_import_nc = tax_capital = 0
-        else:
-            tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax
+                    tax_domestic_nc += item_vat
 
         data.append({
             "posting_date": inv.posting_date,

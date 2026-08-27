@@ -179,14 +179,17 @@ doc_events = {
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "before_validate": "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
+        "validate": ["nepal_compliance.utils.set_taxable_amounts", "nepal_compliance.utils.validate_duplicate_bill_no"],
         "on_submit": "nepal_compliance.qr_code.create_qr_code",
-        "before_submit": "nepal_compliance.utils.bill_no_required"
+        "before_submit": ["nepal_compliance.utils.bill_no_required", "nepal_compliance.utils.require_purchase_invoice_attachment"]
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "before_validate": "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
-        "validate": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.utils.load_nepali_date"]
+        "validate": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.utils.load_nepali_date", "nepal_compliance.utils.set_taxable_amounts"]
     },
     "Sales Order" : {
         "validate": "nepal_compliance.utils.load_nepali_date"
