@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import get_vat_breakup
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup
 
 def execute(filters=None):
     columns = get_columns()
@@ -77,7 +77,7 @@ def get_data(filters):
     vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
-        supplier_country = frappe.db.get_value("Supplier", inv.supplier_name, "country") or ""
+        supplier_country = frappe.db.get_value("Supplier", inv.supplier, "country") or ""
         is_import = supplier_country.strip().lower() != "nepal"
 
         pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
@@ -91,10 +91,10 @@ def get_data(filters):
             fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_code", "item_name"])
 
         item_vat_map = vat_breakup.get(inv.invoice, {}).get("item_vat", {})
+        row_vat = distribute_item_vat(items, item_vat_map)
 
-        for item in items:
+        for item, item_vat in zip(items, row_vat):
             amt = flt(item.get("net_amount"))
-            item_vat = flt(item_vat_map.get(item.get("item_code") or item.get("item_name")))
 
             if item.get("is_nontaxable_item") or not item_vat:
                 tax_exempt += amt

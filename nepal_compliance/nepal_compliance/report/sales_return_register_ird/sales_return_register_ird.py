@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import get_vat_breakup
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup
 
 def execute(filters=None):
     columns = get_columns()
@@ -91,10 +91,11 @@ def get_data(filters):
 
         tax_exempt_total = taxable_total = total_qty = 0.0
 
-        for item in items:
+        row_vat = distribute_item_vat(items, item_vat_map)
+
+        for item, item_vat in zip(items, row_vat):
             amt = flt(item.get("net_amount"))
             qty = flt(item.get("qty") or 0)
-            item_vat = flt(item_vat_map.get(item.get("item_code") or item.get("item_name")))
             is_nontaxable = item.get("is_nontaxable_item") or not item_vat
 
             total_qty += abs(qty)

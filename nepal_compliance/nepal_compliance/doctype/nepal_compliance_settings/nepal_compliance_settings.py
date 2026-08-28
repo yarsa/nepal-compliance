@@ -4,9 +4,15 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 import redis
 
 class NepalComplianceSettings(Document):
+    def validate(self):
+        """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
+        for row in self.get("vat_accounts") or []:
+            row.validate()
+
     def on_update(self):
         cache = frappe.cache()
         for key in (
@@ -46,17 +52,30 @@ class NepalComplianceSettings(Document):
     def _repoint_template_vat_rows(doctype, template_name, vat_account):
         template = frappe.get_doc(doctype, template_name)
         vat_rows = [tax for tax in template.taxes if tax.account_head and "vat" in tax.account_head.lower()]
+        if not vat_rows:
+            return False
+
         changed = False
-        kept = False
-        for tax in list(vat_rows):
-            if not kept:
-                if tax.account_head != vat_account:
-                    tax.account_head = vat_account
-                    changed = True
-                kept = True
-            else:
+        primary = next((tax for tax in vat_rows if tax.account_head == vat_account), vat_rows[0])
+        if primary.account_head != vat_account:
+            primary.account_head = vat_account
+            changed = True
+
+        for tax in vat_rows:
+            if tax is primary:
+                continue
+            # Only remove rows that are exact duplicates of the primary VAT row.
+            # Rows with a different charge type, rate or amount serve a distinct
+            # purpose (e.g. a manual VAT adjustment) and must be preserved.
+            is_duplicate = (
+                tax.charge_type == primary.charge_type
+                and flt(tax.rate) == flt(primary.rate)
+                and flt(tax.get("tax_amount")) == flt(primary.get("tax_amount"))
+            )
+            if is_duplicate:
                 template.taxes.remove(tax)
                 changed = True
+
         if changed:
             template.save(ignore_permissions=True)
         return changed
