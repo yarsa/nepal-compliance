@@ -215,14 +215,17 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
 
         for idx, schedule_row in enumerate(pending):
             is_last = idx == len(pending) - 1
-            if idx == 0:
+            if is_last:
+                # Last pending row always takes the residual so accumulated
+                # depreciation lands exactly on (gross - salvage), even when it
+                # is also the first/only pending row.
+                amount = flt(target_total - accum, precision)
+            elif idx == 0:
                 amount, _days, _months = _get_pro_rata_amt(
                     row, full_amt, period_from, schedule_row.schedule_date
                 )
                 # Never charge more than one frequency period in the first row
                 amount = flt(min(amount, full_amt), precision)
-            elif is_last:
-                amount = flt(target_total - accum, precision)
             else:
                 amount = flt(full_amt, precision)
 

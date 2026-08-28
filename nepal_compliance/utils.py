@@ -363,3 +363,31 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
                 entry["item_vat"][item_key] = entry["item_vat"].get(item_key, 0.0) + flt(rate_amount[1])
 
     return result
+
+def distribute_item_vat(items, item_vat_map):
+    """
+    Split item_code-level VAT (from item_wise_tax_detail) across individual item
+    rows, proportionally to each row's net_amount. The last row of each item code
+    takes the residual so the distributed amounts always sum back to the map total.
+
+    Returns a list of VAT amounts aligned with `items` by index.
+    """
+    groups = {}
+    for idx, item in enumerate(items):
+        key = item.get("item_code") or item.get("item_name")
+        groups.setdefault(key, []).append(idx)
+
+    row_vat = [0.0] * len(items)
+    for key, idxs in groups.items():
+        total_vat = flt(item_vat_map.get(key))
+        total_net = sum(flt(items[i].get("net_amount")) for i in idxs)
+        allocated = 0.0
+        for pos, i in enumerate(idxs):
+            if pos == len(idxs) - 1:
+                share = total_vat - allocated
+            else:
+                share = (total_vat * flt(items[i].get("net_amount")) / total_net) if total_net else 0.0
+            row_vat[i] = share
+            allocated += share
+
+    return row_vat
