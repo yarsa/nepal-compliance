@@ -6,17 +6,35 @@ from typing import Dict, List, Union
 try:
     import frappe
     HAS_FRAPPE = True
-    def _to_date(v): return frappe.utils.getdate(v)
-    def _to_datetime(v): return frappe.utils.get_datetime(v)
-    def _throw(msg): frappe.throw(msg)
-    def _log(msg): frappe.log_error(msg)
-except Exception:
+    def _to_date(v):
+        """Coerce a value to date via Frappe."""
+        return frappe.utils.getdate(v)
+    def _to_datetime(v):
+        """Coerce a value to datetime via Frappe."""
+        return frappe.utils.get_datetime(v)
+    def _throw(msg):
+        """Raise a Frappe validation error."""
+        frappe.throw(msg)
+    def _log(msg):
+        """Write a Frappe error log entry."""
+        frappe.log_error(msg)
+except ModuleNotFoundError as exc:
+    if getattr(exc, "name", None) != "frappe":
+        raise
     HAS_FRAPPE = False
-    def _to_date(v): return date.fromisoformat(str(v))
-    def _to_datetime(v): return datetime.fromisoformat(str(v))
+    def _to_date(v):
+        """Coerce a value to date without Frappe."""
+        return date.fromisoformat(str(v))
+    def _to_datetime(v):
+        """Coerce a value to datetime without Frappe."""
+        return datetime.fromisoformat(str(v))
     class NepaliDateError(Exception): pass
-    def _throw(msg): raise NepaliDateError(msg)
-    def _log(msg): print("NepaliDateError:", msg)
+    def _throw(msg):
+        """Raise NepaliDateError when Frappe is unavailable."""
+        raise NepaliDateError(msg)
+    def _log(msg):
+        """Print a date-conversion error when Frappe is unavailable."""
+        print("NepaliDateError:", msg)
 
 CALENDAR_FILENAME = "nepali_calendar.csv"
 BASE_AD = date(1943, 4, 14)
@@ -32,6 +50,7 @@ _lock = threading.Lock()
 
 
 def _csv_path() -> str:
+    """Absolute path of the bundled Nepali calendar CSV."""
     if HAS_FRAPPE:
         app_path = frappe.get_app_path("nepal_compliance")
         return os.path.join(app_path, "nepali_date_utils", "data", CALENDAR_FILENAME)
@@ -39,6 +58,7 @@ def _csv_path() -> str:
 
 
 def load_calendar() -> None:
+    """Load BS month lengths from the calendar CSV into the process cache."""
     global _loaded, _bs_months
     if _loaded:
         return
@@ -79,6 +99,13 @@ def load_calendar() -> None:
                     if any(m <= 0 for m in months):
                         _throw(f"Invalid day count in year {year}: {months}")
 
+                    total = sum(months)
+                    if year == 2096:
+                        if total != 364:
+                            _throw(f"BS year 2096 has {total} days (expected 364): {months}")
+                    elif total not in (365, 366):
+                        _throw(f"BS year {year} has {total} days (must be 365 or 366): {months}")
+
                     parsed[year] = months
 
         except OSError as e:
@@ -96,22 +123,30 @@ def load_calendar() -> None:
 
 
 def _ensure_loaded():
+    """Load the calendar cache if it has not been loaded yet."""
     if not _loaded:
         load_calendar()
 
 
-def _validate_bs(year: int, month: int, day: int):
+def days_in_bs_month(year: int, month: int) -> int:
+    """Number of days in BS year-month (1-indexed month)."""
     _ensure_loaded()
     if year not in _bs_months:
         _throw(f"Year {year} outside supported BS range {min(_bs_months)}–{max(_bs_months)}")
     if not 1 <= month <= 12:
         _throw("Month must be between 1 and 12")
-    max_day = _bs_months[year][month - 1]
+    return _bs_months[year][month - 1]
+
+
+def _validate_bs(year: int, month: int, day: int):
+    """Raise if the BS year-month-day is outside the calendar."""
+    max_day = days_in_bs_month(year, month)
     if not (1 <= day <= max_day):
         _throw(f"Invalid BS day {day} for {year}-{month} (max {max_day})")
 
 
 def _d(v):
+    """Coerce a value to datetime.date."""
     if isinstance(v, date) and not isinstance(v, datetime):
         return v
     if isinstance(v, datetime):
@@ -123,6 +158,7 @@ def _d(v):
 
 
 def _dt(v):
+    """Coerce a value to datetime.datetime."""
     if isinstance(v, datetime):
         return v
     if isinstance(v, date):
@@ -134,6 +170,7 @@ def _dt(v):
 
 
 def ad_to_bs(ad: Union[str, date, datetime]):
+    """Convert an AD date to a BS year/month/day dict."""
     _ensure_loaded()
 
     ad_date = _d(ad)
@@ -171,6 +208,7 @@ def ad_to_bs(ad: Union[str, date, datetime]):
 
 
 def bs_to_ad(year: int, month: int, day: int) -> date:
+    """Convert a BS year/month/day to an AD date."""
     _ensure_loaded()
     _validate_bs(year, month, day)
 
@@ -187,6 +225,7 @@ def bs_to_ad(year: int, month: int, day: int) -> date:
 
 
 def _safe_replace(fmt: str, mapping: Dict[str, str]) -> str:
+    """Replace date-format tokens, including legacy standalone M and D."""
 
     # Replaces known tokens and support legacy M and D only when used as standalone tokens (e.g. YYYY.M.D, YYYY-M-D).
 
@@ -203,6 +242,7 @@ def _safe_replace(fmt: str, mapping: Dict[str, str]) -> str:
 
 
 def format_bs(ad_date, fmt="YYYY-MM-DD"):
+    """Format an AD date as a BS string using the given token pattern."""
     bs = ad_to_bs(ad_date)
     return _safe_replace(fmt, {
         "YYYY": str(bs["year"]),
@@ -215,6 +255,7 @@ def format_bs(ad_date, fmt="YYYY-MM-DD"):
 
 
 def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
+    """Format an AD datetime as a BS string using the given token pattern."""
     dt = _dt(ad_dt)
     bs = ad_to_bs(dt.date())
     return _safe_replace(fmt, {
@@ -229,4 +270,4 @@ def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
         "SS": f"{dt.second:02d}",
     })
 
-__all__ = ["ad_to_bs", "bs_to_ad", "format_bs", "format_bs_datetime"]
+__all__ = ["ad_to_bs", "bs_to_ad", "days_in_bs_month", "format_bs", "format_bs_datetime"]

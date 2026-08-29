@@ -8,3 +8,6 @@ nepal_compliance.patches.update_income_tax_components
 # Patches added in this section will be executed after doctypes are migrated
 nepal_compliance.patches.v15.sync_salary_components
 nepal_compliance.patches.v15.hide_js_bs_fields
+nepal_compliance.patches.property_setters
+nepal_compliance.patches.sync_custom_fields
+nepal_compliance.patches.backfill_taxable_summary
