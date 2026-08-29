@@ -272,26 +272,38 @@ def set_taxable_amounts(doc, method):
     side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
     vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
 
+    if not vat_account:
+        # Leave the computed fields empty ("not computed") so reports fall back
+        # to live account-based logic and configuring the account later can
+        # still fix these invoices retroactively.
+        doc.taxable_amount = None
+        doc.non_taxable_amount = None
+        doc.vat_amount = None
+        doc.item_vat_detail = None
+        doc.summary_grand_total = (
+            flt(doc.grand_total) if doc.get("disable_rounded_total") else (flt(doc.rounded_total) or flt(doc.grand_total))
+        )
+        return
+
     item_vat = {}
     vat_amount = 0.0
-    if vat_account:
-        for tax in doc.get("taxes") or []:
-            if tax.account_head != vat_account:
-                continue
-            vat_amount += flt(
-                tax.tax_amount_after_discount_amount
-                if tax.tax_amount_after_discount_amount is not None
-                else tax.tax_amount
-            )
-            detail = tax.item_wise_tax_detail
-            if isinstance(detail, str):
-                try:
-                    detail = json.loads(detail)
-                except (TypeError, ValueError):
-                    detail = {}
-            for item_key, rate_amount in (detail or {}).items():
-                if isinstance(rate_amount, (list, tuple)) and len(rate_amount) > 1:
-                    item_vat[item_key] = item_vat.get(item_key, 0.0) + flt(rate_amount[1])
+    for tax in doc.get("taxes") or []:
+        if tax.account_head != vat_account:
+            continue
+        vat_amount += flt(
+            tax.tax_amount_after_discount_amount
+            if tax.tax_amount_after_discount_amount is not None
+            else tax.tax_amount
+        )
+        detail = tax.item_wise_tax_detail
+        if isinstance(detail, str):
+            try:
+                detail = json.loads(detail)
+            except (TypeError, ValueError):
+                detail = {}
+        for item_key, rate_amount in (detail or {}).items():
+            if isinstance(rate_amount, (list, tuple)) and len(rate_amount) > 1:
+                item_vat[item_key] = item_vat.get(item_key, 0.0) + flt(rate_amount[1])
 
     taxable_amount = non_taxable_amount = 0.0
     for item in doc.get("items") or []:
@@ -304,6 +316,7 @@ def set_taxable_amounts(doc, method):
     doc.taxable_amount = taxable_amount
     doc.non_taxable_amount = non_taxable_amount
     doc.vat_amount = vat_amount
+    doc.item_vat_detail = json.dumps(item_vat)
     doc.summary_grand_total = (
         flt(doc.grand_total) if doc.get("disable_rounded_total") else (flt(doc.rounded_total) or flt(doc.grand_total))
     )
@@ -314,17 +327,27 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
     the tax rows whose account head matches the VAT account configured for the
     invoice's company in Nepal Compliance Settings.
 
-    Returns {invoice_name: {"item_vat": {item_code: amount}, "total_vat": float}}.
+    Returns {invoice_name: {"item_vat": {item_code: amount}, "total_vat": float,
+    "configured": bool}}. "configured" is False when the invoice's company has no
+    VAT account set in Nepal Compliance Settings, meaning the empty breakup is
+    unavailable data rather than a genuinely VAT-free invoice.
     """
-    result = {name: {"item_vat": {}, "total_vat": 0.0} for name in invoice_company_map}
     if not invoice_company_map:
-        return result
+        return {}
 
     is_sales = invoice_doctype == "Sales Invoice"
     side = "sales" if is_sales else "purchase"
     taxes_doctype = "Sales Taxes and Charges" if is_sales else "Purchase Taxes and Charges"
 
     configured = get_configured_vat_accounts()
+    result = {
+        name: {
+            "item_vat": {},
+            "total_vat": 0.0,
+            "configured": bool(configured.get(company, {}).get(side)),
+        }
+        for name, company in invoice_company_map.items()
+    }
     missing = sorted({c for c in invoice_company_map.values() if c and not configured.get(c, {}).get(side)})
     if missing:
         frappe.msgprint(
@@ -363,6 +386,59 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
                 entry["item_vat"][item_key] = entry["item_vat"].get(item_key, 0.0) + flt(rate_amount[1])
 
     return result
+
+def resolve_report_vat_source(inv, vat_breakup):
+    """
+    Decide the per-item VAT source for an invoice row in IRD reports.
+
+    Returns (item_vat_map, stored, breakup). When the invoice has frozen taxable
+    summary values (stored_taxable_amount is not None), the stored
+    item_vat_detail JSON is the source and the result is immune to later VAT
+    account changes. Otherwise fall back to the live account-based breakup from
+    get_vat_breakup (legacy invoices and unconfigured companies).
+    """
+    if inv.get("stored_taxable_amount") is not None:
+        try:
+            return json.loads(inv.get("stored_item_vat_detail") or "{}"), True, None
+        except (TypeError, ValueError):
+            return {}, True, None
+    breakup = vat_breakup.get(inv.get("invoice"), {})
+    return breakup.get("item_vat", {}), False, breakup
+
+
+def is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
+    """Exempt classification for an invoice item row in IRD reports.
+
+    With frozen (stored) values, mirror the rule that produced them at save
+    time so report rows always sum back to the stored invoice totals. With the
+    live fallback, defer to classify_item_taxability.
+    """
+    if stored:
+        return bool(item.get("is_nontaxable_item")) or not flt(item_vat)
+    return classify_item_taxability(
+        item, item_vat, item_vat_map, breakup.get("total_vat"), breakup.get("configured")
+    ) == "exempt"
+
+
+def classify_item_taxability(item, item_vat, item_vat_map, invoice_total_vat, vat_configured):
+    """
+    Classify an invoice item row as "exempt" or "taxable" for IRD reports.
+
+    Exemption is deliberate: the item is flagged is_nontaxable_item, or the VAT
+    breakdown explicitly records 0 VAT for it. When the invoice carries VAT but
+    the item is missing from the breakdown (or no VAT account is configured, so
+    no breakdown could be built), the data is unavailable - report the row as
+    taxable with 0 VAT instead of inventing an exemption.
+    """
+    if item.get("is_nontaxable_item"):
+        return "exempt"
+    key = item.get("item_code") or item.get("item_name")
+    if key in item_vat_map:
+        return "taxable" if flt(item_vat) else "exempt"
+    if flt(invoice_total_vat) or not vat_configured:
+        return "taxable"
+    return "exempt"
+
 
 def distribute_item_vat(items, item_vat_map):
     """

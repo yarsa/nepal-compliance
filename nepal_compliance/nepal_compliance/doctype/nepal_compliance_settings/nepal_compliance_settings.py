@@ -10,7 +10,17 @@ import redis
 class NepalComplianceSettings(Document):
     def validate(self):
         """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
+        seen_companies = set()
         for row in self.get("vat_accounts") or []:
+            if row.company:
+                if row.company in seen_companies:
+                    frappe.throw(
+                        _("Row {0}: VAT accounts are already configured for Company {1}. Each company can have only one row.").format(
+                            row.idx, frappe.bold(row.company)
+                        ),
+                        title=_("Duplicate Company"),
+                    )
+                seen_companies.add(row.company)
             row.validate()
 
     def on_update(self):

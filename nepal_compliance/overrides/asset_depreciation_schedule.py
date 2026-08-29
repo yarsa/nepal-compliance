@@ -90,7 +90,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             update_asset_finance_book_row=update_asset_finance_book_row,
             value_after_depreciation=value_after_depreciation,
         )
-        self.snap_schedule_dates_to_bs_month_end(asset_doc)
+        self.snap_schedule_dates_to_bs_month_end(asset_doc, date_of_disposal=date_of_disposal)
         self.recalculate_amounts_after_bs_snap(asset_doc, row)
         self.sync_finance_book_start_to_first_pending(
             row, update_asset_finance_book_row=update_asset_finance_book_row
@@ -126,7 +126,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         if getdate(row.depreciation_start_date) != aligned:
             row.depreciation_start_date = aligned
 
-    def snap_schedule_dates_to_bs_month_end(self, asset_doc=None):
+    def snap_schedule_dates_to_bs_month_end(self, asset_doc=None, date_of_disposal=None):
         """Move pending rows onto consecutive BS fiscal period ends.
 
         Posted rows (with a journal entry) keep their historical dates. The first
@@ -135,6 +135,8 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         posted rows, the series starts at the next fiscal period end on or after
         available_for_use, unless opening booked depreciations require skipping
         those periods first. Later rows advance by frequency_of_depreciation months.
+        Rows never move past date_of_disposal: ERPNext places the terminal row at
+        the disposal date, and snapping must not push it beyond it.
         """
         rows = self.get("depreciation_schedule") or []
         if not rows:
@@ -162,6 +164,12 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         for schedule_row in pending:
             schedule_row.schedule_date = end_of(y, m)
             y, m = advance(y, m, freq)
+
+        if date_of_disposal:
+            disposal = getdate(date_of_disposal)
+            for schedule_row in pending:
+                if getdate(schedule_row.schedule_date) > disposal:
+                    schedule_row.schedule_date = disposal
 
     def recalculate_amounts_after_bs_snap(self, asset_doc, row):
         """Rebuild SL/Manual amounts from BS-snapped dates.
