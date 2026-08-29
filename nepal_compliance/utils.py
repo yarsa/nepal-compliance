@@ -470,13 +470,31 @@ def resolve_report_vat_source(inv, vat_breakup):
     account changes. Otherwise fall back to the live account-based breakup from
     get_vat_breakup (legacy invoices and unconfigured companies).
     """
+    breakup = vat_breakup.get(inv.get("invoice"), {}) or {}
+    live_map = breakup.get("item_vat") if isinstance(breakup.get("item_vat"), dict) else {}
+
     if inv.get("stored_taxable_amount") is not None:
+        item_vat_map = parse_stored_item_vat_map(inv.get("stored_item_vat_detail"))
+        if item_vat_map is not None:
+            return item_vat_map, True, breakup
+        # Invalid stored JSON must not become {} (that would look like exemption).
+        return live_map, False, breakup
+    return live_map, False, breakup
+
+
+def parse_stored_item_vat_map(raw):
+    """Return a dict VAT map, or None when stored detail is missing or the wrong shape."""
+    if raw is None or raw == "":
+        return {}
+    parsed = raw
+    if isinstance(raw, str):
         try:
-            return json.loads(inv.get("stored_item_vat_detail") or "{}"), True, None
+            parsed = json.loads(raw)
         except (TypeError, ValueError):
-            return {}, True, None
-    breakup = vat_breakup.get(inv.get("invoice"), {})
-    return breakup.get("item_vat", {}), False, breakup
+            return None
+    if not isinstance(parsed, dict):
+        return None
+    return parsed
 
 
 def is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
@@ -488,6 +506,7 @@ def is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
     """
     if stored:
         return bool(item.get("is_nontaxable_item")) or not flt(item_vat)
+    breakup = breakup or {}
     return classify_item_taxability(
         item, item_vat, item_vat_map, breakup.get("total_vat"), breakup.get("configured")
     ) == "exempt"
@@ -521,6 +540,8 @@ def distribute_item_vat(items, item_vat_map):
 
     Returns a list of VAT amounts aligned with `items` by index.
     """
+    if not isinstance(item_vat_map, dict):
+        item_vat_map = {}
     groups = {}
     for idx, item in enumerate(items):
         key = item.get("item_code") or item.get("item_name")
