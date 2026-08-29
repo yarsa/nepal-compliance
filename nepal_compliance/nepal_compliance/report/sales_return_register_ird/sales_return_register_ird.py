@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, resolve_report_vat_source
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
     columns = get_columns()
@@ -97,7 +97,7 @@ def get_data(filters):
         row_vat = distribute_item_vat(items, item_vat_map)
 
         for item, item_vat in zip(items, row_vat, strict=True):
-            amt = flt(item.get("net_amount"))
+            net = flt(item.get("net_amount"))
             qty = flt(item.get("qty") or 0)
             is_nontaxable = is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
 
@@ -105,12 +105,12 @@ def get_data(filters):
 
             tax_exempt_item = taxable_amount_item = tax_amount_item = 0.0
             if is_nontaxable:
-                tax_exempt_item = amt
-                tax_exempt_total += amt
+                tax_exempt_item = net
+                tax_exempt_total += net
             else:
-                taxable_amount_item = amt
+                taxable_amount_item = item_taxable_amount(item, item_vat, item_vat_map)
                 tax_amount_item = item_vat
-                taxable_total += amt
+                taxable_total += taxable_amount_item
 
             data.append({
                 "posting_date": inv.posting_date or "",
@@ -120,7 +120,7 @@ def get_data(filters):
                 "name": item.get("item_name") or item.get("item_code"),
                 "qty": abs(qty),
                 "uom": item.get("uom") or "",
-                "total": abs(flt(amt)),
+                "total": abs(flt(net)),
                 "tax_exempt": abs(flt(tax_exempt_item)),
                 "taxable_amount": abs(flt(taxable_amount_item)),
                 "tax_amount": abs(flt(tax_amount_item)),

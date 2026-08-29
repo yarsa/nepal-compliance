@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, resolve_report_vat_source
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
     columns = get_columns()
@@ -105,12 +105,13 @@ def get_data(filters):
         row_vat = distribute_item_vat(items, item_vat_map)
 
         for item, item_vat in zip(items, row_vat, strict=True):
-            amt = flt(item.get("net_amount"))
+            net = flt(item.get("net_amount"))
 
             if is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
-                tax_exempt += amt
+                tax_exempt += net
                 continue
 
+            amt = item_taxable_amount(item, item_vat, item_vat_map)
             if item.get("asset_category"):
                 capital_taxable_amount += amt
                 tax_capital += item_vat
