@@ -3,7 +3,8 @@ from dataclasses import fields
 from frappe import _
 
 
-def create_custom_fields():
+def create_custom_fields(quiet=False):
+    """Create Nepal Compliance custom fields on standard doctypes (idempotent)."""
     custom_fields = {
         "Company": [
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
@@ -336,9 +337,10 @@ def create_custom_fields():
                     **field
                 })
                 custom_field.save()
-                frappe.msgprint(_(f"Custom field '{field.get('label') or field['fieldname']}' added successfully to {doctype_name}!"))
+                if not quiet:
+                    frappe.msgprint(_(f"Custom field '{field.get('label') or field['fieldname']}' added successfully to {doctype_name}!"))
                 created_fields.append({"dt": doctype_name, "fieldname": field["fieldname"]})
-            else:
+            elif not quiet:
                 frappe.msgprint(_(f"Field '{field.get('label') or field['fieldname']}' already exists in {doctype_name}."))
 
     return created_fields  

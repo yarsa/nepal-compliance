@@ -7,11 +7,13 @@ from frappe import _
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
+    """Run the IRD Purchase Return Register and return columns plus rows."""
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """Column definitions for the IRD Purchase Return Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
@@ -32,6 +34,7 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """Build purchase return register rows from submitted returns in the filter range."""
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
 
@@ -63,8 +66,10 @@ def get_data(filters):
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
-            pi.total, pi.company, pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail
+            pi.total, pi.company, pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
+            s.country as supplier_country, s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
+        LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
         WHERE {conditions}
         ORDER BY pi.posting_date
     """
@@ -77,10 +82,10 @@ def get_data(filters):
     vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
-        supplier_country = frappe.db.get_value("Supplier", inv.supplier, "country") or ""
-        is_import = supplier_country.strip().lower() != "nepal"
+        supplier_country = (inv.supplier_country or "").strip()
+        is_import = supplier_country.lower() != "nepal"
 
-        pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
+        pan = inv.invoice_pan or inv.supplier_tax_id
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
         tax_domestic_nc = tax_import_nc = tax_capital = 0.0

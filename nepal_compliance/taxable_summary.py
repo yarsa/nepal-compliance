@@ -11,11 +11,13 @@ DOCTYPE_ORDER = ("Sales Invoice", "Purchase Invoice")
 
 
 def _ensure_permission():
+    """Require write access on Nepal Compliance Settings for refresh actions."""
     if not frappe.has_permission("Nepal Compliance Settings", "write"):
         frappe.throw(_("Not permitted to recompute taxable summary."), frappe.PermissionError)
 
 
 def _resolve_dates(from_date, to_date):
+    """Parse and validate the posting-date range used by preview and apply."""
     from_date = getdate(from_date) if from_date else None
     to_date = getdate(to_date) if to_date else None
     if not from_date or not to_date:
@@ -26,6 +28,7 @@ def _resolve_dates(from_date, to_date):
 
 
 def _invoice_filters(from_date, to_date):
+    """Submitted Sales/Purchase Invoice filters for the posting-date range."""
     return {
         "docstatus": 1,
         "posting_date": ["between", [from_date, to_date]],
@@ -33,6 +36,7 @@ def _invoice_filters(from_date, to_date):
 
 
 def _count_invoices(from_date, to_date):
+    """Count submitted sales and purchase invoices in the date range."""
     return sum(
         frappe.db.count(doctype, _invoice_filters(from_date, to_date))
         for doctype in DOCTYPE_ORDER
@@ -40,6 +44,7 @@ def _count_invoices(from_date, to_date):
 
 
 def _iter_invoice_rows(from_date, to_date):
+    """Yield (doctype, row) for submitted invoices, in batches of BATCH_SIZE."""
     fields = ["name", "company", "posting_date", "taxable_amount", "non_taxable_amount", "vat_amount"]
     for doctype in DOCTYPE_ORDER:
         start = 0
@@ -62,10 +67,12 @@ def _iter_invoice_rows(from_date, to_date):
 
 
 def _amt(value):
+    """Round a money field to 2 decimals, preserving None."""
     return None if value is None else flt(value, 2)
 
 
 def _figures_changed(old, new):
+    """True when taxable, non-taxable, or VAT amounts would change."""
     return (
         _amt(old.taxable_amount) != _amt(new.taxable_amount)
         or _amt(old.non_taxable_amount) != _amt(new.non_taxable_amount)
@@ -74,6 +81,7 @@ def _figures_changed(old, new):
 
 
 def _compute_refresh_row(doctype, row):
+    """Recompute one invoice's taxable summary and classify the result."""
     doc = frappe.get_doc(doctype, row.name)
     set_taxable_amounts(doc, None)
     if doc.get("taxable_amount") is None:
@@ -99,6 +107,7 @@ def _compute_refresh_row(doctype, row):
 
 
 def _scan_changes(from_date, to_date):
+    """Scan invoices in range and return preview rows plus counts."""
     scanned = 0
     unchanged = 0
     skipped = 0
@@ -121,6 +130,7 @@ def _scan_changes(from_date, to_date):
 
     changed = sum(by_doctype.values())
     return {
+        "queued": False,
         "from_date": str(from_date),
         "to_date": str(to_date),
         "scanned": scanned,
@@ -136,6 +146,7 @@ def _scan_changes(from_date, to_date):
 
 
 def _apply_change(change):
+    """Write recomputed taxable summary fields and add a comment on the invoice."""
     frappe.db.set_value(
         change["doctype"],
         change["name"],
@@ -163,6 +174,7 @@ def _apply_change(change):
 
 
 def _run_apply(from_date, to_date):
+    """Apply recomputed taxable summary values, committing every BATCH_SIZE invoices."""
     updated = 0
     batch_count = 0
     for doctype, row in _iter_invoice_rows(from_date, to_date):
@@ -173,23 +185,47 @@ def _run_apply(from_date, to_date):
         updated += 1
         batch_count += 1
         if batch_count >= BATCH_SIZE:
-            frappe.db.commit()
+            frappe.db.commit()  # nosemgrep: checkpoint after BATCH_SIZE writes
             batch_count = 0
     if batch_count:
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep: final checkpoint for the last partial batch
 
     return updated
 
 
 @frappe.whitelist()
-def preview_taxable_summary_refresh(from_date, to_date):
+def preview_taxable_summary_refresh(from_date: str, to_date: str):
+    """Preview invoices whose taxable summary would change in the date range.
+
+    Ranges larger than BATCH_SIZE run on the long queue so the HTTP worker
+    is not blocked loading every invoice.
+    """
     _ensure_permission()
     from_date, to_date = _resolve_dates(from_date, to_date)
+    scanned = _count_invoices(from_date, to_date)
+    if scanned > BATCH_SIZE:
+        enqueue(
+            method="nepal_compliance.taxable_summary.run_taxable_summary_preview",
+            queue="long",
+            timeout=3600,
+            is_async=True,
+            from_date=str(from_date),
+            to_date=str(to_date),
+            enqueue_after_commit=True,
+        )
+        return {
+            "queued": True,
+            "updated": 0,
+            "scanned": scanned,
+            "from_date": str(from_date),
+            "to_date": str(to_date),
+        }
     return _scan_changes(from_date, to_date)
 
 
 @frappe.whitelist()
-def apply_taxable_summary_refresh(from_date, to_date):
+def apply_taxable_summary_refresh(from_date: str, to_date: str):
+    """Apply recomputed taxable summary values, enqueueing ranges above BATCH_SIZE."""
     _ensure_permission()
     from_date, to_date = _resolve_dates(from_date, to_date)
     scanned = _count_invoices(from_date, to_date)
@@ -212,7 +248,20 @@ def apply_taxable_summary_refresh(from_date, to_date):
     return {"queued": False, "updated": updated, "scanned": scanned}
 
 
-def run_taxable_summary_refresh(from_date, to_date):
+def run_taxable_summary_preview(from_date: str, to_date: str):
+    """Background preview scan; publishes taxable_summary_preview_done when finished."""
+    from_date, to_date = _resolve_dates(from_date, to_date)
+    preview = _scan_changes(from_date, to_date)
+    frappe.publish_realtime(
+        "taxable_summary_preview_done",
+        preview,
+        user=frappe.session.user,
+    )
+    return preview
+
+
+def run_taxable_summary_refresh(from_date: str, to_date: str):
+    """Background apply; publishes taxable_summary_refresh_done when finished."""
     from_date, to_date = _resolve_dates(from_date, to_date)
     updated = _run_apply(from_date, to_date)
     frappe.publish_realtime(
