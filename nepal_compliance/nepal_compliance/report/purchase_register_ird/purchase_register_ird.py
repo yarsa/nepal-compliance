@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import distribute_item_vat, get_vat_breakup
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, resolve_report_vat_source
 
 def execute(filters=None):
     columns = get_columns()
@@ -62,6 +62,7 @@ def get_data(filters):
         SELECT
             pi.name as invoice, pi.bill_no, pi.bill_date, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.posting_date,
             pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.supplier, pi.company,
+            pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
             s.country as supplier_country, s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
@@ -100,13 +101,13 @@ def get_data(filters):
         tax_domestic_nc = tax_import_nc = tax_capital = 0.0
 
         items = items_by_invoice.get(inv.invoice, [])
-        item_vat_map = vat_breakup.get(inv.invoice, {}).get("item_vat", {})
+        item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
         row_vat = distribute_item_vat(items, item_vat_map)
 
-        for item, item_vat in zip(items, row_vat):
+        for item, item_vat in zip(items, row_vat, strict=True):
             amt = flt(item.get("net_amount"))
 
-            if item.get("is_nontaxable_item") or not item_vat:
+            if is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
                 tax_exempt += amt
                 continue
 
