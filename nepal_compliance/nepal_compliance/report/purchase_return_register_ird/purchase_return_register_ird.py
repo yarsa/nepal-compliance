@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.ird_filters import apply_ird_posting_date_filters, invoice_link_fields
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
@@ -35,6 +36,7 @@ def get_columns():
 
 def get_data(filters):
     """Build purchase return register rows from submitted returns in the filter range."""
+    filters = filters or {}
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
 
@@ -50,17 +52,7 @@ def get_data(filters):
         conditions.append("pi.name = %(return_invoice)s")
         values["return_invoice"] = filters.get("return_invoice")
 
-
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date BETWEEN %(from)s AND %(to)s")
-        values["from"] = filters.get("from_nepali_date")
-        values["to"] = filters.get("to_nepali_date")
-    elif filters.get("from_nepali_date"):
-        conditions.append("pi.posting_date >= %(from)s")
-        values["from"] = filters.get("from_nepali_date")
-    elif filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date <= %(to)s")
-        values["to"] = filters.get("to_nepali_date")
+    apply_ird_posting_date_filters(filters, conditions, values, "pi.posting_date")
 
     conditions_sql = " AND ".join(conditions)
     query = """
@@ -120,6 +112,7 @@ def get_data(filters):
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
+            **invoice_link_fields("Purchase Invoice", inv.invoice),
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
             "pan": pan,
