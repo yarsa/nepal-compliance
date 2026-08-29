@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.ird_filters import apply_ird_posting_date_filters, invoice_link_fields
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
@@ -16,7 +17,7 @@ def get_columns():
     """Column definitions for the IRD Sales Return Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
-        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
         {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
         {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
         {"label": _("वस्तु वा सेवाको नाम"), "fieldname": "name", "fieldtype": "Data", "width": 200},
@@ -30,6 +31,7 @@ def get_columns():
 
 def get_data(filters):
     """Build sales return register rows from submitted returns in the filter range."""
+    filters = filters or {}
     conditions = ["si.docstatus = 1", "si.is_return = 1"]
     values = {}
 
@@ -45,16 +47,7 @@ def get_data(filters):
         conditions.append("si.name = %(return_invoice)s")
         values["return_invoice"] = filters.get("return_invoice")
 
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.posting_date BETWEEN %(from)s AND %(to)s")
-        values["from"] = filters.get("from_nepali_date")
-        values["to"] = filters.get("to_nepali_date")
-    elif filters.get("from_nepali_date"):
-        conditions.append("si.posting_date >= %(from)s")
-        values["from"] = filters.get("from_nepali_date")
-    elif filters.get("to_nepali_date"):
-        conditions.append("si.posting_date <= %(to)s")
-        values["to"] = filters.get("to_nepali_date")
+    apply_ird_posting_date_filters(filters, conditions, values, "si.posting_date")
 
     conditions_sql = " AND ".join(conditions)
 
@@ -118,6 +111,7 @@ def get_data(filters):
             data.append({
                 "posting_date": inv.posting_date or "",
                 "invoice": inv.invoice,
+                **invoice_link_fields("Sales Invoice", inv.invoice),
                 "customer_name": inv.customer_name,
                 "pan": inv.pan or frappe.db.get_value("Customer", inv.customer, "tax_id"),
                 "name": item.get("item_name") or item.get("item_code"),
@@ -132,6 +126,7 @@ def get_data(filters):
         data.append({
             "posting_date": "",
             "invoice": "",
+            **invoice_link_fields("", ""),
             "customer_name": "जम्मा",
             "pan": "",
             "name": "",
@@ -152,6 +147,7 @@ def get_data(filters):
     data.append({
         "posting_date": "",
         "invoice": "",
+        **invoice_link_fields("", ""),
         "customer_name": "कुल जम्मा",
         "pan": "",
         "name": "",

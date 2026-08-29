@@ -25,3 +25,38 @@
 .grid-body .equivalent-date {
     margin-top: 2px;
 }
+
+.ird-month-input-wrap {
+    position: relative;
+}
+
+.ird-month-input-wrap .ird-month-picker-initialized {
+    padding-right: 1.75rem;
+    cursor: pointer;
+}
+
+.ird-month-input-wrap .ird-month-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--text-muted, #6c7680);
+}
+
+.ird-month-picker .month,
+.ird-month-picker .year {
+    text-align: center;
+}
+
+.ird-month-picker .month.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.ird-month-picker .month.selected:not(.current),
+.ird-month-picker .year.selected:not(.current) {
+    background-color: rgba(28, 70, 237, 0.12);
+    border-radius: 0.375rem;
+}

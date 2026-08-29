@@ -39,7 +39,7 @@ def generate_ird_sales_register_excel():
     if not rows or len(rows) == 0:
         frappe.throw(_("No data found for the selected filters."))
 
-    invoice_name = rows[0].get("invoice")
+    invoice_name = rows[0].get("invoice_name") or rows[0].get("invoice")
     if not invoice_name:
         frappe.throw(_("Missing invoice number in report rows."))
     posting_date = frappe.db.get_value("Sales Invoice", invoice_name, "posting_date")

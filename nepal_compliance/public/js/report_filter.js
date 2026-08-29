@@ -104,10 +104,10 @@ const DatePickerConfig = {
                     const ad = dateObj.format({ format: "YYYY-MM-DD", calendar: "AD" });
 
                     // $input.val(bs).trigger("change");
-                    const parsed = bs.split("-").map(Number);
                     const bsDisplay = NepaliFunctions?.AD2BS?.(ad) || bs;
-                    $input.val(bsDisplay).trigger("change");
                     $input.data("ad-value", ad);
+                    $input.attr("data-ird-ad-value", ad);
+                    $input.val(bsDisplay).trigger("change");
 
                     close();
                 }

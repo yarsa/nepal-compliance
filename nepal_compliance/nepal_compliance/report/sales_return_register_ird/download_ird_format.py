@@ -36,7 +36,7 @@ def generate_ird_sales_register_excel():
     company_name = company_info.company_name if company_info else "Company Name"
     pan = company_info.tax_id or "N/A"
 
-    invoice_name = rows[0].get("invoice")
+    invoice_name = rows[0].get("invoice_name") or rows[0].get("invoice")
     if not invoice_name:
         frappe.throw(_("Invoice reference is missing in the result rows."))
     posting_date = frappe.db.get_value("Sales Invoice", invoice_name, "posting_date")

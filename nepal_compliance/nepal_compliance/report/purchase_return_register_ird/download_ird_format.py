@@ -39,7 +39,7 @@ def generate_ird_purchase_register_excel():
     # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
 
-    invoice_name = frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
+    invoice_name = rows[0].get("invoice_name") or frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
     try:
         invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
         posting_date = invoice_doc.posting_date
