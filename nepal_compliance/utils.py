@@ -268,6 +268,75 @@ def validate_duplicate_bill_no(doc, method):
                 )
             )
 
+def parse_item_vat_entry(value):
+    """Return (rate, amount) from stored or ERPNext item_wise_tax_detail values.
+
+    Accepts [rate, amount], a dict with tax_rate/tax_amount, or a bare amount
+    (legacy item_vat_detail JSON written before rates were stored).
+    """
+    if value is None:
+        return 0.0, 0.0
+    if isinstance(value, dict):
+        rate = value.get("tax_rate")
+        if rate is None:
+            rate = value.get("rate")
+        amount = value.get("tax_amount")
+        if amount is None:
+            amount = value.get("amount")
+        return flt(rate), flt(amount)
+    if isinstance(value, (list, tuple)):
+        rate = flt(value[0]) if len(value) > 0 else 0.0
+        amount = flt(value[1]) if len(value) > 1 else 0.0
+        return rate, amount
+    return 0.0, flt(value)
+
+
+def accumulate_item_vat(item_vat, item_key, rate, amount):
+    """Add a VAT row contribution, blending rates when the same item is taxed twice."""
+    prev_rate, prev_amount = parse_item_vat_entry(item_vat.get(item_key))
+    amount = flt(amount)
+    rate = flt(rate)
+    total_amount = prev_amount + amount
+    if prev_amount and prev_rate and rate and abs(prev_rate - rate) > 1e-9:
+        prev_base = prev_amount / (prev_rate / 100.0)
+        new_base = amount / (rate / 100.0)
+        total_base = prev_base + new_base
+        blended = (total_amount / total_base * 100.0) if total_base else rate
+        item_vat[item_key] = [blended, total_amount]
+    else:
+        item_vat[item_key] = [rate or prev_rate, total_amount]
+
+
+def add_item_wise_vat(item_vat, item_wise_tax_detail):
+    detail = item_wise_tax_detail
+    if isinstance(detail, str):
+        try:
+            detail = json.loads(detail)
+        except (TypeError, ValueError):
+            detail = {}
+    for item_key, rate_amount in (detail or {}).items():
+        rate, amount = parse_item_vat_entry(rate_amount)
+        accumulate_item_vat(item_vat, item_key, rate, amount)
+
+
+def taxable_base_from_vat(vat_amount, rate, net_amount):
+    """Amount VAT was charged on (net + prior rows such as excise/duty).
+
+    Falls back to net_amount when rate is 0 (manually booked VAT, zero-rated).
+    """
+    if flt(rate):
+        # round() matches Frappe's default banker's rounding and does not
+        # depend on System Settings (flt(x, 2) can collapse to 0 without them).
+        return round(flt(vat_amount) / (flt(rate) / 100.0), 2)
+    return flt(net_amount)
+
+
+def item_taxable_amount(item, row_vat, item_vat_map):
+    key = item.get("item_code") or item.get("item_name")
+    rate, _ = parse_item_vat_entry(item_vat_map.get(key))
+    return taxable_base_from_vat(row_vat, rate, item.get("net_amount"))
+
+
 def set_taxable_amounts(doc, method):
     side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
     vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
@@ -295,23 +364,17 @@ def set_taxable_amounts(doc, method):
             if tax.tax_amount_after_discount_amount is not None
             else tax.tax_amount
         )
-        detail = tax.item_wise_tax_detail
-        if isinstance(detail, str):
-            try:
-                detail = json.loads(detail)
-            except (TypeError, ValueError):
-                detail = {}
-        for item_key, rate_amount in (detail or {}).items():
-            if isinstance(rate_amount, (list, tuple)) and len(rate_amount) > 1:
-                item_vat[item_key] = item_vat.get(item_key, 0.0) + flt(rate_amount[1])
+        add_item_wise_vat(item_vat, tax.item_wise_tax_detail)
 
     taxable_amount = non_taxable_amount = 0.0
-    for item in doc.get("items") or []:
-        amt = flt(item.get("net_amount"))
-        if item.get("is_nontaxable_item") or not flt(item_vat.get(item.get("item_code") or item.get("item_name"))):
-            non_taxable_amount += amt
+    items = list(doc.get("items") or [])
+    row_vat = distribute_item_vat(items, item_vat)
+    for item, vat_amt in zip(items, row_vat, strict=True):
+        net = flt(item.get("net_amount"))
+        if item.get("is_nontaxable_item") or not flt(vat_amt):
+            non_taxable_amount += net
         else:
-            taxable_amount += amt
+            taxable_amount += item_taxable_amount(item, vat_amt, item_vat)
 
     doc.taxable_amount = taxable_amount
     doc.non_taxable_amount = non_taxable_amount
@@ -327,7 +390,7 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
     the tax rows whose account head matches the VAT account configured for the
     invoice's company in Nepal Compliance Settings.
 
-    Returns {invoice_name: {"item_vat": {item_code: amount}, "total_vat": float,
+    Returns {invoice_name: {"item_vat": {item_code: [rate, amount]}, "total_vat": float,
     "configured": bool}}. "configured" is False when the invoice's company has no
     VAT account set in Nepal Compliance Settings, meaning the empty breakup is
     unavailable data rather than a genuinely VAT-free invoice.
@@ -377,13 +440,7 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
             if row.tax_amount_after_discount_amount is not None
             else row.tax_amount
         )
-        try:
-            detail = json.loads(row.item_wise_tax_detail) if row.item_wise_tax_detail else {}
-        except (TypeError, ValueError):
-            detail = {}
-        for item_key, rate_amount in detail.items():
-            if isinstance(rate_amount, (list, tuple)) and len(rate_amount) > 1:
-                entry["item_vat"][item_key] = entry["item_vat"].get(item_key, 0.0) + flt(rate_amount[1])
+        add_item_wise_vat(entry["item_vat"], row.item_wise_tax_detail)
 
     return result
 
@@ -455,7 +512,7 @@ def distribute_item_vat(items, item_vat_map):
 
     row_vat = [0.0] * len(items)
     for key, idxs in groups.items():
-        total_vat = flt(item_vat_map.get(key))
+        total_vat = parse_item_vat_entry(item_vat_map.get(key))[1]
         total_net = sum(flt(items[i].get("net_amount")) for i in idxs)
         allocated = 0.0
         for pos, i in enumerate(idxs):
