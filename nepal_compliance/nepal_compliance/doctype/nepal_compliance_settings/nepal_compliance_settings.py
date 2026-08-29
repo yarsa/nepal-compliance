@@ -3,9 +3,11 @@
 
 import frappe
 from frappe import _
+from frappe.core.doctype.user_permission.user_permission import get_user_permissions
 from frappe.model.document import Document
 from frappe.utils import flt
 import redis
+
 
 class NepalComplianceSettings(Document):
     def validate(self):
@@ -24,6 +26,7 @@ class NepalComplianceSettings(Document):
             row.validate()
 
     def on_update(self):
+        """Clear cached date settings and sync VAT accounts into company tax templates."""
         cache = frappe.cache()
         for key in (
             "nepal_compliance:bs_enabled",
@@ -36,7 +39,9 @@ class NepalComplianceSettings(Document):
         self.sync_vat_accounts_to_templates()
 
     def sync_vat_accounts_to_templates(self):
+        """Repoint VAT rows in each company's tax templates to the configured accounts."""
         updated = []
+        skipped = []
         for row in self.get("vat_accounts") or []:
             if not row.company:
                 continue
@@ -47,8 +52,13 @@ class NepalComplianceSettings(Document):
                 if not account:
                     continue
                 for template_name in frappe.get_all(doctype, filters={"company": row.company}, pluck="name"):
-                    if self._repoint_template_vat_rows(doctype, template_name, account):
+                    result = self._repoint_template_vat_rows(
+                        doctype, template_name, account, row.company
+                    )
+                    if result == "updated":
                         updated.append(template_name)
+                    elif result == "skipped":
+                        skipped.append(template_name)
         if updated:
             frappe.msgprint(
                 _("VAT rows in the following tax templates were updated to the configured accounts: {0}").format(
@@ -57,13 +67,67 @@ class NepalComplianceSettings(Document):
                 indicator="green",
                 alert=True,
             )
+        if skipped:
+            frappe.msgprint(
+                _(
+                    "These tax templates were not updated because you do not have write access for their company: {0}"
+                ).format(", ".join(frappe.bold(name) for name in skipped)),
+                indicator="orange",
+                alert=True,
+            )
 
     @staticmethod
-    def _repoint_template_vat_rows(doctype, template_name, vat_account):
-        template = frappe.get_doc(doctype, template_name)
-        vat_rows = [tax for tax in template.taxes if tax.account_head and "vat" in tax.account_head.lower()]
-        if not vat_rows:
+    def _is_vat_tax_row(tax, vat_account):
+        """True when the tax row is the configured VAT ledger or a named VAT row."""
+        if not tax.account_head:
             return False
+        if tax.account_head == vat_account:
+            return True
+        return "vat" in tax.account_head.lower()
+
+    @staticmethod
+    def _user_may_write_company_template(template, company):
+        """Whether this user may save a tax template for the configured company.
+
+        Direct DocType write is preferred. Otherwise a company-scoped delegation
+        applies: the user can write Nepal Compliance Settings, the template
+        belongs to the VAT-account row's company, and User Permissions (when
+        present) include that company.
+        """
+        if frappe.has_permission(template.doctype, "write", doc=template):
+            return "direct"
+        if not frappe.has_permission("Nepal Compliance Settings", "write"):
+            return None
+        if getattr(template, "company", None) != company:
+            return None
+        company_perms = get_user_permissions().get("Company") or []
+        if company_perms:
+            allowed = {perm.get("doc") for perm in company_perms}
+            if template.company not in allowed:
+                return None
+        return "delegated"
+
+    @classmethod
+    def _save_company_template(cls, template, company):
+        """Save a tax template using write permission or company-scoped delegation."""
+        mode = cls._user_may_write_company_template(template, company)
+        if mode == "direct":
+            template.save()
+            return True
+        if mode == "delegated":
+            # Company-scoped delegation: Settings writers may update templates
+            # only for companies they just configured, subject to User Permissions.
+            template.save(ignore_permissions=True)
+            return True
+        return False
+
+    @classmethod
+    def _repoint_template_vat_rows(cls, doctype, template_name, vat_account, company):
+        """Update matching VAT rows on one template. Returns updated/skipped/unchanged."""
+        template = frappe.get_doc(doctype, template_name)
+        vat_rows = [tax for tax in template.taxes if cls._is_vat_tax_row(tax, vat_account)]
+        if not vat_rows:
+            return "unchanged"
 
         changed = False
         primary = next((tax for tax in vat_rows if tax.account_head == vat_account), vat_rows[0])
@@ -86,6 +150,8 @@ class NepalComplianceSettings(Document):
                 template.taxes.remove(tax)
                 changed = True
 
-        if changed:
-            template.save(ignore_permissions=True)
-        return changed
+        if not changed:
+            return "unchanged"
+        if not cls._save_company_template(template, company):
+            return "skipped"
+        return "updated"

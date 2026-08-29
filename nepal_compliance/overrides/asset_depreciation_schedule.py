@@ -82,6 +82,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         update_asset_finance_book_row=True,
         value_after_depreciation=None,
     ):
+        """Build the ERPNext schedule, then snap pending dates and amounts to BS periods."""
         self.align_depreciation_start_to_bs_period_end(asset_doc, row)
         super().make_depr_schedule(
             asset_doc,
@@ -91,7 +92,9 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             value_after_depreciation=value_after_depreciation,
         )
         self.snap_schedule_dates_to_bs_month_end(asset_doc, date_of_disposal=date_of_disposal)
-        self.recalculate_amounts_after_bs_snap(asset_doc, row)
+        self.recalculate_amounts_after_bs_snap(
+            asset_doc, row, date_of_disposal=date_of_disposal
+        )
         self.sync_finance_book_start_to_first_pending(
             row, update_asset_finance_book_row=update_asset_finance_book_row
         )
@@ -165,19 +168,35 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             schedule_row.schedule_date = end_of(y, m)
             y, m = advance(y, m, freq)
 
-        if date_of_disposal:
-            disposal = getdate(date_of_disposal)
-            for schedule_row in pending:
-                if getdate(schedule_row.schedule_date) > disposal:
-                    schedule_row.schedule_date = disposal
+        self._cap_pending_rows_at_disposal(pending, date_of_disposal)
 
-    def recalculate_amounts_after_bs_snap(self, asset_doc, row):
+    def _cap_pending_rows_at_disposal(self, pending, date_of_disposal):
+        """Keep one terminal row on date_of_disposal; drop later pending rows."""
+        if not date_of_disposal:
+            return
+
+        disposal = getdate(date_of_disposal)
+        rows = self.get("depreciation_schedule") or []
+        drop = []
+        reached_disposal = False
+        for schedule_row in pending:
+            if reached_disposal:
+                drop.append(schedule_row)
+                continue
+            if getdate(schedule_row.schedule_date) >= disposal:
+                schedule_row.schedule_date = disposal
+                reached_disposal = True
+        for schedule_row in drop:
+            rows.remove(schedule_row)
+
+    def recalculate_amounts_after_bs_snap(self, asset_doc, row, date_of_disposal=None):
         """Rebuild SL/Manual amounts from BS-snapped dates.
 
         First pending row is pro-rated from the period start through its snapped
         schedule_date (capped at one full period); middle rows use the full
         period amount; the last pending row takes the residual so accumulated
-        depreciation hits salvage.
+        depreciation hits salvage, except on early disposal where that row is
+        pro-rated to date_of_disposal instead of absorbing remaining life.
         """
         if not asset_doc or not row:
             return
@@ -220,13 +239,34 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         target_total = flt(asset_doc.gross_purchase_amount) - flt(
             row.expected_value_after_useful_life
         )
+        total_depreciations = cint(row.total_number_of_depreciations)
+        booked = len(posted) + opening
 
         for idx, schedule_row in enumerate(pending):
             is_last = idx == len(pending) - 1
-            if is_last:
-                # Last pending row always takes the residual so accumulated
+            is_end_of_life = (booked + idx + 1) >= total_depreciations
+            is_early_disposal = (
+                bool(date_of_disposal)
+                and is_last
+                and not is_end_of_life
+                and getdate(schedule_row.schedule_date) == getdate(date_of_disposal)
+            )
+            if is_early_disposal:
+                # ERPNext booked this row as pro-rata to disposal. Do not replace
+                # it with the remaining useful-life residual.
+                from_date = (
+                    period_from
+                    if idx == 0
+                    else add_days(getdate(pending[idx - 1].schedule_date), 1)
+                )
+                amount, _days, _months = _get_pro_rata_amt(
+                    row, full_amt, from_date, schedule_row.schedule_date
+                )
+                amount = flt(min(amount, full_amt), precision)
+            elif is_last:
+                # Last pending row takes the residual so accumulated
                 # depreciation lands exactly on (gross - salvage), even when it
-                # is also the first/only pending row.
+                # is also the first/only pending row of a full useful life.
                 amount = flt(target_total - accum, precision)
             elif idx == 0:
                 amount, _days, _months = _get_pro_rata_amt(

@@ -75,6 +75,21 @@ function open_date_prompt() {
 	dialog.show();
 }
 
+function listen_for_preview_done(values) {
+	frappe._taxable_summary_preview_values = values;
+	if (frappe._taxable_summary_preview_listener) {
+		return;
+	}
+	frappe._taxable_summary_preview_listener = true;
+	frappe.realtime.on("taxable_summary_preview_done", (data) => {
+		frappe.hide_progress();
+		if (!data) {
+			return;
+		}
+		show_preview_dialog(data, frappe._taxable_summary_preview_values || {});
+	});
+}
+
 function run_preview(values) {
 	frappe.call({
 		method: "nepal_compliance.taxable_summary.preview_taxable_summary_refresh",
@@ -86,6 +101,18 @@ function run_preview(values) {
 		freeze_message: __("Scanning invoices..."),
 		callback(r) {
 			if (!r.message) {
+				return;
+			}
+			if (r.message.queued) {
+				listen_for_preview_done(values);
+				frappe.show_progress(
+					__("Scanning invoices..."),
+					1,
+					100,
+					__(
+						"More than 500 invoices are in this range. Preview is running in the background."
+					)
+				);
 				return;
 			}
 			show_preview_dialog(r.message, values);

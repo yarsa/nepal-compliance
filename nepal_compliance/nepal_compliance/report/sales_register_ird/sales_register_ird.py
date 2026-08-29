@@ -7,11 +7,13 @@ from frappe import _
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
+    """Run the IRD Sales Register and return columns plus rows."""
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """Column definitions for the IRD Sales Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
@@ -28,6 +30,7 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """Build sales register rows from submitted invoices in the filter range."""
     conditions = ["si.docstatus = 1 and si.is_return = 0"]
     values = {}
 
@@ -60,8 +63,10 @@ def get_data(filters):
         SELECT
             si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer, si.company,
             si.total, si.net_total, si.grand_total, si.customs_declaration_number, si.customs_declaration_date_bs,
-            si.taxable_amount as stored_taxable_amount, si.item_vat_detail as stored_item_vat_detail
+            si.taxable_amount as stored_taxable_amount, si.item_vat_detail as stored_item_vat_detail,
+            c.territory as customer_country
         FROM `tabSales Invoice` si
+        LEFT JOIN `tabCustomer` c ON si.customer = c.name
         WHERE {conditions}
         ORDER BY si.posting_date
     """
@@ -74,8 +79,8 @@ def get_data(filters):
     vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
-        customer_country = frappe.db.get_value("Customer", inv.customer, "territory") or ""
-        is_export = customer_country.strip().lower() not in ("", "nepal")
+        customer_country = (inv.customer_country or "").strip()
+        is_export = customer_country.lower() not in ("", "nepal")
 
         pan = inv.invoice_pan or frappe.db.get_value("Customer", inv.customer, "tax_id")
         

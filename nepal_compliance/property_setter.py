@@ -12,6 +12,7 @@ PROPERTY_SETTERS = [
 
 
 def create_property_setters():
+    """Create or update Nepal Compliance property setters (idempotent)."""
     for ps in PROPERTY_SETTERS:
         existing = frappe.db.exists(
             "Property Setter",

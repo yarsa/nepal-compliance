@@ -8,10 +8,12 @@ from frappe.model.naming import make_autoname
 from typing import Union
 
 def prevent_invoice_deletion(doc, method):
+    """Block deletion of submitted invoices for IRD compliance."""
     if (doc.docstatus == 1):
         frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
 
 def custom_autoname(doc, method):
+    """Assign a unique naming-series name, retrying on collision."""
     try:
         full_series = doc.naming_series
         if not full_series:
@@ -41,6 +43,7 @@ def custom_autoname(doc, method):
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> float:
+    """Evaluate a salary-tax formula against taxable_salary using safe_eval."""
     try:
         taxable_salary = flt(taxable_salary)
         context = {
@@ -56,6 +59,7 @@ def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> flo
         frappe.throw(_("Invalid tax formula: {0}. Payroll calculation stopped. Please fix the formula.").format(str(e)))
 
 def set_vat_numbers(doc, method):
+    """Copy party and company VAT/PAN onto opening invoices when those fields are empty."""
     if doc.get("__islocal") and doc.is_opening == "Yes":
         if doc.doctype == "Purchase Invoice":
             if doc.supplier and not doc.vat_number:
@@ -83,6 +87,7 @@ def set_vat_numbers(doc, method):
                     doc.supplier_vat_number = company_vat
 
 def load_nepali_date(doc, method):
+    """Set the Nepali date field from the document's AD posting/transaction date."""
     if not hasattr(doc, "nepali_date"):
         return
 
@@ -109,6 +114,7 @@ def load_nepali_date(doc, method):
         doc.nepali_date = str(bs).strip()
 
 def bill_no_required(doc, method):
+    """Require supplier invoice number and date before submitting a Purchase Invoice."""
     if doc.doctype != "Purchase Invoice":
         return
 
@@ -119,6 +125,7 @@ def bill_no_required(doc, method):
         frappe.throw(_("<b>Supplier Invoice Date</b> is mandatory before submitting a Purchase Invoice. This is required for auditing."))
 
 def check_app_permission():
+    """Allow the Nepal Compliance desk app when the user can read Settings."""
     if frappe.session.user == "Administrator":
         return True
 
@@ -128,6 +135,7 @@ def check_app_permission():
     return False
 
 def get_configured_vat_accounts():
+    """Return {company: {sales, purchase}} VAT ledgers from Nepal Compliance Settings."""
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
     accounts = {}
     for row in settings.get("vat_accounts") or []:
@@ -141,6 +149,7 @@ def get_configured_vat_accounts():
 VAT_EXEMPT_TEMPLATE_TITLE = "VAT Exempt"
 
 def get_or_create_vat_exempt_template(company, vat_account):
+    """Return the 0% VAT Exempt item tax template for the company, creating it if needed."""
     existing = frappe.get_all(
         "Item Tax Template",
         filters={"company": company, "title": VAT_EXEMPT_TEMPLATE_TITLE},
@@ -166,6 +175,7 @@ def get_or_create_vat_exempt_template(company, vat_account):
     return template.name
 
 def apply_vat_exemption_for_nontaxable_items(doc, method):
+    """Assign the 0% VAT Exempt item tax template to items flagged is_nontaxable_item."""
     flagged = [item for item in doc.get("items") or [] if item.get("is_nontaxable_item")]
     if not flagged:
         return
@@ -194,10 +204,12 @@ def apply_vat_exemption_for_nontaxable_items(doc, method):
 
 @frappe.whitelist()
 def is_purchase_invoice_attachment_required():
+    """True when Nepal Compliance Settings requires a purchase invoice attachment."""
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
     return int(bool(settings.get("require_purchase_invoice_attachment")))
 
 def require_purchase_invoice_attachment(doc, method):
+    """Block submit when a purchase invoice attachment is required and missing."""
     if doc.doctype != "Purchase Invoice":
         return
 
@@ -209,6 +221,7 @@ def require_purchase_invoice_attachment(doc, method):
         frappe.throw(_("<b>Attach Purchase Invoice</b> is mandatory before submitting a Purchase Invoice. Please attach the supplier's invoice document."))
 
 def validate_duplicate_bill_no(doc, method):
+    """Reject a supplier bill number that already exists in the same fiscal year."""
     if doc.doctype != "Purchase Invoice":
         return
 
@@ -308,6 +321,7 @@ def accumulate_item_vat(item_vat, item_key, rate, amount):
 
 
 def add_item_wise_vat(item_vat, item_wise_tax_detail):
+    """Merge one tax row's item_wise_tax_detail into the per-item VAT map."""
     detail = item_wise_tax_detail
     if isinstance(detail, str):
         try:
@@ -332,12 +346,14 @@ def taxable_base_from_vat(vat_amount, rate, net_amount):
 
 
 def item_taxable_amount(item, row_vat, item_vat_map):
+    """Taxable base for one item row: VAT ÷ rate, falling back to net amount."""
     key = item.get("item_code") or item.get("item_name")
     rate, _ = parse_item_vat_entry(item_vat_map.get(key))
     return taxable_base_from_vat(row_vat, rate, item.get("net_amount"))
 
 
 def set_taxable_amounts(doc, method):
+    """Freeze taxable, non-taxable, VAT, and item VAT detail on the invoice."""
     side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
     vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
 

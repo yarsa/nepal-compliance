@@ -9,6 +9,7 @@ from nepal_compliance.custom_code.print_settings import print_cancelled_invoice
 from nepal_compliance.custom_code.payroll.salary_component import create_multiple_salary_components
 
 def install():
+    """Create custom fields, property setters, and default Nepal Compliance data."""
     create_custom_fields()
     create_property_setters()
     create_multiple_salary_components()
@@ -18,6 +19,7 @@ def install():
     print_cancelled_invoice()
 
 def before_tests():
+    """Clear cache and run ERPNext's before_tests hook for this app's test site."""
     frappe.clear_cache()
     from erpnext.setup.utils import before_tests as erpnext_before_tests
     erpnext_before_tests()

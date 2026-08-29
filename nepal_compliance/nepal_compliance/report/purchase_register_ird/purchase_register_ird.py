@@ -7,11 +7,13 @@ from frappe import _
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
+    """Run the IRD Purchase Register and return columns plus rows."""
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """Column definitions for the IRD Purchase Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 120},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
@@ -30,6 +32,7 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """Build purchase register rows from submitted invoices in the filter range."""
     conditions = ["pi.docstatus = 1 and pi.is_return = 0"]
     values = {}
 
