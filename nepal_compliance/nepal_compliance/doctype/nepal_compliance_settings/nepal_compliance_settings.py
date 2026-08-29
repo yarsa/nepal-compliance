@@ -51,7 +51,9 @@ class NepalComplianceSettings(Document):
             ):
                 if not account:
                     continue
-                for template_name in frappe.get_all(doctype, filters={"company": row.company}, pluck="name"):
+                for template_name in frappe.get_list(
+                    doctype, filters={"company": row.company}, pluck="name"
+                ):
                     result = self._repoint_template_vat_rows(
                         doctype, template_name, account, row.company
                     )
@@ -70,8 +72,8 @@ class NepalComplianceSettings(Document):
         if skipped:
             frappe.msgprint(
                 _(
-                    "These tax templates were not updated because you do not have write access for their company: {0}"
-                ).format(", ".join(frappe.bold(name) for name in skipped)),
+                    "{0} tax template(s) were not updated because you do not have write access for their company."
+                ).format(len(skipped)),
                 indicator="orange",
                 alert=True,
             )

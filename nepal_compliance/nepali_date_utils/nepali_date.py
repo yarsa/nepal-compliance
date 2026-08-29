@@ -18,7 +18,9 @@ try:
     def _log(msg):
         """Write a Frappe error log entry."""
         frappe.log_error(msg)
-except Exception:
+except ModuleNotFoundError as exc:
+    if getattr(exc, "name", None) != "frappe":
+        raise
     HAS_FRAPPE = False
     def _to_date(v):
         """Coerce a value to date without Frappe."""

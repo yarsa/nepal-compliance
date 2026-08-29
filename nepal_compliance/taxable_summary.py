@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
@@ -11,9 +13,15 @@ DOCTYPE_ORDER = ("Sales Invoice", "Purchase Invoice")
 
 
 def _ensure_permission():
-    """Require write access on Nepal Compliance Settings for refresh actions."""
+    """Require write access on Settings and on Sales/Purchase Invoice."""
     if not frappe.has_permission("Nepal Compliance Settings", "write"):
         frappe.throw(_("Not permitted to recompute taxable summary."), frappe.PermissionError)
+    for doctype in DOCTYPE_ORDER:
+        if not frappe.has_permission(doctype, "write"):
+            frappe.throw(
+                _("Not permitted to update {0}.").format(doctype),
+                frappe.PermissionError,
+            )
 
 
 def _resolve_dates(from_date, to_date):
@@ -45,7 +53,16 @@ def _count_invoices(from_date, to_date):
 
 def _iter_invoice_rows(from_date, to_date):
     """Yield (doctype, row) for submitted invoices, in batches of BATCH_SIZE."""
-    fields = ["name", "company", "posting_date", "taxable_amount", "non_taxable_amount", "vat_amount"]
+    fields = [
+        "name",
+        "company",
+        "posting_date",
+        "taxable_amount",
+        "non_taxable_amount",
+        "vat_amount",
+        "summary_grand_total",
+        "item_vat_detail",
+    ]
     for doctype in DOCTYPE_ORDER:
         start = 0
         while True:
@@ -71,12 +88,29 @@ def _amt(value):
     return None if value is None else flt(value, 2)
 
 
+def _norm_vat_detail(value):
+    """Stable JSON for comparing stored item VAT maps."""
+    if value is None or value == "":
+        return None
+    parsed = value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError):
+            return str(value)
+    if not isinstance(parsed, dict):
+        return str(value)
+    return json.dumps(parsed, sort_keys=True, default=str)
+
+
 def _figures_changed(old, new):
-    """True when taxable, non-taxable, or VAT amounts would change."""
+    """True when taxable figures, grand total, or item VAT detail would change."""
     return (
         _amt(old.taxable_amount) != _amt(new.taxable_amount)
         or _amt(old.non_taxable_amount) != _amt(new.non_taxable_amount)
         or _amt(old.vat_amount) != _amt(new.vat_amount)
+        or _amt(old.summary_grand_total) != _amt(new.summary_grand_total)
+        or _norm_vat_detail(old.item_vat_detail) != _norm_vat_detail(new.item_vat_detail)
     )
 
 
@@ -147,6 +181,8 @@ def _scan_changes(from_date, to_date):
 
 def _apply_change(change):
     """Write recomputed taxable summary fields and add a comment on the invoice."""
+    if not frappe.has_permission(change["doctype"], "write", doc=change["name"]):
+        return False
     frappe.db.set_value(
         change["doctype"],
         change["name"],
@@ -171,6 +207,7 @@ def _apply_change(change):
             flt(change["new_vat_amount"], 2),
         ),
     )
+    return True
 
 
 def _run_apply(from_date, to_date):
@@ -181,20 +218,24 @@ def _run_apply(from_date, to_date):
         status, change = _compute_refresh_row(doctype, row)
         if status != "changed":
             continue
-        _apply_change(change)
+        if not _apply_change(change):
+            continue
         updated += 1
         batch_count += 1
         if batch_count >= BATCH_SIZE:
-            frappe.db.commit()  # nosemgrep: checkpoint after BATCH_SIZE writes
+            # Checkpoint so a long-queue job does not hold one transaction
+            # across thousands of submitted invoices.
+            frappe.db.commit()  # nosemgrep
             batch_count = 0
     if batch_count:
-        frappe.db.commit()  # nosemgrep: final checkpoint for the last partial batch
+        # Final checkpoint for the remainder of the last batch.
+        frappe.db.commit()  # nosemgrep
 
     return updated
 
 
 @frappe.whitelist()
-def preview_taxable_summary_refresh(from_date: str, to_date: str):
+def preview_taxable_summary_refresh(from_date: str, to_date: str, request_id: str | None = None):
     """Preview invoices whose taxable summary would change in the date range.
 
     Ranges larger than BATCH_SIZE run on the long queue so the HTTP worker
@@ -202,6 +243,7 @@ def preview_taxable_summary_refresh(from_date: str, to_date: str):
     """
     _ensure_permission()
     from_date, to_date = _resolve_dates(from_date, to_date)
+    request_id = request_id or frappe.generate_hash(length=16)
     scanned = _count_invoices(from_date, to_date)
     if scanned > BATCH_SIZE:
         enqueue(
@@ -211,6 +253,7 @@ def preview_taxable_summary_refresh(from_date: str, to_date: str):
             is_async=True,
             from_date=str(from_date),
             to_date=str(to_date),
+            request_id=request_id,
             enqueue_after_commit=True,
         )
         return {
@@ -219,8 +262,11 @@ def preview_taxable_summary_refresh(from_date: str, to_date: str):
             "scanned": scanned,
             "from_date": str(from_date),
             "to_date": str(to_date),
+            "request_id": request_id,
         }
-    return _scan_changes(from_date, to_date)
+    preview = _scan_changes(from_date, to_date)
+    preview["request_id"] = request_id
+    return preview
 
 
 @frappe.whitelist()
@@ -248,10 +294,11 @@ def apply_taxable_summary_refresh(from_date: str, to_date: str):
     return {"queued": False, "updated": updated, "scanned": scanned}
 
 
-def run_taxable_summary_preview(from_date: str, to_date: str):
+def run_taxable_summary_preview(from_date: str, to_date: str, request_id: str | None = None):
     """Background preview scan; publishes taxable_summary_preview_done when finished."""
     from_date, to_date = _resolve_dates(from_date, to_date)
     preview = _scan_changes(from_date, to_date)
+    preview["request_id"] = request_id
     frappe.publish_realtime(
         "taxable_summary_preview_done",
         preview,

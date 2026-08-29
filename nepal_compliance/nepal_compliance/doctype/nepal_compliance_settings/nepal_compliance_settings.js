@@ -75,27 +75,42 @@ function open_date_prompt() {
 	dialog.show();
 }
 
-function listen_for_preview_done(values) {
-	frappe._taxable_summary_preview_values = values;
+function listen_for_preview_done() {
 	if (frappe._taxable_summary_preview_listener) {
 		return;
 	}
 	frappe._taxable_summary_preview_listener = true;
+	frappe._taxable_summary_preview_pending = frappe._taxable_summary_preview_pending || {};
 	frappe.realtime.on("taxable_summary_preview_done", (data) => {
-		frappe.hide_progress();
-		if (!data) {
+		if (!data || !data.request_id) {
 			return;
 		}
-		show_preview_dialog(data, frappe._taxable_summary_preview_values || {});
+		const pending = frappe._taxable_summary_preview_pending || {};
+		const values = pending[data.request_id];
+		if (!values) {
+			return;
+		}
+		delete pending[data.request_id];
+		frappe.hide_progress();
+		show_preview_dialog(data, values);
 	});
 }
 
+function new_preview_request_id() {
+	if (window.crypto && typeof window.crypto.randomUUID === "function") {
+		return window.crypto.randomUUID();
+	}
+	return frappe.utils.get_random(16);
+}
+
 function run_preview(values) {
+	const request_id = new_preview_request_id();
 	frappe.call({
 		method: "nepal_compliance.taxable_summary.preview_taxable_summary_refresh",
 		args: {
 			from_date: values.from_date,
 			to_date: values.to_date,
+			request_id: request_id,
 		},
 		freeze: true,
 		freeze_message: __("Scanning invoices..."),
@@ -104,7 +119,10 @@ function run_preview(values) {
 				return;
 			}
 			if (r.message.queued) {
-				listen_for_preview_done(values);
+				const id = r.message.request_id || request_id;
+				frappe._taxable_summary_preview_pending = frappe._taxable_summary_preview_pending || {};
+				frappe._taxable_summary_preview_pending[id] = values;
+				listen_for_preview_done();
 				frappe.show_progress(
 					__("Scanning invoices..."),
 					1,
