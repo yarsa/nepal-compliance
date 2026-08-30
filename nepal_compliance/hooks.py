@@ -26,7 +26,7 @@ add_to_apps_screen = [
 # include js, css files in header of desk.html
 app_include_css = [
     "/assets/nepal_compliance/css/nepali_calendar.css",
-    "/assets/nepal_compliance/css/date.css"]
+    "/assets/nepal_compliance/css/date.css?v=ird-month-grid-1"]
 
 app_include_js = [
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
@@ -37,6 +37,7 @@ app_include_js = [
     "/assets/nepal_compliance/js/filter_patch.js",
     "/assets/nepal_compliance/js/formatter.js",
     "/assets/nepal_compliance/js/report_filter.js",
+    "/assets/nepal_compliance/js/ird_register.js?v=ird-month-grid-1",
     "/assets/nepal_compliance/js/icon_patch.js",
     "/assets/nepal_compliance/js/employee_benefit_claim.js"]
 
@@ -166,6 +167,7 @@ override_doctype_class = {  # nosemgrep: frappe-semgrep-rules.rules.override-doc
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
     "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
     "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment",
+    "Asset Depreciation Schedule": "nepal_compliance.overrides.asset_depreciation_schedule.CustomAssetDepreciationSchedule",
 }
 
 # Document Events
@@ -178,14 +180,17 @@ doc_events = {
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "before_validate": "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
+        "validate": ["nepal_compliance.utils.set_taxable_amounts", "nepal_compliance.utils.validate_duplicate_bill_no"],
         "on_submit": "nepal_compliance.qr_code.create_qr_code",
-        "before_submit": "nepal_compliance.utils.bill_no_required"
+        "before_submit": ["nepal_compliance.utils.bill_no_required", "nepal_compliance.utils.require_purchase_invoice_attachment"]
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "before_validate": "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
-        "validate": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.utils.load_nepali_date"]
+        "validate": ["nepal_compliance.qr_code.create_qr_code", "nepal_compliance.utils.load_nepali_date", "nepal_compliance.utils.set_taxable_amounts"]
     },
     "Sales Order" : {
         "validate": "nepal_compliance.utils.load_nepali_date"

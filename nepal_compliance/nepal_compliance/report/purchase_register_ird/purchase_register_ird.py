@@ -4,13 +4,17 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
+from nepal_compliance.ird_filters import apply_ird_posting_date_filters, invoice_link_fields
+from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
 
 def execute(filters=None):
+    """Run the IRD Purchase Register and return columns plus rows."""
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """Column definitions for the IRD Purchase Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 120},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
@@ -29,6 +33,8 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """Build purchase register rows from submitted invoices in the filter range."""
+    filters = filters or {}
     conditions = ["pi.docstatus = 1 and pi.is_return = 0"]
     values = {}
 
@@ -44,41 +50,35 @@ def get_data(filters):
         conditions.append("pi.name = %(document_number)s")
         values["document_number"] = filters.get("document_number")
 
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date BETWEEN %(from)s AND %(to)s")
-        values["from"] = filters.get("from_nepali_date")
-        values["to"] = filters.get("to_nepali_date")
-    elif filters.get("from_nepali_date"):
-        conditions.append("pi.posting_date >= %(from)s")
-        values["from"] = filters.get("from_nepali_date")
-    elif filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date <= %(to)s")
-        values["to"] = filters.get("to_nepali_date")
+    apply_ird_posting_date_filters(filters, conditions, values, "pi.posting_date")
 
     conditions_sql = " AND ".join(conditions)
 
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.bill_date, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.posting_date,
-            pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax, pi.supplier,
+            pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.supplier, pi.company,
+            pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
             s.country as supplier_country, s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
         WHERE {conditions}
         ORDER BY pi.posting_date
     """
-    
+
     query = query.replace("{conditions}", conditions_sql)
-    
+
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
+
+    vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
 
     invoice_names = [inv.invoice for inv in invoices]
     if invoice_names:
         all_items = frappe.get_all(
             "Purchase Invoice Item",
             filters={"parent": ["in", invoice_names]},
-            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_tax_template"],
+            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_code", "item_name"],
             limit_page_length=0
         )
         items_by_invoice = {}
@@ -94,44 +94,35 @@ def get_data(filters):
         pan = inv.invoice_pan or inv.supplier_tax_id
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
+        tax_domestic_nc = tax_import_nc = tax_capital = 0.0
 
         items = items_by_invoice.get(inv.invoice, [])
+        item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
+        row_vat = distribute_item_vat(items, item_vat_map)
 
-        for item in items:
-            amt = flt(item.get("net_amount"))
+        for item, item_vat in zip(items, row_vat, strict=True):
+            net = flt(item.get("net_amount"))
 
-            item_tax_template = item.get("item_tax_template")
-
-            is_nontaxable = (
-                item.get("is_nontaxable_item") or 
-                (flt(inv.total_tax) == 0 and not item_tax_template)
-            )
-
-            if is_nontaxable:
-                tax_exempt += amt
+            if is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
+                tax_exempt += net
                 continue
 
+            amt = item_taxable_amount(item, item_vat, item_vat_map)
             if item.get("asset_category"):
                 capital_taxable_amount += amt
+                tax_capital += item_vat
             else:
                 if is_import:
                     taxable_import_nc += amt
+                    tax_import_nc += item_vat
                 else:
                     taxable_domestic_nc += amt
-
-        total_taxable = taxable_domestic_nc + taxable_import_nc + capital_taxable_amount
-        total_tax = flt(inv.total_tax)
-
-        if total_tax == 0 or total_taxable == 0:
-            tax_domestic_nc = tax_import_nc = tax_capital = 0
-        else:
-            tax_domestic_nc = (taxable_domestic_nc / total_taxable) * total_tax
-            tax_import_nc = (taxable_import_nc / total_taxable) * total_tax
-            tax_capital = (capital_taxable_amount / total_taxable) * total_tax
+                    tax_domestic_nc += item_vat
 
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
+            **invoice_link_fields("Purchase Invoice", inv.invoice),
             "bill_date": inv.bill_date,
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
