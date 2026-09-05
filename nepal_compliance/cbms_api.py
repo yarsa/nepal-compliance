@@ -3,6 +3,7 @@ import requests
 import json
 from frappe.utils.password import get_decrypted_password
 from frappe.utils.background_jobs import enqueue
+from frappe.model.document import Document
 from frappe import _
 from datetime import datetime
 from typing import Optional, Any
@@ -146,7 +147,11 @@ class CBMSIntegration:
             frappe.log_error(f"Error preparing payload: {str(e)}", "CBMS API Error")
             return None
 
-    def send_to_cbms(self, doc):
+    def send_to_cbms(self, doc=None):
+        """Send sales invoice or credit note to CBMS and record response status."""
+        doc = self.doc if doc is None else doc
+        if isinstance(doc, str):
+            doc = frappe.get_doc("Sales Invoice", doc)
         self.doc = doc
         
         try:
@@ -257,9 +262,19 @@ class CBMSIntegration:
 
 @frappe.whitelist()
 def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = None) -> None:
-    
+    """Submit sales invoice or return to CBMS via background queue upon submission.
+
+    Supports both Document instances (from Frappe on_submit doc_events hook)
+    and string document names (from direct whitelisted RPC invocations).
+    """
     try:
-        doc = frappe.get_doc("Sales Invoice", doc_name)
+        if isinstance(doc_name, Document) or hasattr(doc_name, "doctype") or hasattr(doc_name, "name"):
+            doc = doc_name
+            invoice_name = getattr(doc, "name", str(doc_name))
+        else:
+            doc = frappe.get_doc("Sales Invoice", doc_name)
+            invoice_name = doc_name
+
         if not doc:
             frappe.throw(_("Sales Invoice not found"))
 
@@ -274,23 +289,26 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
             queue="short",
             timeout=60,
             is_async=True,
-            doc=doc_name 
+            enqueue_after_commit=True,
+            doc=doc 
         )
         frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS."))
         return {"message": _("Request processed successfully"), "status": "queued"}
 
     except Exception as e:
+        invoice_ref = getattr(doc_name, "name", str(doc_name)) if doc_name else "Unknown"
         frappe.log_error(
-            message=str(e),
+            message=f"CBMS submission error for {invoice_ref}: {str(e)}",
             title="CBMS API Error"
         )
         return {"message": _("An error occurred while processing the request: {0}").format(str(e)), "status": "error"}
 
 @frappe.whitelist()
 def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> dict:
-
+    """Check CBMS configuration status for a given Sales Invoice."""
     try:
-        if not frappe.db.exists("Sales Invoice", doc_name):
+        invoice_name = getattr(doc_name, "name", doc_name) if hasattr(doc_name, "doctype") or hasattr(doc_name, "name") else doc_name
+        if not frappe.db.exists("Sales Invoice", invoice_name):
             return {"message": _("Sales Invoice not found"), "status": "error"}
 
         cbms_integration = CBMSIntegration(None)
@@ -302,8 +320,9 @@ def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> di
         return config
 
     except Exception as e:
+        invoice_ref = getattr(doc_name, "name", str(doc_name)) if doc_name else "Unknown"
         frappe.log_error(
-            message=str(e),
+            message=f"CBMS status check error for {invoice_ref}: {str(e)}",
             title="CBMS API Error"
         )
         return {"message": _("An error occurred while processing the request: {0}").format(str(e)), "status": "error"}

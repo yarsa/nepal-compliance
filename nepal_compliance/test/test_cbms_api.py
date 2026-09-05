@@ -135,6 +135,37 @@ class TestCBMSSend(unittest.TestCase):
         self.assertEqual(self.test_doc.cbms_status, "Failed")
         mock_commit.assert_called_once()
 
+    @patch("nepal_compliance.cbms_api.frappe.get_doc")
+    @patch("nepal_compliance.cbms_api.frappe.db.commit")
+    @patch("nepal_compliance.cbms_api.requests.post")
+    def test_send_with_string_doc_name(self, mock_post, mock_commit, mock_get_doc):
+
+        mock_get_doc.return_value = self.test_doc
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "200"
+        mock_post.return_value = mock_response
+
+        result = self.cbms.send_to_cbms("INV-001")
+
+        mock_get_doc.assert_called_with("Sales Invoice", "INV-001")
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(self.test_doc.cbms_status, "Success")
+
+    @patch("nepal_compliance.cbms_api.frappe.db.commit")
+    @patch("nepal_compliance.cbms_api.requests.post")
+    def test_send_with_none_doc_uses_self_doc(self, mock_post, mock_commit):
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "200"
+        mock_post.return_value = mock_response
+
+        result = self.cbms.send_to_cbms()
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(self.test_doc.cbms_status, "Success")
+
 # Whitelist method tests
 class TestCBMSWhitelist(unittest.TestCase):
 
@@ -153,6 +184,29 @@ class TestCBMSWhitelist(unittest.TestCase):
             result = post_sales_invoice_or_return_to_cbms("INV-001")
 
         mock_enqueue.assert_called_once()
+        self.assertTrue(mock_enqueue.call_args.kwargs.get("enqueue_after_commit"))
+        self.assertEqual(result["status"], "queued")
+
+    @patch("nepal_compliance.cbms_api.enqueue")
+    @patch("nepal_compliance.cbms_api.frappe.get_doc")
+    def test_post_sales_invoice_with_document_instance(self, mock_get_doc, mock_enqueue):
+
+        doc = MagicMock()
+        doc.doctype = "Sales Invoice"
+        doc.name = "INV-2024-001"
+
+        with patch.object(
+            CBMSIntegration,
+            "is_cbms_configured",
+            return_value={"status": "configured"}
+        ):
+            result = post_sales_invoice_or_return_to_cbms(doc)
+
+        # When a Document instance is provided, frappe.get_doc should not be called with it
+        mock_get_doc.assert_not_called()
+        mock_enqueue.assert_called_once()
+        self.assertEqual(mock_enqueue.call_args.kwargs.get("doc"), doc)
+        self.assertTrue(mock_enqueue.call_args.kwargs.get("enqueue_after_commit"))
         self.assertEqual(result["status"], "queued")
 
     @patch("nepal_compliance.cbms_api.frappe.db.exists")
@@ -162,3 +216,42 @@ class TestCBMSWhitelist(unittest.TestCase):
         result = post_sales_invoice_status("INVALID")
 
         self.assertEqual(result["status"], "error")
+
+    @patch("nepal_compliance.cbms_api.frappe.db.exists")
+    def test_post_sales_invoice_status_with_document_instance(self, mock_exists):
+
+        doc = MagicMock()
+        doc.doctype = "Sales Invoice"
+        doc.name = "INV-2024-001"
+        mock_exists.return_value = True
+
+        with patch.object(
+            CBMSIntegration,
+            "is_cbms_configured",
+            return_value={"status": "configured"}
+        ):
+            result = post_sales_invoice_status(doc)
+
+        mock_exists.assert_called_with("Sales Invoice", "INV-2024-001")
+        self.assertEqual(result["status"], "queued")
+
+    @patch("nepal_compliance.cbms_api.frappe.log_error")
+    @patch("nepal_compliance.cbms_api.frappe.get_doc")
+    def test_post_sales_invoice_error_logging_includes_invoice_name(self, mock_get_doc, mock_log_error):
+
+        doc = MagicMock()
+        doc.name = "INV-FAIL-001"
+        doc.doctype = "Sales Invoice"
+
+        with patch.object(
+            CBMSIntegration,
+            "is_cbms_configured",
+            side_effect=Exception("Database connection error")
+        ):
+            result = post_sales_invoice_or_return_to_cbms(doc)
+
+        self.assertEqual(result["status"], "error")
+        mock_log_error.assert_called_once()
+        log_message = mock_log_error.call_args.kwargs.get("message")
+        self.assertIn("INV-FAIL-001", log_message)
+        self.assertIn("Database connection error", log_message)
