@@ -80,7 +80,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
     """Unit tests for CustomAssetDepreciationSchedule."""
 
     def _make_ads(self, num_rows=12, opening_accum=0):
-        ads = CustomAssetDepreciationSchedule()
+        ads = CustomAssetDepreciationSchedule({"doctype": "Asset Depreciation Schedule"})
         ads.depreciation_schedule = [MockScheduleRow() for _ in range(num_rows)]
         ads.opening_accumulated_depreciation = opening_accum
         return ads
@@ -263,7 +263,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
             schedule_date=posted_date, amount=10000.0, accum=10000.0, journal_entry="ACC-JV-001"
         )
         pending_rows = [MockScheduleRow() for _ in range(3)]
-        ads = CustomAssetDepreciationSchedule()
+        ads = CustomAssetDepreciationSchedule({"doctype": "Asset Depreciation Schedule"})
         ads.depreciation_schedule = [posted_row] + pending_rows
 
         asset = SimpleNamespace(
@@ -301,8 +301,9 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
             MockScheduleRow(),
             MockScheduleRow(schedule_date=disposal_date, amount=5000.0),
         ]
-        ads = CustomAssetDepreciationSchedule()
+        ads = CustomAssetDepreciationSchedule({"doctype": "Asset Depreciation Schedule"})
         ads.depreciation_schedule = schedules
+        ads.opening_accumulated_depreciation = 0
 
         start_date = bs_to_ad(2083, 4, 1)
         asset = SimpleNamespace(

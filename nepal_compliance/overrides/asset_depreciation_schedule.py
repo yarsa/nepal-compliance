@@ -60,6 +60,12 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
     Straight-Line and pro-rata amount settlement.
     """
 
+    def __init__(self, *args, **kwargs):
+        if not args and not kwargs:
+            super().__init__({"doctype": "Asset Depreciation Schedule"})
+        else:
+            super().__init__(*args, **kwargs)
+
     def make_depr_schedule(
         self,
         asset_doc,
@@ -175,7 +181,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             accum = flt(posted[-1].accumulated_depreciation_amount)
             period_from = add_days(getdate(posted[-1].schedule_date), 1)
         else:
-            accum = flt(self.opening_accumulated_depreciation or 0)
+            accum = flt(getattr(self, "opening_accumulated_depreciation", 0) or 0)
             first_sched_ad = getdate(pending[0].schedule_date)
             first_sched_bs = ad_to_bs(first_sched_ad)
             prev_y, prev_m = advance(first_sched_bs["year"], first_sched_bs["month"], -freq)
