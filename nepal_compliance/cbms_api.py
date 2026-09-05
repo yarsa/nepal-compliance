@@ -148,12 +148,11 @@ class CBMSIntegration:
             return None
 
     def send_to_cbms(self, doc=None):
-        if doc is not None:
-            if isinstance(doc, str):
-                doc = frappe.get_doc("Sales Invoice", doc)
-            self.doc = doc
-        elif isinstance(self.doc, str):
-            self.doc = frappe.get_doc("Sales Invoice", self.doc)
+        """Send sales invoice or credit note to CBMS and record response status."""
+        doc = self.doc if doc is None else doc
+        if isinstance(doc, str):
+            doc = frappe.get_doc("Sales Invoice", doc)
+        self.doc = doc
         
         try:
             config = self.is_cbms_configured()
@@ -263,7 +262,11 @@ class CBMSIntegration:
 
 @frappe.whitelist()
 def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = None) -> None:
-    
+    """Submit sales invoice or return to CBMS via background queue upon submission.
+
+    Supports both Document instances (from Frappe on_submit doc_events hook)
+    and string document names (from direct whitelisted RPC invocations).
+    """
     try:
         if isinstance(doc_name, Document) or hasattr(doc_name, "doctype") or hasattr(doc_name, "name"):
             doc = doc_name
@@ -286,6 +289,7 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
             queue="short",
             timeout=60,
             is_async=True,
+            enqueue_after_commit=True,
             doc=doc 
         )
         frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS."))
@@ -301,7 +305,7 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
 
 @frappe.whitelist()
 def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> dict:
-
+    """Check CBMS configuration status for a given Sales Invoice."""
     try:
         invoice_name = getattr(doc_name, "name", doc_name) if hasattr(doc_name, "doctype") or hasattr(doc_name, "name") else doc_name
         if not frappe.db.exists("Sales Invoice", invoice_name):

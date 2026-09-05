@@ -152,6 +152,20 @@ class TestCBMSSend(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertEqual(self.test_doc.cbms_status, "Success")
 
+    @patch("nepal_compliance.cbms_api.frappe.db.commit")
+    @patch("nepal_compliance.cbms_api.requests.post")
+    def test_send_with_none_doc_uses_self_doc(self, mock_post, mock_commit):
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "200"
+        mock_post.return_value = mock_response
+
+        result = self.cbms.send_to_cbms()
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(self.test_doc.cbms_status, "Success")
+
 # Whitelist method tests
 class TestCBMSWhitelist(unittest.TestCase):
 
@@ -170,6 +184,7 @@ class TestCBMSWhitelist(unittest.TestCase):
             result = post_sales_invoice_or_return_to_cbms("INV-001")
 
         mock_enqueue.assert_called_once()
+        self.assertTrue(mock_enqueue.call_args.kwargs.get("enqueue_after_commit"))
         self.assertEqual(result["status"], "queued")
 
     @patch("nepal_compliance.cbms_api.enqueue")
@@ -191,6 +206,7 @@ class TestCBMSWhitelist(unittest.TestCase):
         mock_get_doc.assert_not_called()
         mock_enqueue.assert_called_once()
         self.assertEqual(mock_enqueue.call_args.kwargs.get("doc"), doc)
+        self.assertTrue(mock_enqueue.call_args.kwargs.get("enqueue_after_commit"))
         self.assertEqual(result["status"], "queued")
 
     @patch("nepal_compliance.cbms_api.frappe.db.exists")
