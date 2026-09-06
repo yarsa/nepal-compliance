@@ -8,15 +8,11 @@ def run_daily_bs_tasks():
         today_ad = getdate()
         bs = ad_to_bs(today_ad)
 
-        settings = frappe.get_single("Nepal Compliance Settings")
-        settings.db_set("bs_year", bs["year"], update_modified=False)
-        settings.db_set("bs_month", bs["month"], update_modified=False)
-        settings.db_set("bs_day", bs["day"], update_modified=False)
-
-        frappe.logger().info(
-            f"[BS] Updated to {bs['year']}-{bs['month']}-{bs['day']}"
-        )
-
+        # Allocate the monthly leave before the stored BS date is refreshed.
+        # allocate_monthly_leave_bs decides whether a month has already been
+        # processed by comparing the requested month against bs_year and
+        # bs_month in Nepal Compliance Settings, so if those are updated first
+        # the current month always looks done and the allocation is skipped.
         if bs["day"] == 1:
             leave_types = frappe.get_all(
                 "Leave Type",
@@ -32,6 +28,15 @@ def run_daily_bs_tasks():
                     force=False,
                     silent=True,
                 )
+
+        settings = frappe.get_single("Nepal Compliance Settings")
+        settings.db_set("bs_year", bs["year"], update_modified=False)
+        settings.db_set("bs_month", bs["month"], update_modified=False)
+        settings.db_set("bs_day", bs["day"], update_modified=False)
+
+        frappe.logger().info(
+            f"[BS] Updated to {bs['year']}-{bs['month']}-{bs['day']}"
+        )
 
     except Exception:
         frappe.log_error(

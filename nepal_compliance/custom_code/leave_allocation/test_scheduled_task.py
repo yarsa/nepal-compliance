@@ -86,6 +86,47 @@ class TestRunDailyBSTasks(unittest.TestCase):
         # allocate_monthly_leave_bs should NOT be called
         mock_allocate_leave.assert_not_called()
 
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.frappe")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.ad_to_bs")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.allocate_monthly_leave_bs")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.getdate")
+    def test_leave_allocated_before_bs_date_is_refreshed(
+        self, mock_getdate, mock_allocate_leave, mock_ad_to_bs, mock_frappe
+    ):
+        """Leave must be allocated before bs_year and bs_month are refreshed.
+
+        allocate_monthly_leave_bs treats a match between the requested month and
+        the stored bs_year and bs_month as a sign that the month is already
+        done. Refreshing those fields first would make every run look done and
+        the allocation would silently never happen.
+        """
+        mock_getdate.return_value = date(2024, 1, 1)
+        mock_ad_to_bs.return_value = {"year": 2080, "month": 1, "day": 1}
+
+        settings_mock = MagicMock()
+        mock_frappe.get_single.return_value = settings_mock
+        mock_frappe.get_all.return_value = ["Casual Leave"]
+
+        manager = MagicMock()
+        manager.attach_mock(mock_allocate_leave, "allocate")
+        manager.attach_mock(settings_mock.db_set, "db_set")
+
+        run_daily_bs_tasks()
+
+        names = [call[0] for call in manager.mock_calls]
+        self.assertIn("allocate", names)
+        allocate_index = names.index("allocate")
+        watermark_indices = [
+            i
+            for i, call in enumerate(manager.mock_calls)
+            if call[0] == "db_set" and call[1] and call[1][0] in ("bs_year", "bs_month")
+        ]
+        self.assertTrue(watermark_indices)
+        self.assertTrue(
+            all(allocate_index < i for i in watermark_indices),
+            "allocation must run before bs_year and bs_month are updated",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
