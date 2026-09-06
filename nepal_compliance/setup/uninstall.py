@@ -4,6 +4,9 @@ from typing import Optional
 
 @frappe.whitelist()
 def clear_test_data(docname: Optional[str] = None) -> bool:
+    if not frappe.has_permission("IRD Certification", "write"):
+        frappe.throw(_("You are not permitted to clear test data."), frappe.PermissionError)
+
     if not docname:
         frappe.throw(_("Missing IRD Certification document name."))
 

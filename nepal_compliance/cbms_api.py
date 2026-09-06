@@ -310,6 +310,9 @@ def post_sales_invoice_status(doc_name: Any, method: Optional[str] = None) -> di
 
 @frappe.whitelist()
 def sync_failed_cbms_invoices():
+    if not frappe.has_permission("CBMS Settings", "write"):
+        frappe.throw(_("You are not permitted to sync CBMS invoices."), frappe.PermissionError)
+
     failed_invoices = frappe.get_all(
         "Sales Invoice",
         filters={"docstatus": 1, "cbms_status": ["!=", "Success"]},
