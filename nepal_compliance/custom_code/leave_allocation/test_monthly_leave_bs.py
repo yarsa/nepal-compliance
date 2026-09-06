@@ -118,8 +118,14 @@ class TestMonthlyLeaveBS(unittest.TestCase):
         def throw(msg="", exc=Exception, **kwargs):
             raise exc(msg)
 
+        permission_calls = []
+
+        def has_permission(doctype, perm):
+            permission_calls.append((doctype, perm))
+            return False
+
         frappe_ns = SimpleNamespace(
-            has_permission=lambda doctype, perm: False,
+            has_permission=has_permission,
             PermissionError=DummyPermissionError,
             throw=throw,
             utils=SimpleNamespace(cint=lambda x: int(x)),
@@ -130,6 +136,8 @@ class TestMonthlyLeaveBS(unittest.TestCase):
         ):
             with self.assertRaises(DummyPermissionError):
                 allocate_monthly_leave_bs(2080, 2, ["Casual Leave"], force=True, silent=True)
+
+        self.assertEqual(permission_calls, [("Leave Allocation", "write")])
 
     def test_handles_exceptions_and_returns_error(self):
         """Should catch exceptions and return error without raising."""
