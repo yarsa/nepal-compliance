@@ -127,6 +127,34 @@ class TestRunDailyBSTasks(unittest.TestCase):
             "allocation must run before bs_year and bs_month are updated",
         )
 
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.frappe")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.ad_to_bs")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.allocate_monthly_leave_bs")
+    @patch("nepal_compliance.custom_code.leave_allocation.scheduled_tasks.getdate")
+    def test_bs_month_not_advanced_when_allocation_fails(
+        self, mock_getdate, mock_allocate_leave, mock_ad_to_bs, mock_frappe
+    ):
+        """A failed allocation must not advance the bs_year and bs_month marker.
+
+        The allocation rolls back on failure, so if the marker were advanced the
+        month would look done and never be retried. bs_day is display only and
+        still updates.
+        """
+        mock_getdate.return_value = date(2024, 1, 1)
+        mock_ad_to_bs.return_value = {"year": 2080, "month": 1, "day": 1}
+
+        settings_mock = MagicMock()
+        mock_frappe.get_single.return_value = settings_mock
+        mock_frappe.get_all.return_value = ["Casual Leave"]
+        mock_allocate_leave.return_value = {"status": "error", "error": "boom"}
+
+        run_daily_bs_tasks()
+
+        written_fields = [call[0][0] for call in settings_mock.db_set.call_args_list]
+        self.assertIn("bs_day", written_fields)
+        self.assertNotIn("bs_year", written_fields)
+        self.assertNotIn("bs_month", written_fields)
+
 
 if __name__ == "__main__":
     unittest.main()
