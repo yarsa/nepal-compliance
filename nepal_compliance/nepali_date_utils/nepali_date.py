@@ -186,6 +186,16 @@ def bs_to_ad(year: int, month: int, day: int) -> date:
     return ad
 
 
+def days_in_bs_month(year: int, month: int) -> int:
+    """Return the total number of days in the specified BS year and month."""
+    _ensure_loaded()
+    if year not in _bs_months:
+        _throw(f"Year {year} outside supported BS range {min(_bs_months)}–{max(_bs_months)}")
+    if not 1 <= month <= 12:
+        _throw("Month must be between 1 and 12")
+    return _bs_months[year][month - 1]
+
+
 def _safe_replace(fmt: str, mapping: Dict[str, str]) -> str:
 
     # Replaces known tokens and support legacy M and D only when used as standalone tokens (e.g. YYYY.M.D, YYYY-M-D).
@@ -229,4 +239,4 @@ def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
         "SS": f"{dt.second:02d}",
     })
 
-__all__ = ["ad_to_bs", "bs_to_ad", "format_bs", "format_bs_datetime"]
+__all__ = ["ad_to_bs", "bs_to_ad", "days_in_bs_month", "format_bs", "format_bs_datetime"]
