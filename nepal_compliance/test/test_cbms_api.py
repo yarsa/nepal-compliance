@@ -155,6 +155,26 @@ class TestCBMSWhitelist(unittest.TestCase):
         mock_enqueue.assert_called_once()
         self.assertEqual(result["status"], "queued")
 
+    @patch("nepal_compliance.cbms_api.enqueue")
+    @patch("nepal_compliance.cbms_api.frappe.get_doc")
+    def test_post_sales_invoice_enqueues_loaded_document(self, mock_get_doc, mock_enqueue):
+        # send_to_cbms works on the Sales Invoice document itself, so the queued
+        # job must receive the loaded document rather than the raw name. Passing
+        # the name string makes send_to_cbms fail on a string and its own error
+        # handler fail again, so the invoice is filed nowhere.
+        test_doc = MagicMock()
+        mock_get_doc.return_value = test_doc
+
+        with patch.object(
+            CBMSIntegration,
+            "is_cbms_configured",
+            return_value={"status": "configured"},
+        ):
+            post_sales_invoice_or_return_to_cbms("INV-001")
+
+        mock_enqueue.assert_called_once()
+        self.assertIs(mock_enqueue.call_args.kwargs["doc"], test_doc)
+
     @patch("nepal_compliance.cbms_api.frappe.db.exists")
     def test_post_sales_invoice_status_not_found(self, mock_exists):
 

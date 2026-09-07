@@ -270,11 +270,11 @@ def post_sales_invoice_or_return_to_cbms(doc_name: Any, method: Optional[str] = 
             return config
         
         enqueue(
-            method=cbms_integration.send_to_cbms,  
+            method=cbms_integration.send_to_cbms,
             queue="short",
             timeout=60,
             is_async=True,
-            doc=doc_name 
+            doc=doc,
         )
         frappe.msgprint(_("Invoice/Return has been queued for sending to CBMS."))
         return {"message": _("Request processed successfully"), "status": "queued"}
