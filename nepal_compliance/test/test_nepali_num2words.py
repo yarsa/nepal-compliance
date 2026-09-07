@@ -6,13 +6,14 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Ensure frappe module is available for standalone test runners
-try:
-	import frappe
-except ImportError:
-	mock_frappe = MagicMock()
-	sys.modules["frappe"] = mock_frappe
-	sys.modules["frappe.utils"] = MagicMock()
-	sys.modules["frappe.utils.data"] = MagicMock()
+if "frappe" not in sys.modules:
+	try:
+		__import__("frappe")
+	except ImportError:
+		mock_frappe = MagicMock()
+		sys.modules["frappe"] = mock_frappe
+		sys.modules["frappe.utils"] = MagicMock()
+		sys.modules["frappe.utils.data"] = MagicMock()
 
 from nepal_compliance.nepali_num2words import _nepali_in_words, in_words
 
