@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from datetime import date
 
@@ -154,6 +155,94 @@ class TestRunDailyBSTasks(unittest.TestCase):
         self.assertIn("bs_day", written_fields)
         self.assertNotIn("bs_year", written_fields)
         self.assertNotIn("bs_month", written_fields)
+
+    def test_scheduler_runs_real_allocator_and_allocates(self):
+        """End to end: with a previous month stored, the scheduler runs the real
+        allocate_monthly_leave_bs and a Leave Allocation total actually increases.
+
+        Nothing is mocked between the scheduler and the allocator here, so a
+        regression that made the allocator skip the month would be caught, unlike
+        the ordering test above which uses a mock.
+        """
+        import nepal_compliance.custom_code.leave_allocation.monthly_leave_bs as mlb
+
+        alloc_doc = SimpleNamespace(
+            name="ALLOC-001",
+            leave_type="Casual Leave",
+            employee="EMP-001",
+            from_date=date(2026, 1, 1),
+            to_date=date(2026, 1, 31),
+            total_leaves_allocated=1.0,
+        )
+        alloc_doc.db_set = lambda field, value, update_modified=False: setattr(
+            alloc_doc, field, value
+        )
+        leave_type_doc = SimpleNamespace(
+            name="Casual Leave",
+            allocate_leave_on_start_of_bs_month=True,
+            bs_monthly_allocation_amount=2,
+            max_leaves_allowed=5,
+        )
+
+        def mlb_get_doc(doctype, name=None, **kwargs):
+            return leave_type_doc if doctype == "Leave Type" else alloc_doc
+
+        def mlb_get_all(doctype, filters=None, pluck=None, fields=None):
+            if doctype == "Leave Allocation":
+                return [SimpleNamespace(name="ALLOC-001", employee="EMP-001")]
+            return []
+
+        # The stored month is the previous one, so the allocator should proceed.
+        stored = {"bs_year": 2079, "bs_month": 12}
+
+        def throw(msg="", exc=Exception, **kwargs):
+            raise exc(msg)
+
+        mlb_frappe = SimpleNamespace(
+            get_doc=mlb_get_doc,
+            get_all=mlb_get_all,
+            db=SimpleNamespace(
+                get_single_value=lambda doctype, field: stored.get(field, 0),
+                set_single_value=lambda doctype, field, val: stored.update({field: val}),
+                commit=lambda: None,
+                rollback=lambda: None,
+            ),
+            msgprint=lambda *a, **kw: None,
+            log_error=lambda *a, **kw: None,
+            utils=SimpleNamespace(cint=int),
+            logger=lambda *a, **kw: SimpleNamespace(info=lambda *a, **kw: None),
+            throw=throw,
+        )
+
+        with patch.object(mlb, "frappe", mlb_frappe), patch.object(
+            mlb, "create_leave_ledger_entry", lambda doc, args: None
+        ), patch.object(mlb, "getdate", lambda *a, **kw: date(2024, 1, 1)):
+            with patch(
+                "nepal_compliance.custom_code.leave_allocation.scheduled_tasks.frappe"
+            ) as st_frappe, patch(
+                "nepal_compliance.custom_code.leave_allocation.scheduled_tasks.ad_to_bs",
+                return_value={"year": 2080, "month": 1, "day": 1},
+            ), patch(
+                "nepal_compliance.custom_code.leave_allocation.scheduled_tasks.getdate",
+                return_value=date(2024, 1, 1),
+            ):
+                st_frappe.get_all.return_value = ["Casual Leave"]
+                # The scheduler and the allocator must share one settings store,
+                # so the scheduler's writes are visible to the allocator's reads.
+                # This is what reproduces the original bug when the order is wrong.
+                settings_obj = SimpleNamespace()
+                settings_obj.db_set = (
+                    lambda field, value, update_modified=False: stored.update(
+                        {field: value}
+                    )
+                )
+                st_frappe.get_single.return_value = settings_obj
+
+                before = alloc_doc.total_leaves_allocated
+                run_daily_bs_tasks()
+
+        self.assertEqual(alloc_doc.total_leaves_allocated, before + 2)
+        self.assertEqual(stored["bs_month"], 1)
 
 
 if __name__ == "__main__":
