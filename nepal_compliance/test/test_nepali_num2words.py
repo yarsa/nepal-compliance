@@ -374,17 +374,22 @@ class TestInWordsWrapper(unittest.TestCase):
 		mock_log_error.assert_called_once()
 		self.assertIn("five thousand", result.lower())
 
-	def test_in_words_in_million_default(self):
+	@patch("nepal_compliance.nepali_num2words.frappe.local")
+	def test_in_words_in_million_default(self, mock_local):
 		"""When in_million=True (default), uses million format."""
+		mock_local.lang = "en"
 		result = in_words(1000000, in_million=True)
 		self.assertIn("million", result.lower())
 
+	@patch("nepal_compliance.nepali_num2words.frappe.local")
 	@patch("num2words.num2words")
-	def test_in_words_fallback_on_unsupported_locale(self, mock_num2words):
+	def test_in_words_fallback_on_unsupported_locale(self, mock_num2words, mock_local):
 		"""
 		When num2words raises NotImplementedError for a locale,
 		it falls back to 'en'.
 		"""
+		mock_local.lang = "unsupported"
+
 		def side_effect(val, lang="en"):
 			if lang != "en":
 				raise NotImplementedError("Locale not implemented")
@@ -393,6 +398,8 @@ class TestInWordsWrapper(unittest.TestCase):
 		mock_num2words.side_effect = side_effect
 		result = in_words(100, in_million=True)
 		self.assertEqual(result, "one hundred")
+		mock_num2words.assert_any_call(100, lang="unsupported")
+		mock_num2words.assert_called_with(100, lang="en")
 
 
 if __name__ == "__main__":
