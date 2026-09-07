@@ -128,7 +128,7 @@ class TestMonthlyLeaveBS(unittest.TestCase):
             has_permission=has_permission,
             PermissionError=DummyPermissionError,
             throw=throw,
-            utils=SimpleNamespace(cint=lambda x: int(x)),
+            utils=SimpleNamespace(cint=int),
         )
         with patch(
             "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.frappe",
