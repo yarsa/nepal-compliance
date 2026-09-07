@@ -1,0 +1,37 @@
+name: Greet First-Time Contributor
+
+on:
+  pull_request_target:
+    types: [closed]
+
+# Least privilege: only needs to comment on the PR.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  greet:
+    # Only on merge (any base branch), and only a contributor's first merged PR.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' &&
+      github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Say thanks
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: [
+                `🎉 Thank you for your contribution, @${pr.user.login}!`,
+                ``,
+                `Your first pull request has just been merged into \`${pr.base.ref}\`. `
+                  + `We appreciate you helping improve Nepal Compliance, and we hope to see more from you. Welcome aboard! 🙌`,
+              ].join('\n'),
+            });
