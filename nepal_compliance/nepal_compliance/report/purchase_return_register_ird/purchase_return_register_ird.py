@@ -2,16 +2,34 @@
 # For license information, please see LICENSE at the root of this repository
 
 import frappe
-from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
+from frappe.utils import flt
+
+from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
+from nepal_compliance.ird_filters import (
+    apply_ird_posting_date_filters,
+    invoice_link_fields,
+)
+from nepal_compliance.utils import (
+    distribute_item_vat,
+    get_vat_breakup,
+    invoice_ird_total,
+    is_exempt_report_item,
+    item_taxable_amount,
+    resolve_report_vat_source,
+)
+
+ITEM_QUERY_BATCH_SIZE = 500
+
 
 def execute(filters=None):
+    """Run the IRD Purchase Return Register and return columns plus rows."""
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 def get_columns():
+    """Column definitions for the IRD Purchase Return Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
@@ -32,6 +50,8 @@ def get_columns():
     ]
 
 def get_data(filters):
+    """Build purchase return register rows from submitted returns in the filter range."""
+    filters = filters or {}
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
 
@@ -47,24 +67,19 @@ def get_data(filters):
         conditions.append("pi.name = %(return_invoice)s")
         values["return_invoice"] = filters.get("return_invoice")
 
-
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date BETWEEN %(from)s AND %(to)s")
-        values["from"] = filters.get("from_nepali_date")
-        values["to"] = filters.get("to_nepali_date")
-    elif filters.get("from_nepali_date"):
-        conditions.append("pi.posting_date >= %(from)s")
-        values["from"] = filters.get("from_nepali_date")
-    elif filters.get("to_nepali_date"):
-        conditions.append("pi.posting_date <= %(to)s")
-        values["to"] = filters.get("to_nepali_date")
+    apply_ird_posting_date_filters(filters, conditions, values, "pi.posting_date")
 
     conditions_sql = " AND ".join(conditions)
     query = """
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
-            pi.total, pi.company, pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail
+            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.summary_grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
+            pi.total, pi.company, pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
+            pi.ird_party_country as stored_party_country,
+            supplier_address.country as address_country,
+            s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
+        LEFT JOIN `tabSupplier` s ON pi.supplier = s.name
+        LEFT JOIN `tabAddress` supplier_address ON supplier_address.name = pi.supplier_address
         WHERE {conditions}
         ORDER BY pi.posting_date
     """
@@ -76,19 +91,39 @@ def get_data(filters):
 
     vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
 
-    for inv in invoices:
-        supplier_country = frappe.db.get_value("Supplier", inv.supplier, "country") or ""
-        is_import = supplier_country.strip().lower() != "nepal"
+    invoice_names = [inv.invoice for inv in invoices]
+    items_by_invoice = {}
+    for start in range(0, len(invoice_names), ITEM_QUERY_BATCH_SIZE):
+        batch_names = invoice_names[start:start + ITEM_QUERY_BATCH_SIZE]
+        batch_items = frappe.get_all(
+            "Purchase Invoice Item",
+            filters={"parent": ["in", batch_names]},
+            fields=[
+                "parent",
+                "is_nontaxable_item",
+                "net_amount",
+                "amount",
+                "asset_category",
+                "qty",
+                "uom",
+                "item_code",
+                "item_name",
+            ],
+            limit_page_length=0,
+        )
+        for item in batch_items:
+            items_by_invoice.setdefault(item.parent, []).append(item)
 
-        pan = inv.invoice_pan or frappe.db.get_value("Supplier", inv.supplier, "tax_id")
+    for inv in invoices:
+        supplier_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
+        is_import = is_foreign_country(supplier_country)
+
+        pan = inv.invoice_pan or inv.supplier_tax_id
 
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
         tax_domestic_nc = tax_import_nc = tax_capital = 0.0
 
-        item_filters = {"parent": inv.invoice}
-
-        items = frappe.get_all("Purchase Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "asset_category", "qty", "uom", "item_code", "item_name"])
+        items = items_by_invoice.get(inv.invoice, [])
 
         item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
         row_vat = distribute_item_vat(items, item_vat_map)
@@ -115,13 +150,14 @@ def get_data(filters):
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
+            **invoice_link_fields("Purchase Invoice", inv.invoice),
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
             "pan": pan,
             "reason": inv.reason or "",
 			"qty": abs(sum(item.qty for item in items if item.qty)) if items else 0.0, 
             "uom": item.uom if items else "",
-            "total": abs(inv.rounded_total or inv.grand_total),
+            "total": abs(invoice_ird_total(inv)),
             "tax_exempt": abs(tax_exempt),
             "taxable_amount": abs(taxable_domestic_nc),
             "tax_amount": abs(tax_domestic_nc),
