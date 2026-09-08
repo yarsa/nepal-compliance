@@ -37,6 +37,8 @@ app_include_js = [
     "/assets/nepal_compliance/js/filter_patch.js",
     "/assets/nepal_compliance/js/formatter.js",
     "/assets/nepal_compliance/js/report_filter.js",
+    "/assets/nepal_compliance/js/ird_bs_dates.js",
+    "/assets/nepal_compliance/js/ird_month_picker.js",
     "/assets/nepal_compliance/js/ird_register.js?v=ird-prior-fy-5",
     "/assets/nepal_compliance/js/icon_patch.js",
     "/assets/nepal_compliance/js/employee_benefit_claim.js"]
