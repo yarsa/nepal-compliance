@@ -2,19 +2,75 @@
 # For license information, please see LICENSE at the root of this repository
 
 import frappe
-from frappe.utils import flt
 from frappe import _
-from nepal_compliance.utils import distribute_item_vat, get_vat_breakup, is_exempt_report_item, item_taxable_amount, resolve_report_vat_source
+from frappe.utils import flt
+
+from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
+from nepal_compliance.ird_filters import (
+    apply_ird_posting_date_filters,
+    invoice_link_fields,
+)
+from nepal_compliance.utils import (
+    distribute_item_vat,
+    get_vat_breakup,
+    invoice_ird_total,
+    is_exempt_report_item,
+    item_taxable_amount,
+    resolve_report_vat_source,
+)
+
+
+def get_sales_register_summary(rows):
+    """Build colored summary cards for the Sales Register."""
+    rows = rows or []
+    total = len(rows)
+    tax_exempt = sum(1 for r in rows if flt(r.get("tax_exempt")) > 0)
+    taxable = sum(1 for r in rows if flt(r.get("taxable_amount")) > 0)
+    export = sum(
+        1 for r in rows if flt(r.get("Value of Exported Goods or Services")) > 0
+    )
+
+    return [
+        {
+            "value": total,
+            "label": _("Total Sales"),
+            "datatype": "Int",
+            "indicator": "Blue",
+        },
+        {
+            "value": tax_exempt,
+            "label": _("कर छुटको बिक्री"),
+            "datatype": "Int",
+            "indicator": "Grey",
+        },
+        {
+            "value": taxable,
+            "label": _("करयोग्य बिक्री"),
+            "datatype": "Int",
+            "indicator": "Blue",
+        },
+        {
+            "value": export,
+            "label": _("निकासी"),
+            "datatype": "Int",
+            "indicator": "Orange",
+        },
+    ]
+
 
 def execute(filters=None):
+    """Run the IRD Sales Register and return columns, rows, and summary."""
     columns = get_columns()
     data = get_data(filters)
-    return columns, data
+    summary = get_sales_register_summary(data)
+    return columns, data, None, None, summary
+
 
 def get_columns():
+    """Column definitions for the IRD Sales Register."""
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 150},
-        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 200},
+        {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
         {"label": _("खरिदकर्ताको नाम"), "fieldname": "customer_name", "fieldtype": "Data", "width": 160},
         {"label": _("खरिदकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
         {"label": _("जम्मा बिक्री / निकासी (रु)"), "fieldname": "total", "fieldtype": "Float", "width": 120},
@@ -27,7 +83,10 @@ def get_columns():
         {"label": _("निकासी प्रज्ञापनपत्र मिति"), "fieldname": "Export Declaration Date", "fieldtype": "Data", "width": 140},
     ]
 
+
 def get_data(filters):
+    """Build sales register rows from submitted invoices in the filter range."""
+    filters = filters or {}
     conditions = ["si.docstatus = 1 and si.is_return = 0"]
     values = {}
 
@@ -43,25 +102,21 @@ def get_data(filters):
         conditions.append("si.name = %(document_number)s")
         values["document_number"] = filters.get("document_number")
 
-    if filters.get("from_nepali_date") and filters.get("to_nepali_date"):
-        conditions.append("si.posting_date BETWEEN %(from)s AND %(to)s")
-        values["from"] = filters.get("from_nepali_date")
-        values["to"] = filters.get("to_nepali_date")
-    elif filters.get("from_nepali_date"):
-        conditions.append("si.posting_date >= %(from)s")
-        values["from"] = filters.get("from_nepali_date")
-    elif filters.get("to_nepali_date"):
-        conditions.append("si.posting_date <= %(to)s")
-        values["to"] = filters.get("to_nepali_date")
+    apply_ird_posting_date_filters(filters, conditions, values, "si.posting_date")
 
     conditions_sql = " AND ".join(conditions)
 
     query = """
         SELECT
             si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer, si.company,
-            si.total, si.net_total, si.grand_total, si.customs_declaration_number, si.customs_declaration_date_bs,
-            si.taxable_amount as stored_taxable_amount, si.item_vat_detail as stored_item_vat_detail
+            si.total, si.net_total, si.grand_total, si.summary_grand_total, si.customs_declaration_number, si.customs_declaration_date_bs,
+            si.taxable_amount as stored_taxable_amount, si.item_vat_detail as stored_item_vat_detail,
+            si.ird_party_country as stored_party_country,
+            billing_address.country as address_country,
+            c.tax_id as customer_tax_id
         FROM `tabSales Invoice` si
+        LEFT JOIN `tabCustomer` c ON si.customer = c.name
+        LEFT JOIN `tabAddress` billing_address ON billing_address.name = si.customer_address
         WHERE {conditions}
         ORDER BY si.posting_date
     """
@@ -74,11 +129,11 @@ def get_data(filters):
     vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
 
     for inv in invoices:
-        customer_country = frappe.db.get_value("Customer", inv.customer, "territory") or ""
-        is_export = customer_country.strip().lower() not in ("", "nepal")
+        customer_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
+        is_export = is_foreign_country(customer_country)
 
-        pan = inv.invoice_pan or frappe.db.get_value("Customer", inv.customer, "tax_id")
-        
+        pan = inv.invoice_pan or inv.customer_tax_id
+
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
         tax_domestic_nc = 0.0
 
@@ -114,9 +169,10 @@ def get_data(filters):
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.invoice,
+            **invoice_link_fields("Sales Invoice", inv.invoice),
             "customer_name": inv.customer_name,
             "pan": pan,
-            "total": inv.rounded_total or inv.grand_total,
+            "total": invoice_ird_total(inv),
             "tax_exempt": tax_exempt,
             "taxable_amount": taxable_domestic_nc,
             "tax_amount": tax_domestic_nc,
