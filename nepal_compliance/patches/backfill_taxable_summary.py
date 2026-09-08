@@ -16,9 +16,20 @@ def execute():
     created after the summary fields existed but before item_vat_detail was
     introduced are backfilled too.
     """
+    from nepal_compliance.custom_field import create_custom_fields
     from nepal_compliance.utils import set_taxable_amounts
 
+    create_custom_fields(quiet=True)
+    frappe.db.commit()
+    frappe.clear_cache()
+
     for doctype in ("Sales Invoice", "Purchase Invoice"):
+        if not frappe.db.has_column(doctype, "item_vat_detail"):
+            frappe.throw(
+                _("Custom field item_vat_detail is missing on {0}. Re-run migrate after custom fields have synced.").format(
+                    doctype
+                )
+            )
         names = frappe.get_all(
             doctype,
             filters={"docstatus": 1, "item_vat_detail": ["is", "not set"]},

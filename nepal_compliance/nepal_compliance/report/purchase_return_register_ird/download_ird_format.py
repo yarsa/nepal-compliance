@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 from nepal_compliance.nepali_date_utils.utils import bs_date
 
 def convert_to_nepali_fy_format(year_start_date, year_end_date):
+    """Format an AD fiscal-year range using its approximate BS year labels."""
     try:
         start_year = year_start_date.year
         end_year = year_end_date.year
@@ -24,6 +25,7 @@ def convert_to_nepali_fy_format(year_start_date, year_end_date):
 
 @frappe.whitelist()
 def generate_ird_purchase_register_excel():
+    """Generate the filtered IRD Purchase Return Register as an XLSX download."""
     from nepal_compliance.nepal_compliance.report.purchase_return_register_ird.purchase_return_register_ird import get_data
 
     filters = frappe._dict(json.loads(frappe.form_dict.get("filters") or "{}"))
@@ -39,7 +41,7 @@ def generate_ird_purchase_register_excel():
     # address = frappe.db.get_value("Address", {"is_your_company_address": 1}, "address_line1") or ""
     pan = company_info.tax_id or "N/A"
 
-    invoice_name = frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
+    invoice_name = rows[0].get("invoice_name") or frappe.db.get_value("Purchase Invoice", {"bill_no": rows[0].get("invoice")}, "name") or rows[0].get("invoice")
     try:
         invoice_doc = frappe.get_doc("Purchase Invoice", invoice_name)
         posting_date = invoice_doc.posting_date
@@ -73,6 +75,7 @@ def generate_ird_purchase_register_excel():
     border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
     def format_cell(cell):
+        """Apply the shared heading style to one worksheet cell."""
         cell.alignment = center
         cell.font = bold_center
         cell.border = border

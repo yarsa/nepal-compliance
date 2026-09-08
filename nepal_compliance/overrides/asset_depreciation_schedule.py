@@ -1,13 +1,21 @@
-from frappe.utils import add_days, cint, flt, getdate
-
 from erpnext.assets.doctype.asset_depreciation_schedule.asset_depreciation_schedule import (
     AssetDepreciationSchedule,
     _get_pro_rata_amt,
+)
+from frappe.utils import (
+    add_days,
+    add_months,
+    cint,
+    flt,
+    get_last_day,
+    getdate,
+    is_last_day_of_the_month,
 )
 
 from nepal_compliance.nepali_date_utils.bs_periods import (
     advance,
     end_of,
+    is_fiscal_period_month,
     next_fiscal_period_end,
 )
 from nepal_compliance.nepali_date_utils.nepali_date import ad_to_bs
@@ -32,7 +40,7 @@ def is_bs_fiscal_period_end(ad_date, frequency):
     d = getdate(ad_date)
     bs = ad_to_bs(d)
     y, m = bs["year"], bs["month"]
-    if (m - 3) % freq != 0:
+    if not is_fiscal_period_month(y, m, freq):
         return False
     return d == end_of(y, m)
 
@@ -62,6 +70,41 @@ def resolve_bs_snap_anchor(posted, pending, available_for_use_date, frequency, o
     if available_for_use_date:
         return available_for_use_date, 0
     return pending[0].schedule_date, 0
+
+
+def life_end_date(available_for_use_date, total_number_of_depreciations, frequency):
+    """Available-for-use anniversary after useful life, matching ERPNext's last stub."""
+    afu = getdate(available_for_use_date)
+    end = add_months(afu, cint(total_number_of_depreciations) * max(cint(frequency), 1))
+    if is_last_day_of_the_month(afu):
+        end = get_last_day(end)
+    return getdate(end)
+
+
+def is_end_of_life_pro_rata_stub(
+    schedule_date, available_for_use_date, total_number_of_depreciations, frequency
+):
+    """True when schedule_date is ERPNext's extra last row (AFU + useful life)."""
+    if not schedule_date or not available_for_use_date:
+        return False
+    if cint(total_number_of_depreciations) <= 0:
+        return False
+    return getdate(schedule_date) == life_end_date(
+        available_for_use_date, total_number_of_depreciations, frequency
+    )
+
+
+def _finance_book_total_depreciations(schedule_doc, asset_doc=None):
+    """total_number_of_depreciations from the schedule, else the asset finance book."""
+    total = cint(schedule_doc.get("total_number_of_depreciations"))
+    if total:
+        return total
+    if not asset_doc:
+        return 0
+    books = asset_doc.get("finance_books") or []
+    if books:
+        return cint(books[0].get("total_number_of_depreciations"))
+    return cint(asset_doc.get("total_number_of_depreciations"))
 
 
 class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
@@ -138,6 +181,8 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         posted rows, the series starts at the next fiscal period end on or after
         available_for_use, unless opening booked depreciations require skipping
         those periods first. Later rows advance by frequency_of_depreciation months.
+        The extra ERPNext end-of-life stub (available-for-use + useful life) is
+        left on that anniversary instead of being moved to a period end.
         Rows never move past date_of_disposal: ERPNext places the terminal row at
         the disposal date, and snapping must not push it beyond it.
         """
@@ -155,6 +200,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             (asset_doc or {}).get("opening_number_of_booked_depreciations")
         )
         available = asset_doc.get("available_for_use_date") if asset_doc else None
+        total_depreciations = _finance_book_total_depreciations(self, asset_doc)
 
         anchor, skip = resolve_bs_snap_anchor(
             posted, pending, available, freq, opening_booked=opening
@@ -164,7 +210,19 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         y, m = advance(bs["year"], bs["month"], skip)
         y, m = next_fiscal_period_end(y, m, freq)
 
-        for schedule_row in pending:
+        for idx, schedule_row in enumerate(pending):
+            is_last = idx == len(pending) - 1
+            if (
+                is_last
+                and not date_of_disposal
+                and is_end_of_life_pro_rata_stub(
+                    schedule_row.schedule_date,
+                    available,
+                    total_depreciations,
+                    freq,
+                )
+            ):
+                continue
             schedule_row.schedule_date = end_of(y, m)
             y, m = advance(y, m, freq)
 
