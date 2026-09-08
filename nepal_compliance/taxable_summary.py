@@ -185,10 +185,10 @@ def _run_apply(from_date, to_date):
         updated += 1
         batch_count += 1
         if batch_count >= BATCH_SIZE:
-            frappe.db.commit()  # nosemgrep: checkpoint after BATCH_SIZE writes
+            frappe.db.commit()  # nosemgrep
             batch_count = 0
     if batch_count:
-        frappe.db.commit()  # nosemgrep: final checkpoint for the last partial batch
+        frappe.db.commit()  # nosemgrep
 
     return updated
 
