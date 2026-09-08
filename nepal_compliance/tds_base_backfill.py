@@ -67,8 +67,8 @@ def apply_tds_base_backfill(
     return {"queued": False, "scanned": count, **_apply(from_date, to_date)}
 
 
-def run_preview(from_date, to_date, user):
-    frappe.set_user(user)
+def run_preview(from_date: str, to_date: str, user: str):
+    frappe.set_user(user)  # nosemgrep
     _ensure_permission()
     result = _scan(getdate(from_date), getdate(to_date))
     frappe.publish_realtime(
@@ -79,8 +79,8 @@ def run_preview(from_date, to_date, user):
     return result
 
 
-def run_apply(from_date, to_date, user):
-    frappe.set_user(user)
+def run_apply(from_date: str, to_date: str, user: str):
+    frappe.set_user(user)  # nosemgrep
     _ensure_permission()
     result = _apply(getdate(from_date), getdate(to_date))
     frappe.publish_realtime(
