@@ -21,6 +21,7 @@
   "vat_accounts_section",
   "vat_accounts",
   "purchase_tab",
+  "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
   "enable_duplicate_bill_no_check"
  ],
@@ -117,6 +118,13 @@
    "fieldname": "purchase_tab",
    "fieldtype": "Tab Break",
    "label": "Purchase"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, a Purchase Invoice cannot be submitted without the supplier's invoice date.",
+   "fieldname": "require_supplier_bill_date",
+   "fieldtype": "Check",
+   "label": "Make Supplier Invoice Date Mandatory"
   },
   {
    "default": "0",

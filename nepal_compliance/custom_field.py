@@ -1,13 +1,25 @@
 import frappe
-from dataclasses import fields
 from frappe import _
+from frappe.utils import cint
 
 
-def create_custom_fields():
+def create_custom_fields(quiet=False):
+    """Create Nepal Compliance custom fields on standard doctypes (idempotent)."""
     custom_fields = {
         "Company": [
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
             {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list", "allow_on_submit": 1}
+        ],
+        "Tax Withholding Category": [
+            {
+                "fieldname": "calculate_tds_on_taxable_amount",
+                "label": "Calculate TDS on Taxable Amount",
+                "fieldtype": "Check",
+                "insert_after": "round_off_tax_amount",
+                "default": "1",
+                "permlevel": 1,
+                "description": "If checked, Purchase Invoice TDS is calculated on Taxable Amount instead of item net total. Nepal default. Only Accounts Manager can change this.",
+            }
         ],
         "Item": [
             {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_stock_item"},
@@ -81,18 +93,26 @@ def create_custom_fields():
         ],  
         "Purchase Invoice":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "supplier_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "supplier", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "customer_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no"},
-            {"fieldname": "attach_purchase_invoice", "label": "Attach Purchase Invoice", "fieldtype": "Attach", "insert_after": "bill_date", "allow_on_submit": 1},
+            {
+                "fieldname": "is_pan_or_abbreviated_bill",
+                "label": "Is PAN/Abbreviated Bill",
+                "fieldtype": "Check",
+                "insert_after": "bill_date",
+                "description": "Enable this when the supplier issued a PAN or abbreviated bill on which input VAT must not be claimed. Example: an item of Rs 1,000 normally adds Rs 130 VAT; when checked, VAT is Rs 0. If TDS is enabled, it is calculated on the Bill Total.",
+            },
+            {"fieldname": "attach_purchase_invoice", "label": "Attach Purchase Invoice", "fieldtype": "Attach", "insert_after": "is_pan_or_abbreviated_bill", "allow_on_submit": 1},
             {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
             {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "non_taxable_amount", "label": "Non-Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "summary_grand_total", "label": "Grand Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1}
         ],
         "Sales Order":[
@@ -100,6 +120,7 @@ def create_custom_fields():
         ],
         "Sales Invoice": [
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "customer_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "supplier_vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "supplier_vat_number", "hidden": 1, "allow_on_submit": 1},
@@ -114,7 +135,7 @@ def create_custom_fields():
             {"fieldname": "non_taxable_amount", "label": "Non-Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "summary_grand_total", "label": "Grand Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1}
         ],
         "Delivery Note":[
@@ -328,7 +349,10 @@ def create_custom_fields():
 
     for doctype_name, fields in custom_fields.items():
         for field in fields:
-            if not frappe.db.exists("Custom Field", {"dt": doctype_name, "fieldname": field["fieldname"]}):
+            existing_name = frappe.db.exists(
+                "Custom Field", {"dt": doctype_name, "fieldname": field["fieldname"]}
+            )
+            if not existing_name:
                 custom_field = frappe.get_doc({
                     "doctype": "Custom Field",
                     "dt": doctype_name,
@@ -336,11 +360,29 @@ def create_custom_fields():
                     **field
                 })
                 custom_field.save()
-                frappe.msgprint(_(f"Custom field '{field.get('label') or field['fieldname']}' added successfully to {doctype_name}!"))
+                if not quiet:
+                    frappe.msgprint(
+                        _("Custom field '{0}' added successfully to {1}!").format(
+                            field.get("label") or field["fieldname"], doctype_name
+                        )
+                    )
                 created_fields.append({"dt": doctype_name, "fieldname": field["fieldname"]})
             else:
-                frappe.msgprint(_(f"Field '{field.get('label') or field['fieldname']}' already exists in {doctype_name}."))
+                updates = {}
+                new_label = field.get("label")
+                if new_label and frappe.db.get_value("Custom Field", existing_name, "label") != new_label:
+                    updates["label"] = new_label
+                if "permlevel" in field:
+                    current = cint(frappe.db.get_value("Custom Field", existing_name, "permlevel"))
+                    if current != cint(field["permlevel"]):
+                        updates["permlevel"] = cint(field["permlevel"])
+                if updates:
+                    frappe.db.set_value("Custom Field", existing_name, updates)
+                elif not quiet:
+                    frappe.msgprint(
+                        _("Field '{0}' already exists in {1}.").format(
+                            field.get("label") or field["fieldname"], doctype_name
+                        )
+                    )
 
-    return created_fields  
-
-create_custom_fields()
+    return created_fields
