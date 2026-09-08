@@ -40,7 +40,13 @@
 
   const MONTH_START_INDEX = 0;
   const MONTH_END_INDEX = 11;
-  function NepaliCalendarView({ selectedDateAD, selectedDateBS, onSelect }) {
+  function NepaliCalendarView({
+    selectedDateAD,
+    selectedDateBS,
+    onSelect,
+    onMonthChange,
+    events,
+  }) {
     const today = React.useMemo(() => new nepaliDate.NepaliDate(), []);
     const selectedNepaliDate = React.useMemo(() => {
       if (selectedDateBS) return nepaliDate.NepaliDate.fromBS(selectedDateBS);
@@ -123,6 +129,23 @@
       () => calendar.getMonthAdYear(currentMonthIndex),
       [calendar, currentMonthIndex],
     );
+    React.useEffect(() => {
+      if (!onMonthChange || !monthData || !monthData.days) return;
+      const days = monthData.days.filter((day) => day && day.date);
+      if (!days.length) return;
+      onMonthChange({
+        from_date: days[0].date.format({
+          format: "YYYY-MM-DD",
+          calendar: "AD",
+        }),
+        to_date: days[days.length - 1].date.format({
+          format: "YYYY-MM-DD",
+          calendar: "AD",
+        }),
+        year: currentYear,
+        monthIndex: currentMonthIndex,
+      });
+    }, [monthData, currentYear, currentMonthIndex, onMonthChange]);
     return /*#__PURE__*/ React.createElement(
       "div",
       {
@@ -166,6 +189,7 @@
           onSelectDate: handleDateSelect,
           nextDisabled: !canGoNext,
           prevDisabled: !canGoPrev,
+          events: events,
         }),
     );
   }
@@ -281,6 +305,7 @@
     today,
     selectedADString,
     onClickToday,
+    events,
   }) {
     return /*#__PURE__*/ React.createElement(
       "div",
@@ -465,6 +490,37 @@
                   format: "YYYY-MM-DD",
                   calendar: "AD",
                 });
+              const adDate = day.date.toAD();
+              const adKey = [
+                adDate.getUTCFullYear(),
+                String(adDate.getUTCMonth() + 1).padStart(2, "0"),
+                String(adDate.getUTCDate()).padStart(2, "0"),
+              ].join("-");
+              const rawEvent = events && events[adKey];
+              const eventStatus =
+                typeof rawEvent === "string"
+                  ? rawEvent
+                  : rawEvent && typeof rawEvent === "object"
+                    ? rawEvent.status || null
+                    : null;
+              const leaveStatus =
+                rawEvent && typeof rawEvent === "object"
+                  ? rawEvent.leave_app_status || null
+                  : null;
+              const markers = {
+                leave:
+                  eventStatus === "On Leave" ||
+                  eventStatus === "Leave Pending" ||
+                  !!(rawEvent && rawEvent.leave),
+                late: !!(rawEvent && rawEvent.late),
+                early: !!(rawEvent && rawEvent.early),
+                ooo: !!(rawEvent && rawEvent.ooo_required),
+              };
+              const statusClass = eventStatus
+                ? `status-${String(eventStatus).toLowerCase().replace(/ /g, "-")}`
+                : "";
+              const hasMarkers =
+                markers.leave || markers.late || markers.early || markers.ooo;
               return /*#__PURE__*/ React.createElement(
                 "button",
                 {
@@ -479,12 +535,16 @@
                     (dayIndex + 1) % 7 === 0 && "holiday",
                     isToday && "today",
                     isSelected && "selected",
+                    statusClass,
+                    hasMarkers && "has-markers",
                   ),
+                  "data-ad": adKey,
+                  "data-status": eventStatus || "",
                   role: "gridcell",
                   "aria-label": `Nepali date ${day.date.format({
                     format: "YYYY-MM-DD",
                     calendar: "BS",
-                  })}`,
+                  })}${eventStatus ? `, ${eventStatus}` : ""}`,
                   "aria-current": isToday ? "date" : undefined,
                   "aria-selected": isSelected,
                 },
@@ -502,6 +562,39 @@
                   },
                   day.ad,
                 ),
+                hasMarkers &&
+                  /*#__PURE__*/ React.createElement(
+                    "span",
+                    {
+                      className: "day-markers",
+                      "aria-hidden": "true",
+                    },
+                    markers.leave &&
+                      /*#__PURE__*/ React.createElement("i", {
+                        className: clsx(
+                          "marker",
+                          "leave",
+                          leaveStatus === "Pending" && "pending",
+                          leaveStatus === "Rejected" && "rejected",
+                        ),
+                        title: `Leave${leaveStatus ? ` ${leaveStatus.toLowerCase()}` : ""}`,
+                      }),
+                    markers.late &&
+                      /*#__PURE__*/ React.createElement("i", {
+                        className: "marker late",
+                        title: "Late",
+                      }),
+                    markers.early &&
+                      /*#__PURE__*/ React.createElement("i", {
+                        className: "marker early",
+                        title: "Early exit",
+                      }),
+                    markers.ooo &&
+                      /*#__PURE__*/ React.createElement("i", {
+                        className: "marker ooo",
+                        title: "Out of office form required",
+                      }),
+                  ),
               );
             }),
           ),
