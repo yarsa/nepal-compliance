@@ -107,6 +107,9 @@ def get_bs_eligible_leave_types():
 @frappe.whitelist()
 def allocate_monthly_leave_bs(bs_year: int, bs_month: int, leave_types: Optional[Union[str, List[str]]] = None, force: bool = False, silent: bool = False) -> dict:
 
+    if not frappe.has_permission("Leave Allocation", "write"):
+        frappe.throw(_("You are not permitted to allocate leave."), frappe.PermissionError)
+
     if isinstance(leave_types, str):
         import json
         leave_types = json.loads(leave_types)
