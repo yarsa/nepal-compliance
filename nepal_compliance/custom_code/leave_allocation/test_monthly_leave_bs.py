@@ -109,6 +109,36 @@ class TestMonthlyLeaveBS(unittest.TestCase):
             result = allocate_monthly_leave_bs(2080, 2, leave_types=None, force=True, silent=True)
             self.assertEqual(result["status"], "skipped")
 
+    def test_denies_allocation_without_permission(self):
+        """Should refuse to allocate when the user lacks Leave Allocation write access."""
+
+        class DummyPermissionError(Exception):
+            pass
+
+        def throw(msg="", exc=Exception, **kwargs):
+            raise exc(msg)
+
+        permission_calls = []
+
+        def has_permission(doctype, perm):
+            permission_calls.append((doctype, perm))
+            return False
+
+        frappe_ns = SimpleNamespace(
+            has_permission=has_permission,
+            PermissionError=DummyPermissionError,
+            throw=throw,
+            utils=SimpleNamespace(cint=int),
+        )
+        with patch(
+            "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.frappe",
+            frappe_ns,
+        ):
+            with self.assertRaises(DummyPermissionError):
+                allocate_monthly_leave_bs(2080, 2, ["Casual Leave"], force=True, silent=True)
+
+        self.assertEqual(permission_calls, [("Leave Allocation", "write")])
+
     def test_handles_exceptions_and_returns_error(self):
         """Should catch exceptions and return error without raising."""
         def raise_exception(*args, **kwargs):
