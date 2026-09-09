@@ -1,0 +1,134 @@
+{
+ "actions": [],
+ "autoname": "format:IRD-COUNTRY-.YYYY.-.#####",
+ "creation": "2026-08-30 08:40:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_section",
+  "invoice_type",
+  "invoice",
+  "company",
+  "country_section",
+  "current_country",
+  "new_country",
+  "reason",
+  "audit_section",
+  "corrected_by",
+  "corrected_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Submitted Invoice"
+  },
+  {
+   "fieldname": "invoice_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Invoice Type",
+   "options": "\nSales Invoice\nPurchase Invoice",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Invoice",
+   "options": "invoice_type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "country_section",
+   "fieldtype": "Section Break",
+   "label": "Country Correction"
+  },
+  {
+   "fieldname": "current_country",
+   "fieldtype": "Link",
+   "label": "Current Country",
+   "options": "Country",
+   "read_only": 1
+  },
+  {
+   "description": "This value controls domestic/import/export classification in IRD registers.",
+   "fieldname": "new_country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "New Country",
+   "options": "Country",
+   "reqd": 1
+  },
+  {
+   "description": "Explain why the submitted invoice country requires correction. This is included in the invoice audit comment.",
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1
+  },
+  {
+   "fieldname": "audit_section",
+   "fieldtype": "Section Break",
+   "label": "Audit"
+  },
+  {
+   "fieldname": "corrected_by",
+   "fieldtype": "Link",
+   "label": "Corrected By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "corrected_on",
+   "fieldtype": "Datetime",
+   "label": "Corrected On",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-30 08:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "IRD Country Correction",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Sales Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Purchase Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "System Manager",
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "invoice,new_country",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "invoice",
+ "track_changes": 1
+}
