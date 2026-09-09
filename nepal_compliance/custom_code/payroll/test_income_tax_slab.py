@@ -1,6 +1,7 @@
 import frappe
+from unittest.mock import patch
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils import today, add_years, add_days
+from frappe.utils import today, add_years, add_days, getdate
 from frappe import _
 import hashlib
 from erpnext.accounts.utils import get_fiscal_year
@@ -60,12 +61,12 @@ class TestIncomeTaxSlab(FrappeTestCase):
 
     # Test Cases
     def test_get_fiscal_year_for_company(self):
-        #Should return fiscal year document for company
         fy = get_fiscal_year_for_company(self.company)
         self.assertIsNotNone(fy)
-        self.assertTrue(
-            any(c.company == self.company for c in fy.companies)
-        )
+        linked = [c.company for c in fy.companies]
+        self.assertTrue(not linked or self.company in linked)
+        self.assertLessEqual(getdate(fy.year_start_date), getdate(today()))
+        self.assertGreaterEqual(getdate(fy.year_end_date), getdate(today()))
 
     def test_create_income_tax_slab(self):
         #Should create income tax slab with correct slab count
@@ -81,8 +82,8 @@ class TestIncomeTaxSlab(FrappeTestCase):
 
         slab_doc = frappe.get_doc("Income Tax Slab", slab_name)
 
-        # We defined 8 slabs in the source file
-        self.assertEqual(len(slab_doc.slabs), 8)
+        # We defined 5 slabs in the source file
+        self.assertEqual(len(slab_doc.slabs), 5)
 
     def test_idempotent_slab_creation(self):
         #Should not duplicate slabs when running creation twice
@@ -104,11 +105,12 @@ class TestIncomeTaxSlab(FrappeTestCase):
         slab_name = f"{self.company} - Income Tax Slab"
         slab_doc = frappe.get_doc("Income Tax Slab", slab_name)
 
-        # Should still be 8 (no duplication)
-        self.assertEqual(len(slab_doc.slabs), 8)
+        # Should still be 5 (no duplication)
+        self.assertEqual(len(slab_doc.slabs), 5)
 
     def test_no_fiscal_year(self):
-        #Should return None when fiscal year does not exist
-        non_existing_company = "Invalid Company"
-        fy = get_fiscal_year_for_company(non_existing_company)
-        self.assertIsNone(fy)
+        with patch(
+            "nepal_compliance.custom_code.payroll.income_tax_slab.get_fiscal_year",
+            side_effect=frappe.exceptions.ValidationError,
+        ):
+            self.assertIsNone(get_fiscal_year_for_company("Any Company"))

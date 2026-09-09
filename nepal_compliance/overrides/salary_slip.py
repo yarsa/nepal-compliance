@@ -43,6 +43,7 @@ class CustomPayrollEntry(PayrollEntry):
                 payroll_entry=self,
                 salary_slips=salary_slips,
                 publish_progress=False,
+                enqueue_after_commit=True,
                 )
             frappe.msgprint(
                 _("Salary Slip submission is queued. It may take a few minutes"),
@@ -177,3 +178,9 @@ class CustomPayrollEntry(PayrollEntry):
             frappe.msgprint(_("Total Net Pay is zero; Bank Entry will not be created."))
 
         return bank_entry
+
+
+def submit_salary_slips_for_employees(payroll_entry, salary_slips, publish_progress=False):
+    payroll_entry.submit_salary_slips_for_employees(
+        salary_slips, publish_progress=publish_progress
+    )

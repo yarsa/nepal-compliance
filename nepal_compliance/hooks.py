@@ -158,14 +158,14 @@ before_uninstall = "nepal_compliance.uninstall.cleanup_salary_structures"
 # DocType Class
 # ---------------
 # Override standard doctype classes
-override_doctype_class = {
+# `extend_doctype_class` does not exist in v15. `override_doctype_class` is only available mechanism
+override_doctype_class = {  # nosemgrep: frappe-semgrep-rules.rules.override-doctype-class
     "Sales Invoice": "nepal_compliance.overrides.custom_sales_invoice.CustomSalesInvoice",
     "Salary Structure": "nepal_compliance.overrides.salary_structure.CustomSalaryStructure",
     "Employee Benefit Claim": "nepal_compliance.overrides.employee_benefit_claim.CustomEmployeeBenefitClaim",
     "Salary Slip": "nepal_compliance.overrides.salary_slip.CustomSalarySlip",
     "Payroll Entry": "nepal_compliance.overrides.salary_slip.CustomPayrollEntry",
     "Leave Policy Assignment": "nepal_compliance.custom_code.leave_allocation.monthly_leave_bs.LeavePolicyAssignment",
-    "Item": "nepal_compliance.overrides.item.CustomItem"
 }
 
 # Document Events
@@ -205,7 +205,7 @@ scheduler_events = {
 # Testing
 # -------
 
-# before_tests = "nepal_compliance.install.before_tests"
+before_tests = "nepal_compliance.install.before_tests"
 
 # Overriding Methods
 # ------------------------------

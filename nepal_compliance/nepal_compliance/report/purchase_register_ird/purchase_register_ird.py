@@ -14,6 +14,7 @@ def get_columns():
     return [
         {"label": _("मिति"), "fieldname": "posting_date", "fieldtype": "Date", "width": 120},
         {"label": _("बीजक नं."), "fieldname": "invoice", "fieldtype": "Data", "width": 200},
+        {"label": _("बीजक मिति"), "fieldname": "bill_date", "fieldtype": "Date", "width": 120},
         {"label": _("प्रज्ञापनपत्र नं."), "fieldname": "customs_declaration_number", "fieldtype": "Data", "width": 130},
         {"label": _("आपूर्तिकर्ताको नाम"), "fieldname": "supplier_name", "fieldtype": "Data", "width": 160},
         {"label": _("आपूर्तिकर्ताको स्थायी लेखा नम्बर"), "fieldname": "pan", "fieldtype": "Data", "width": 120},
@@ -58,7 +59,7 @@ def get_data(filters):
 
     query = """
         SELECT
-            pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.posting_date,
+            pi.name as invoice, pi.bill_no, pi.bill_date, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.posting_date,
             pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax, pi.supplier,
             s.country as supplier_country, s.tax_id as supplier_tax_id
         FROM `tabPurchase Invoice` pi
@@ -131,6 +132,7 @@ def get_data(filters):
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
+            "bill_date": inv.bill_date,
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
             "supplier_name": inv.supplier_name,
             "pan": pan,
