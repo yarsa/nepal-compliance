@@ -502,3 +502,71 @@ def distribute_item_vat(items, item_vat_map):
             allocated += share
 
     return row_vat
+
+def resolve_report_vat_source(inv, vat_breakup):
+    """
+    Decide the per-item VAT source for an invoice row in IRD reports.
+
+    Returns (item_vat_map, stored, breakup). When the invoice has frozen taxable
+    summary values (stored_taxable_amount is not None), the stored
+    item_vat_detail JSON is the source and the result is immune to later VAT
+    account changes. Otherwise fall back to the live account-based breakup from
+    get_vat_breakup (legacy invoices and unconfigured companies).
+    """
+    breakup = vat_breakup.get(inv.get("invoice"), {}) or {}
+    live_map = breakup.get("item_vat") if isinstance(breakup.get("item_vat"), dict) else {}
+
+    if inv.get("stored_taxable_amount") is not None:
+        item_vat_map = parse_stored_item_vat_map(inv.get("stored_item_vat_detail"))
+        if item_vat_map is not None:
+            return item_vat_map, True, breakup
+        # Invalid stored JSON must not become {} (that would look like exemption).
+        return live_map, False, breakup
+    return live_map, False, breakup
+
+def parse_stored_item_vat_map(raw):
+    """Return a dict VAT map, or None when stored detail is missing or the wrong shape."""
+    if raw is None or raw == "":
+        return None
+    parsed = raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except (TypeError, ValueError):
+            return None
+    if not isinstance(parsed, dict):
+        return None
+    return parsed
+
+def is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
+    """Exempt classification for an invoice item row in IRD reports.
+
+    With frozen (stored) values, mirror the rule that produced them at save
+    time so report rows always sum back to the stored invoice totals. With the
+    live fallback, defer to classify_item_taxability.
+    """
+    if stored:
+        return bool(item.get("is_nontaxable_item")) or not flt(item_vat)
+    breakup = breakup or {}
+    return classify_item_taxability(
+        item, item_vat, item_vat_map, breakup.get("total_vat"), breakup.get("configured")
+    ) == "exempt"
+
+def classify_item_taxability(item, item_vat, item_vat_map, invoice_total_vat, vat_configured):
+    """
+    Classify an invoice item row as "exempt" or "taxable" for IRD reports.
+
+    Exemption is deliberate: the item is flagged is_nontaxable_item, or the VAT
+    breakdown explicitly records 0 VAT for it. When the invoice carries VAT but
+    the item is missing from the breakdown (or no VAT account is configured, so
+    no breakdown could be built), the data is unavailable - report the row as
+    taxable with 0 VAT instead of inventing an exemption.
+    """
+    if item.get("is_nontaxable_item"):
+        return "exempt"
+    key = item.get("item_code") or item.get("item_name")
+    if key in item_vat_map:
+        return "taxable" if flt(item_vat) else "exempt"
+    if flt(invoice_total_vat) or not vat_configured:
+        return "taxable"
+    return "exempt"
