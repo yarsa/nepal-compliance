@@ -425,17 +425,25 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
     the tax rows whose account head matches the VAT account configured for the
     invoice's company in Nepal Compliance Settings.
 
-    Returns {invoice_name: {"item_vat": {item_code: amount}, "total_vat": float}}.
+    Returns {invoice_name: {"item_vat": {item_code: amount}, "total_vat": float,
+    "configured": bool}}.
     """
-    result = {name: {"item_vat": {}, "total_vat": 0.0} for name in invoice_company_map}
     if not invoice_company_map:
-        return result
+        return {}
 
     is_sales = invoice_doctype == "Sales Invoice"
     side = "sales" if is_sales else "purchase"
     taxes_doctype = "Sales Taxes and Charges" if is_sales else "Purchase Taxes and Charges"
 
     configured = get_configured_vat_accounts()
+    result = {
+        name: {
+            "item_vat": {},
+            "total_vat": 0.0,
+            "configured": bool(configured.get(company, {}).get(side)),
+        }
+        for name, company in invoice_company_map.items()
+    }
     missing = sorted({c for c in invoice_company_map.values() if c and not configured.get(c, {}).get(side)})
     if missing:
         frappe.msgprint(
@@ -490,7 +498,7 @@ def distribute_item_vat(items, item_vat_map):
 
     row_vat = [0.0] * len(items)
     for key, idxs in groups.items():
-        total_vat = flt(item_vat_map.get(key))
+        total_vat = parse_item_vat_entry(item_vat_map.get(key))[1]
         total_net = sum(flt(items[i].get("net_amount")) for i in idxs)
         allocated = 0.0
         for pos, i in enumerate(idxs):
@@ -739,6 +747,118 @@ def apply_side_specific_vat_template(doc, method):
         ],
     )
 
+def is_purchase_tds_row(tax, vat_account=None):
+    """True when a Purchase Invoice tax row is TDS (withholding or Deduct).
+
+    Nepal TDS rates are not fixed, so rows are identified by ERPNext's
+    withholding/deduct flags, never by rate. The configured VAT account is
+    never treated as TDS.
+    """
+    if vat_account and tax.account_head == vat_account:
+        return False
+    return bool(tax.get("is_tax_withholding_account")) or tax.get("add_deduct_tax") == "Deduct"
+
+def get_tds_amount(doc, vat_account=None):
+    """Sum Purchase Invoice TDS (signed, so returns stay negative)."""
+    if doc.doctype != "Purchase Invoice":
+        return 0.0
+    tds_amount = 0.0
+    for tax in doc.get("taxes") or []:
+        if is_purchase_tds_row(tax, vat_account):
+            tds_amount += tax_row_amount(tax)
+    return tds_amount
+
+def set_bill_total(doc, vat_account=None):
+    """Bill Total is grand_total, plus TDS on Purchase Invoice (TDS is deducted from grand_total)."""
+    doc.summary_grand_total = flt(doc.grand_total) + get_tds_amount(doc, vat_account)
+
+def invoice_ird_total(inv):
+    """IRD register total: Taxable Summary Bill Total, else rounded/grand total."""
+    if inv.get("summary_grand_total") is not None:
+        return flt(inv.summary_grand_total)
+    return flt(inv.rounded_total) or flt(inv.grand_total)
+
+def category_calculates_tds_on_taxable_amount(category_name):
+    """True when the Tax Withholding Category is set to use Purchase Invoice taxable amount."""
+    if not category_name:
+        return False
+    if not frappe.db.has_column("Tax Withholding Category", "calculate_tds_on_taxable_amount"):
+        return False
+    return bool(
+        frappe.db.get_value(
+            "Tax Withholding Category", category_name, "calculate_tds_on_taxable_amount"
+        )
+    )
+
+def get_purchase_tds_category(doc):
+    """Return the invoice or supplier Tax Withholding Category."""
+    return doc.get("tax_withholding_category") or frappe.db.get_value(
+        "Supplier", doc.get("supplier"), "tax_withholding_category"
+    )
+
+def get_purchase_taxable_tds_base(doc, throw_on_unavailable=True):
+    """Compute the transaction-currency taxable base or report it unavailable."""
+    accounts = get_configured_vat_accounts().get(doc.company, {})
+    vat_account = accounts.get("purchase")
+    if doc.get("is_pan_or_abbreviated_bill"):
+        set_taxable_amounts(doc, None)
+        return flt(doc.get("summary_grand_total")), None
+
+    reason = None
+    if not vat_account:
+        reason = _("Purchase VAT Account is not configured for company {0}.").format(
+            frappe.bold(doc.company)
+        )
+    elif not any(
+        tax.get("account_head") == vat_account for tax in doc.get("taxes") or []
+    ):
+        reason = _(
+            "No Purchase VAT row using {0} was found, so Taxable Amount cannot be verified."
+        ).format(frappe.bold(vat_account))
+
+    if reason:
+        if throw_on_unavailable:
+            frappe.throw(
+                _(
+                    "Nepal Compliance cannot calculate TDS on Taxable Amount. {0} "
+                    "Correct the VAT configuration or invoice taxes; net total will not be used as a fallback."
+                ).format(reason),
+                title=_("TDS Taxable Base Unavailable"),
+            )
+        return None, reason
+
+    set_taxable_amounts(doc, None)
+    if doc.get("taxable_amount") is None:
+        reason = _("The invoice Taxable Amount could not be calculated.")
+        if throw_on_unavailable:
+            frappe.throw(reason, title=_("TDS Taxable Base Unavailable"))
+        return None, reason
+    return flt(doc.taxable_amount), None
+
+def apply_taxable_amount_as_tds_base(doc):
+    """Point ERPNext withholding at taxable_amount when the category asks for it.
+
+    Must run after taxes have been calculated so VAT (and thus taxable amount)
+    is available, and before set_tax_withholding reads tax_withholding_net_total.
+    """
+    if doc.doctype != "Purchase Invoice" or not doc.get("apply_tds"):
+        return False
+    category = get_purchase_tds_category(doc)
+    if not category_calculates_tds_on_taxable_amount(category):
+        return False
+
+    taxable, _reason = get_purchase_taxable_tds_base(doc)
+    doc.tax_withholding_net_total = taxable
+    precision = (
+        doc.precision("base_tax_withholding_net_total")
+        if hasattr(doc, "precision")
+        else None
+    )
+    doc.base_tax_withholding_net_total = flt(
+        taxable * flt(doc.get("conversion_rate") or 1), precision
+    )
+    return True
+
 def resolve_report_vat_source(inv, vat_breakup):
     """
     Decide the per-item VAT source for an invoice row in IRD reports.
@@ -803,6 +923,4 @@ def classify_item_taxability(item, item_vat, item_vat_map, invoice_total_vat, va
     key = item.get("item_code") or item.get("item_name")
     if key in item_vat_map:
         return "taxable" if flt(item_vat) else "exempt"
-    if flt(invoice_total_vat) or not vat_configured:
-        return "taxable"
-    return "exempt"
+    return "taxable"
