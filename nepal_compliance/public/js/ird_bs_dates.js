@@ -278,3 +278,16 @@ nepal_compliance.format_ird_year_np = function (year) {
 };
 
 nepal_compliance.format_ird_month_label = function (value) {
+	if (!value) {
+		return "";
+	}
+	const parts = String(value).split("-").map(Number);
+	if (parts.length < 2 || !parts[0] || !parts[1]) {
+		return value;
+	}
+	const names =
+		(typeof NepaliDateLib !== "undefined" && NepaliDateLib.MONTH_NAMES_NE_BS) ||
+		nepal_compliance.IRD_BS_MONTHS_EN;
+	const np = names[parts[1] - 1] || value;
+	return `${np} ${nepal_compliance.format_ird_year_np(parts[0])}`;
+};
