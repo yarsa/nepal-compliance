@@ -208,6 +208,7 @@ function show_preview_dialog(preview, values) {
 					<td class="text-right">${fmt(row.old_taxable_amount)} → ${fmt(row.new_taxable_amount)}</td>
 					<td class="text-right">${fmt(row.old_non_taxable_amount)} → ${fmt(row.new_non_taxable_amount)}</td>
 					<td class="text-right">${fmt(row.old_vat_amount)} → ${fmt(row.new_vat_amount)}</td>
+					<td class="text-right">${fmt(row.old_summary_grand_total)} → ${fmt(row.new_summary_grand_total)}</td>
 				</tr>`;
 			})
 			.join("");
@@ -222,6 +223,7 @@ function show_preview_dialog(preview, values) {
 						<th>${__("Taxable")}</th>
 						<th>${__("Non-Taxable")}</th>
 						<th>${__("VAT")}</th>
+						<th>${__("Bill Total")}</th>
 					</tr>
 				</thead>
 				<tbody>${rows}</tbody>
@@ -230,8 +232,8 @@ function show_preview_dialog(preview, values) {
 	}
 
 	const html = `
-		<p>${__("Taxable amount will become the VAT base (VAT ÷ rate). Invoices where VAT is charged on a previous-row total (excise, import duty) will increase. Invoices where VAT is charged on net total stay the same.")}</p>
-		<p>${__("Fields that may change: Taxable Amount, Non-Taxable Amount, VAT Amount, and the hidden item VAT detail. IRD Sales/Purchase (and return) registers will use the new taxable column for these invoices. A comment with the new figures is added on each changed invoice.")}</p>
+		<p>${__("Taxable amount will become the VAT base (VAT ÷ rate). Invoices where VAT is charged on a previous-row total (excise, import duty) will increase. Invoices where VAT is charged on net total stay the same. Purchase invoices with TDS update Bill Total to Grand Total plus TDS (the billed value before withholding).")}</p>
+		<p>${__("Fields that may change: Taxable Amount, Non-Taxable Amount, VAT Amount, Bill Total, and the hidden item VAT detail. IRD Sales/Purchase (and return) registers will use the new taxable column and Bill Total for these invoices. A comment with the new figures is added on each changed invoice.")}</p>
 		<ul>
 			${fy_line}
 			<li>${__("Posting date range")}: <b>${frappe.utils.escape_html(preview.from_date)}</b> – <b>${frappe.utils.escape_html(preview.to_date)}</b></li>

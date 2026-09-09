@@ -52,6 +52,21 @@ class TestPanBill(unittest.TestCase):
         self.assertEqual(base, 1000)
         self.assertIsNone(reason)
 
+    @patch("nepal_compliance.utils.frappe.get_all", return_value=["VAT Exempt (Sales) - ACME"])
+    @patch("nepal_compliance.utils.frappe.get_doc")
+    def test_exempt_template_accepts_side(self, get_doc, get_all):
+        get_doc.return_value = frappe._dict(
+            taxes=[frappe._dict(tax_type="VAT Payable", tax_rate=0)]
+        )
+
+        name = utils.get_or_create_vat_exempt_template("ACME", "VAT Payable", "sales")
+
+        self.assertEqual(name, "VAT Exempt (Sales) - ACME")
+        self.assertEqual(
+            get_all.call_args.kwargs["filters"]["title"],
+            "VAT Exempt (Sales)",
+        )
+
     @patch("nepal_compliance.default_tax_template.frappe.get_doc")
     @patch("nepal_compliance.default_tax_template.frappe.db.exists")
     def test_company_nepal_tax_becomes_purchase_default(self, exists, get_doc):

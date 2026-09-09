@@ -45,7 +45,15 @@ def _count_invoices(from_date, to_date):
 
 def _iter_invoice_rows(from_date, to_date):
     """Yield (doctype, row) for submitted invoices, in batches of BATCH_SIZE."""
-    fields = ["name", "company", "posting_date", "taxable_amount", "non_taxable_amount", "vat_amount"]
+    fields = [
+        "name",
+        "company",
+        "posting_date",
+        "taxable_amount",
+        "non_taxable_amount",
+        "vat_amount",
+        "summary_grand_total",
+    ]
     for doctype in DOCTYPE_ORDER:
         start = 0
         while True:
@@ -72,11 +80,12 @@ def _amt(value):
 
 
 def _figures_changed(old, new):
-    """True when taxable, non-taxable, or VAT amounts would change."""
+    """True when taxable, non-taxable, VAT, or Bill Total would change."""
     return (
         _amt(old.taxable_amount) != _amt(new.taxable_amount)
         or _amt(old.non_taxable_amount) != _amt(new.non_taxable_amount)
         or _amt(old.vat_amount) != _amt(new.vat_amount)
+        or _amt(old.summary_grand_total) != _amt(new.summary_grand_total)
     )
 
 
@@ -101,6 +110,8 @@ def _compute_refresh_row(doctype, row):
         "new_non_taxable_amount": _amt(doc.non_taxable_amount),
         "old_vat_amount": _amt(row.vat_amount),
         "new_vat_amount": _amt(doc.vat_amount),
+        "old_summary_grand_total": _amt(row.summary_grand_total),
+        "new_summary_grand_total": _amt(doc.summary_grand_total),
         "summary_grand_total": doc.summary_grand_total,
         "item_vat_detail": doc.item_vat_detail,
     }
@@ -125,7 +136,7 @@ def _scan_changes(from_date, to_date):
             by_doctype[doctype] += 1
             if len(changes) < PREVIEW_TABLE_LIMIT:
                 changes.append(
-                    {k: change[k] for k in change if k not in ("summary_grand_total", "item_vat_detail")}
+                    {k: change[k] for k in change if k != "item_vat_detail"}
                 )
 
     changed = sum(by_doctype.values())
@@ -164,11 +175,12 @@ def _apply_change(change):
         "Comment",
         _(
             "Nepal Compliance: taxable summary recomputed from VAT base "
-            "(VAT ÷ rate). Taxable: {0}, Non-Taxable: {1}, VAT: {2}"
+            "(VAT ÷ rate). Taxable: {0}, Non-Taxable: {1}, VAT: {2}, Bill Total: {3}"
         ).format(
             flt(change["new_taxable_amount"], 2),
             flt(change["new_non_taxable_amount"], 2),
             flt(change["new_vat_amount"], 2),
+            flt(change["new_summary_grand_total"], 2),
         ),
     )
 

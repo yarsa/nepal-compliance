@@ -249,12 +249,12 @@ def get_configured_vat_accounts():
             }
     return accounts
 
-VAT_EXEMPT_TEMPLATE_TITLE = "VAT Exempt"
-
-def get_or_create_vat_exempt_template(company, vat_account):
+def get_or_create_vat_exempt_template(company, vat_account, side):
+    """Return the side-specific 0% VAT-exempt template, creating it if needed."""
+    title = vat_exempt_template_title(side)
     existing = frappe.get_all(
         "Item Tax Template",
-        filters={"company": company, "title": VAT_EXEMPT_TEMPLATE_TITLE},
+        filters={"company": company, "title": title},
         pluck="name",
     )
     if existing:
@@ -270,7 +270,7 @@ def get_or_create_vat_exempt_template(company, vat_account):
 
     template = frappe.get_doc({
         "doctype": "Item Tax Template",
-        "title": VAT_EXEMPT_TEMPLATE_TITLE,
+        "title": title,
         "company": company,
         "taxes": [{"tax_type": vat_account, "tax_rate": 0}],
     }).insert(ignore_permissions=True)
@@ -298,7 +298,7 @@ def apply_vat_exemption_for_nontaxable_items(doc, method):
     if not any(tax.account_head == vat_account for tax in doc.get("taxes") or []):
         return
 
-    template_name = get_or_create_vat_exempt_template(doc.company, vat_account)
+    template_name = get_or_create_vat_exempt_template(doc.company, vat_account, side)
     for item in flagged:
         item.item_tax_template = template_name
         item.item_tax_rate = json.dumps({vat_account: 0})
@@ -415,9 +415,9 @@ def set_taxable_amounts(doc, method):
     doc.taxable_amount = taxable_amount
     doc.non_taxable_amount = non_taxable_amount
     doc.vat_amount = vat_amount
-    doc.summary_grand_total = (
-        flt(doc.grand_total) if doc.get("disable_rounded_total") else (flt(doc.rounded_total) or flt(doc.grand_total))
-    )
+    # Bill Total is grand_total plus TDS: ERPNext deducts TDS from grand_total,
+    # IRD wants the billed value (net + VAT) before withholding.
+    set_bill_total(doc, vat_account)
 
 def get_vat_breakup(invoice_doctype, invoice_company_map):
     """
@@ -512,9 +512,10 @@ def distribute_item_vat(items, item_vat_map):
     return row_vat
 
 VAT_TAXABLE_TEMPLATE_TITLE = "Nepal Tax"
+
 def vat_exempt_template_title(side):
     """Return the stable side-specific title for a VAT-exempt template."""
-    return f"VAT Exempt ({'Sales' if side == 'sales' else 'Purchase'})"
+    return f"{VAT_EXEMPT_TEMPLATE_TITLE} ({'Sales' if side == 'sales' else 'Purchase'})"
 
 
 def format_vat_rate(rate):
