@@ -140,6 +140,58 @@ def fiscal_year_ad_range(name: str) -> tuple:
 	return getdate(row.year_start_date), getdate(row.year_end_date)
 
 
+def _reference_date_for_fy(filters) -> object:
+	"""Pick an AD date that represents the active IRD filter period."""
+	filters = filters or {}
+	from_date = filters.get("from_nepali_date")
+	if from_date:
+		return getdate(from_date)
+	to_date = filters.get("to_nepali_date")
+	if to_date:
+		return getdate(to_date)
+	bs_month = filters.get("bs_month")
+	if bs_month:
+		start, _end = bs_month_to_ad_range(bs_month)
+		return start
+	start, _end = bs_month_to_ad_range(current_bs_month_key())
+	return start
+
+
+def resolve_ird_fiscal_year_start(filters) -> object:
+	"""Return the selected Fiscal Year's AD start date for IRD classification.
+
+	Prefers ``filters.fiscal_year`` when set; otherwise resolves the Fiscal Year
+	that covers the filter period's reference date (from/month/current BS month).
+	"""
+	filters = filters or {}
+	fiscal_year = filters.get("fiscal_year")
+	if fiscal_year:
+		start, _end = fiscal_year_ad_range(fiscal_year)
+		return start
+
+	ref = _reference_date_for_fy(filters)
+	fy_rows = frappe.db.get_all(
+		"Fiscal Year",
+		filters={
+			"year_start_date": ["<=", ref],
+			"year_end_date": [">=", ref],
+		},
+		fields=["year_start_date"],
+		order_by="year_start_date desc",
+		limit=1,
+	)
+	if not fy_rows:
+		frappe.throw(_("No Fiscal Year found covering date {0}.").format(ref))
+	return getdate(fy_rows[0].year_start_date)
+
+
+def is_prior_fy_bill(bill_date, fy_start) -> bool:
+	"""True when *bill_date* is set and falls before *fy_start*."""
+	if not bill_date or not fy_start:
+		return False
+	return getdate(bill_date) < getdate(fy_start)
+
+
 def apply_ird_posting_date_filters(filters, conditions, values, date_column: str) -> None:
 	"""Restrict *date_column* using from/to, then month, then fiscal year.
 
