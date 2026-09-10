@@ -236,6 +236,28 @@ def tax_row_amount(tax):
         else tax.tax_amount
     )
 
+PREVIOUS_ROW_VAT_CHARGE_TYPES = ("On Previous Row Total", "On Previous Row Amount")
+
+
+def vat_charged_on_added_taxes(doc, vat_account=None):
+    """True when VAT is calculated on a previous tax row (duty, excise, etc.).
+
+    Item-net × 13% is not the VAT base in that stack, so Taxable Summary
+    Refresh must not rewrite these invoices from the itemwise check.
+    """
+    if doc.doctype not in ("Sales Invoice", "Purchase Invoice"):
+        return False
+    if not vat_account:
+        side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
+        vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
+    if not vat_account:
+        return False
+    return any(
+        tax.account_head == vat_account
+        and tax.charge_type in PREVIOUS_ROW_VAT_CHARGE_TYPES
+        for tax in (doc.get("taxes") or [])
+    )
+
 VAT_EXEMPT_TEMPLATE_TITLE = "VAT Exempt"
 
 def get_configured_vat_accounts():
@@ -379,7 +401,13 @@ def validate_duplicate_bill_no(doc, method):
                 )
             )
 
-def set_taxable_amounts(doc, method):
+def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
+    """Set IRD taxable summary fields and return an optional VAT calculation check.
+
+    The normal document-event path keeps the historical item-wise VAT
+    classification. The settings recompute can instead classify items solely
+    from the item's Is Non-Taxable Item flag.
+    """
     side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
     vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
 
@@ -389,26 +417,39 @@ def set_taxable_amounts(doc, method):
         for tax in doc.get("taxes") or []:
             if tax.account_head != vat_account:
                 continue
-            vat_amount += flt(
-                tax.tax_amount_after_discount_amount
-                if tax.tax_amount_after_discount_amount is not None
-                else tax.tax_amount
-            )
-            detail = tax.item_wise_tax_detail
-            if isinstance(detail, str):
-                try:
-                    detail = json.loads(detail)
-                except (TypeError, ValueError):
-                    detail = {}
-            for item_key, rate_amount in (detail or {}).items():
-                if isinstance(rate_amount, (list, tuple)) and len(rate_amount) > 1:
-                    item_vat[item_key] = item_vat.get(item_key, 0.0) + flt(rate_amount[1])
+            vat_amount += tax_row_amount(tax)
+            add_item_wise_vat(item_vat, tax.item_wise_tax_detail)
+
+    items = list(doc.get("items") or [])
+    row_vat = distribute_item_vat(items, item_vat)
+    include_added_taxes = vat_charged_on_added_taxes(doc, vat_account)
 
     taxable_amount = non_taxable_amount = 0.0
-    for item in doc.get("items") or []:
+    force_all_non_taxable = bool(
+        doc.get("is_pan_or_abbreviated_bill")
+        or (
+            doc.doctype == "Purchase Invoice"
+            and (not doc.get("taxes") or not flt(vat_amount))
+        )
+    )
+    for item, item_row_vat in zip(items, row_vat, strict=True):
         amt = flt(item.get("net_amount"))
-        if item.get("is_nontaxable_item") or not flt(item_vat.get(item.get("item_code") or item.get("item_name"))):
+        if consider_is_non_taxable_item:
+            is_non_taxable = bool(
+                force_all_non_taxable or item.get("is_nontaxable_item")
+            )
+        else:
+            item_key = item.get("item_code") or item.get("item_name")
+            is_non_taxable = bool(
+                item.get("is_nontaxable_item")
+                or not flt(parse_item_vat_entry(item_vat.get(item_key))[1])
+            )
+        if is_non_taxable:
             non_taxable_amount += amt
+        elif include_added_taxes:
+            # VAT was charged on net + prior rows (duty/excise). Use VAT ÷ rate
+            # so expected VAT is 13% of that same base.
+            taxable_amount += item_taxable_amount(item, item_row_vat, item_vat)
         else:
             taxable_amount += amt
 
@@ -418,6 +459,20 @@ def set_taxable_amounts(doc, method):
     # Bill Total is grand_total plus TDS: ERPNext deducts TDS from grand_total,
     # IRD wants the billed value (net + VAT) before withholding.
     set_bill_total(doc, vat_account)
+
+    if not consider_is_non_taxable_item:
+        return None
+
+    expected_vat = flt(taxable_amount * 0.13, 2)
+    recorded_vat = flt(vat_amount, 2)
+    difference = flt(recorded_vat - expected_vat, 2)
+    return {
+        "expected_vat": expected_vat,
+        "recorded_vat": recorded_vat,
+        "vat_difference": difference,
+        "has_vat_mismatch": abs(difference) >= 0.01,
+        "vat_on_added_taxes": include_added_taxes,
+    }
 
 def get_vat_breakup(invoice_doctype, invoice_company_map):
     """
