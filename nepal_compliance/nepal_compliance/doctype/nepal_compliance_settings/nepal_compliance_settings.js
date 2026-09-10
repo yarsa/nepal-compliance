@@ -606,6 +606,15 @@ function open_tds_base_prompt() {
 		title: __("Audit TDS Bases"),
 		fields: [
 			{
+				fieldname: "tds_help_button",
+				fieldtype: "HTML",
+				options: `<div class="text-right">
+					<button type="button" class="btn btn-xs btn-default tds-base-help" title="${__(
+						"About Audit TDS Bases"
+					)}">?</button>
+				</div>`,
+			},
+			{
 				fieldname: "fiscal_year",
 				fieldtype: "Link",
 				options: "Fiscal Year",
@@ -651,6 +660,29 @@ function open_tds_base_prompt() {
 		},
 	});
 	dialog.show();
+	dialog.fields_dict.tds_help_button.$wrapper
+		.find(".tds-base-help")
+		.on("click", show_tds_base_help);
+}
+
+function show_tds_base_help() {
+	frappe.msgprint({
+		title: __("About Audit TDS Bases"),
+		message: `
+			<p>${__(
+				"Use this tool to check the transaction-currency and company-currency TDS base fields on submitted Purchase Invoices where TDS is enabled and the withholding category calculates TDS on the taxable amount."
+			)}</p>
+			<p><b>${__("Example")}</b></p>
+			<p>${__(
+				"An invoice has a taxable value of {0} and VAT of {1}. If its stored TDS base is incorrectly {2}, the audit suggests changing the TDS base to {0}.",
+				[fmt(1000), fmt(130), fmt(1130)]
+			)}</p>
+			<p>${__(
+				"Applying updates only the two TDS base fields and adds an audit comment. It does not recalculate historical TDS, change VAT rows, or alter General Ledger entries."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
 }
 
 function preview_tds_bases(values) {
