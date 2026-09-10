@@ -11,12 +11,15 @@ from nepal_compliance.ird_filters import (
     invoice_link_fields,
 )
 from nepal_compliance.utils import (
+    allocate_legacy_ird_tax,
     distribute_item_vat,
     get_vat_breakup,
     invoice_ird_total,
     is_exempt_report_item,
     item_taxable_amount,
+    legacy_ird_item_is_exempt,
     resolve_report_vat_source,
+    use_legacy_ird_report_calculation,
 )
 
 ITEM_QUERY_BATCH_SIZE = 500
@@ -52,6 +55,7 @@ def get_columns():
 def get_data(filters):
     """Build purchase return register rows from submitted returns in the filter range."""
     filters = filters or {}
+    legacy = use_legacy_ird_report_calculation()
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
 
@@ -73,7 +77,8 @@ def get_data(filters):
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.summary_grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
-            pi.total, pi.company, pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
+            pi.total, pi.total_taxes_and_charges as total_tax, pi.company,
+            pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
             pi.ird_party_country as stored_party_country,
             supplier_address.country as address_country,
             s.tax_id as supplier_tax_id
@@ -89,7 +94,11 @@ def get_data(filters):
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
-    vat_breakup = get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
+    vat_breakup = (
+        {}
+        if legacy
+        else get_vat_breakup("Purchase Invoice", {inv.invoice: inv.company for inv in invoices})
+    )
 
     invoice_names = [inv.invoice for inv in invoices]
     items_by_invoice = {}
@@ -108,6 +117,7 @@ def get_data(filters):
                 "uom",
                 "item_code",
                 "item_name",
+                "item_tax_template",
             ],
             limit_page_length=0,
         )
@@ -125,17 +135,26 @@ def get_data(filters):
 
         items = items_by_invoice.get(inv.invoice, [])
 
-        item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
-        row_vat = distribute_item_vat(items, item_vat_map)
+        item_vat_map, stored, breakup = (
+            ({}, False, {})
+            if legacy
+            else resolve_report_vat_source(inv, vat_breakup)
+        )
+        row_vat = [0.0] * len(items) if legacy else distribute_item_vat(items, item_vat_map)
 
         for item, item_vat in zip(items, row_vat, strict=True):
             net = flt(item.get("net_amount"))
 
-            if is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup):
+            is_exempt = (
+                legacy_ird_item_is_exempt(item, inv.total_tax)
+                if legacy
+                else is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
+            )
+            if is_exempt:
                 tax_exempt += net
                 continue
 
-            amt = item_taxable_amount(item, item_vat, item_vat_map)
+            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
             if item.get("asset_category"):
                 capital_taxable_amount += amt
                 tax_capital += item_vat
@@ -147,6 +166,12 @@ def get_data(filters):
                     taxable_domestic_nc += amt
                     tax_domestic_nc += item_vat
 
+        if legacy:
+            tax_domestic_nc, tax_import_nc, tax_capital = allocate_legacy_ird_tax(
+                (taxable_domestic_nc, taxable_import_nc, capital_taxable_amount),
+                inv.total_tax,
+            )
+
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
@@ -157,7 +182,11 @@ def get_data(filters):
             "reason": inv.reason or "",
 			"qty": abs(sum(item.qty for item in items if item.qty)) if items else 0.0, 
             "uom": item.uom if items else "",
-            "total": abs(invoice_ird_total(inv)),
+            "total": abs(
+                (flt(inv.rounded_total) or flt(inv.grand_total))
+                if legacy
+                else invoice_ird_total(inv)
+            ),
             "tax_exempt": abs(tax_exempt),
             "taxable_amount": abs(taxable_domestic_nc),
             "tax_amount": abs(tax_domestic_nc),

@@ -11,12 +11,15 @@ from nepal_compliance.ird_filters import (
     invoice_link_fields,
 )
 from nepal_compliance.utils import (
+    allocate_legacy_ird_tax,
     distribute_item_vat,
     get_vat_breakup,
     invoice_ird_total,
     is_exempt_report_item,
     item_taxable_amount,
+    legacy_ird_item_is_exempt,
     resolve_report_vat_source,
+    use_legacy_ird_report_calculation,
 )
 
 
@@ -87,6 +90,7 @@ def get_columns():
 def get_data(filters):
     """Build sales register rows from submitted invoices in the filter range."""
     filters = filters or {}
+    legacy = use_legacy_ird_report_calculation()
     conditions = ["si.docstatus = 1 and si.is_return = 0"]
     values = {}
 
@@ -109,7 +113,8 @@ def get_data(filters):
     query = """
         SELECT
             si.name as invoice, si.rounded_total, si.posting_date, si.customer_name, si.tax_id as invoice_pan, si.customer, si.company,
-            si.total, si.net_total, si.grand_total, si.summary_grand_total, si.customs_declaration_number, si.customs_declaration_date_bs,
+            si.total, si.net_total, si.grand_total, si.summary_grand_total, si.total_taxes_and_charges as total_tax,
+            si.customs_declaration_number, si.customs_declaration_date_bs,
             si.taxable_amount as stored_taxable_amount, si.item_vat_detail as stored_item_vat_detail,
             si.ird_party_country as stored_party_country,
             billing_address.country as address_country,
@@ -126,7 +131,11 @@ def get_data(filters):
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
-    vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
+    vat_breakup = (
+        {}
+        if legacy
+        else get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
+    )
 
     for inv in invoices:
         customer_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
@@ -140,23 +149,31 @@ def get_data(filters):
         item_filters = {"parent": inv.invoice}
 
         items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_name"])
+            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_name", "item_tax_template"])
 
         item_codes = [item["item_code"] for item in items]
         asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
 
-        item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
-        row_vat = distribute_item_vat(items, item_vat_map)
+        item_vat_map, stored, breakup = (
+            ({}, False, {})
+            if legacy
+            else resolve_report_vat_source(inv, vat_breakup)
+        )
+        row_vat = [0.0] * len(items) if legacy else distribute_item_vat(items, item_vat_map)
 
         for item, item_vat in zip(items, row_vat, strict=True):
             net = flt(item.get("net_amount"))
 
-            is_exempt = is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
-            if is_exempt and (item.get("is_nontaxable_item") or not is_export):
+            is_exempt = (
+                legacy_ird_item_is_exempt(item, inv.total_tax)
+                if legacy
+                else is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
+            )
+            if is_exempt and (legacy or item.get("is_nontaxable_item") or not is_export):
                 tax_exempt += net
                 continue
 
-            amt = item_taxable_amount(item, item_vat, item_vat_map)
+            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
             if item["item_code"] in asset_items:
                 capital_taxable_amount += amt
             else:
@@ -166,13 +183,19 @@ def get_data(filters):
                     taxable_domestic_nc += amt
                     tax_domestic_nc += item_vat
 
+        if legacy:
+            tax_domestic_nc, _tax_import, _tax_capital = allocate_legacy_ird_tax(
+                (taxable_domestic_nc, taxable_import_nc, capital_taxable_amount),
+                inv.total_tax,
+            )
+
         data.append({
             "posting_date": inv.posting_date,
             "invoice": inv.invoice,
             **invoice_link_fields("Sales Invoice", inv.invoice),
             "customer_name": inv.customer_name,
             "pan": pan,
-            "total": invoice_ird_total(inv),
+            "total": (flt(inv.rounded_total) or flt(inv.grand_total)) if legacy else invoice_ird_total(inv),
             "tax_exempt": tax_exempt,
             "taxable_amount": taxable_domestic_nc,
             "tax_amount": tax_domestic_nc,

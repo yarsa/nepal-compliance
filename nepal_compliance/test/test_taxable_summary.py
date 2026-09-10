@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 import frappe
 
 from nepal_compliance import taxable_summary, utils
+from nepal_compliance.nepal_compliance.report.sales_register_ird import sales_register_ird
 
 
 class TestTaxableSummaryCalculation(unittest.TestCase):
@@ -300,6 +301,80 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertTrue(
             taxable_summary._figures_changed(old, new, disable_rounded_total=0)
         )
+
+class TestLegacyIrdReportCalculation(unittest.TestCase):
+    @patch("nepal_compliance.utils.frappe.get_cached_doc")
+    def test_setting_enables_legacy_calculation(self, get_settings):
+        get_settings.return_value = frappe._dict(
+            use_legacy_ird_report_calculation=1
+        )
+
+        self.assertTrue(utils.use_legacy_ird_report_calculation())
+
+    def test_legacy_exemption_matches_ee01aef(self):
+        plain_item = frappe._dict(is_nontaxable_item=0, item_tax_template=None)
+        templated_item = frappe._dict(
+            is_nontaxable_item=0, item_tax_template="VAT Taxable"
+        )
+        flagged_item = frappe._dict(
+            is_nontaxable_item=1, item_tax_template="VAT Taxable"
+        )
+
+        self.assertTrue(utils.legacy_ird_item_is_exempt(plain_item, 0))
+        self.assertFalse(utils.legacy_ird_item_is_exempt(templated_item, 0))
+        self.assertTrue(utils.legacy_ird_item_is_exempt(flagged_item, 130))
+
+    def test_legacy_tax_is_allocated_proportionally(self):
+        allocated = utils.allocate_legacy_ird_tax((600, 300, 100), 130)
+
+        self.assertEqual(allocated, (78, 39, 13))
+
+    @patch.object(sales_register_ird, "use_legacy_ird_report_calculation", return_value=True)
+    @patch.object(sales_register_ird, "get_vat_breakup", return_value={})
+    @patch.object(sales_register_ird, "resolve_ird_country", return_value="Singapore")
+    @patch.object(sales_register_ird, "is_foreign_country", return_value=True)
+    @patch.object(sales_register_ird.frappe.db, "sql")
+    @patch.object(sales_register_ird.frappe, "get_all")
+    def test_legacy_sales_report_keeps_zero_tax_export_exempt(
+        self, get_all, sql, _foreign, _country, _breakup, _legacy
+    ):
+        sql.return_value = [
+            frappe._dict(
+                invoice="SINV-EXPORT",
+                company="ACME",
+                customer_name="Foreign Customer",
+                invoice_pan=None,
+                customer_tax_id=None,
+                net_total=1000,
+                total=1000,
+                rounded_total=1000,
+                grand_total=1000,
+                total_tax=0,
+                stored_taxable_amount=0,
+                stored_item_vat_detail=None,
+                customs_declaration_number=None,
+                customs_declaration_date_bs=None,
+                posting_date="2026-07-23",
+            )
+        ]
+        get_all.side_effect = [
+            [
+                frappe._dict(
+                    item_code="Service Export",
+                    item_name="Service Export",
+                    net_amount=1000,
+                    is_nontaxable_item=0,
+                    item_tax_template=None,
+                )
+            ],
+            [],
+        ]
+
+        row = sales_register_ird.get_data({})[0]
+
+        self.assertEqual(row["tax_exempt"], 1000)
+        self.assertEqual(row["taxable_amount"], 0)
+        self.assertEqual(row["tax_amount"], 0)
 
 
 if __name__ == "__main__":
