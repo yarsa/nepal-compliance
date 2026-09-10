@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import frappe
 
@@ -185,6 +185,67 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertEqual(data[1][1], "YTPI-1")
         self.assertEqual(data[1][13], "Includes added taxes")
         self.assertEqual(data[1][17], "OK")
+
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
+    def test_vat_mismatch_adds_error_tag_and_comment(self, _set_value, get_doc):
+        doc = Mock()
+        get_doc.return_value = doc
+        change = {
+            "doctype": "Sales Invoice",
+            "name": "YTCN-1",
+            "old_taxable_amount": 1663.7,
+            "new_taxable_amount": 1796.44,
+            "old_non_taxable_amount": 132.74,
+            "new_non_taxable_amount": 0,
+            "old_vat_amount": 216.28,
+            "new_vat_amount": 216.28,
+            "old_summary_grand_total": 2012.72,
+            "new_summary_grand_total": 2012.72,
+            "summary_grand_total": 2012.72,
+            "item_vat_detail": None,
+            "calculation_check": {
+                "expected_vat": 233.54,
+                "recorded_vat": 216.28,
+                "vat_difference": -17.26,
+                "has_vat_mismatch": True,
+            },
+        }
+
+        taxable_summary._apply_change(change)
+
+        doc.add_tag.assert_called_once_with("VAT Accounting Error")
+        comments = [call.args[1] for call in doc.add_comment.call_args_list]
+        self.assertTrue(any("VAT Accounting Error" in text for text in comments))
+        self.assertTrue(any("accounting has 216.28" in text for text in comments))
+
+    @patch("nepal_compliance.taxable_summary.frappe.db.commit")
+    @patch("nepal_compliance.taxable_summary._flag_invoice")
+    @patch("nepal_compliance.taxable_summary._apply_change")
+    @patch("nepal_compliance.taxable_summary._compute_refresh_row")
+    @patch("nepal_compliance.taxable_summary._iter_invoice_rows")
+    def test_warning_only_invoice_is_tagged_without_summary_write(
+        self, iter_rows, compute, apply_change, flag_invoice, _commit
+    ):
+        row = frappe._dict(name="YTCN-1")
+        iter_rows.return_value = iter([("Sales Invoice", row)])
+        change = {
+            "would_change": False,
+            "calculation_check": {"has_vat_mismatch": True},
+        }
+        compute.return_value = ("warning", change)
+
+        result = taxable_summary._run_apply(
+            "2026-01-01",
+            "2026-12-31",
+            [{"doctype": "Sales Invoice", "name": "YTCN-1"}],
+            True,
+        )
+
+        apply_change.assert_not_called()
+        flag_invoice.assert_called_once_with(change)
+        self.assertEqual(result["updated"], 1)
+        self.assertEqual(result["calculation_warnings"], 1)
 
 
 if __name__ == "__main__":

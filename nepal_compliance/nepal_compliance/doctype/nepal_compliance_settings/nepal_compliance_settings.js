@@ -119,6 +119,9 @@ function show_taxable_summary_help() {
 			<p>${__(
 				"If VAT is charged on a previous tax row (import duty, excise, or similar), taxable value is the VAT base (item net plus those added taxes), then expected VAT is that base × 13%."
 			)}</p>
+			<p>${__(
+				"If accounting VAT (tax table / GL) disagrees with Taxable × 13%, the invoice is tagged VAT Accounting Error and a comment is added. Applying the summary does not correct GL entries."
+			)}</p>
 		`,
 		indicator: "blue",
 	});
@@ -231,7 +234,9 @@ function show_preview_dialog(preview, values) {
 		? `<p><b>${__("More than 500 invoices were scanned. Large selections will be applied in the background.")}</b></p>`
 		: "";
 	const suggestions = preview.changes || [];
-	const can_select = (row) => row.would_change;
+	const has_vat_error = (row) =>
+		Boolean(row.calculation_check && row.calculation_check.has_vat_mismatch);
+	const can_select = (row) => row.would_change || has_vat_error(row);
 	const selectable_count = suggestions.filter(can_select).length;
 	const selected = new Set(
 		suggestions
@@ -242,8 +247,8 @@ function show_preview_dialog(preview, values) {
 	let page = 0;
 
 	const html = `
-		<p>${__("When the item flag option is enabled, flagged item totals are Non-Taxable and the remaining item totals are Taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT. Expected VAT is Taxable × 13%, including duty or excise when VAT is charged on a previous tax row. A mismatch is reported, but recorded VAT is retained.")}</p>
-		<p>${__("Applying updates only the selected taxable-summary suggestions. The audit comment records old and new Taxable, Non-Taxable, VAT, and Bill Total values.")}</p>
+		<p>${__("When the item flag option is enabled, flagged item totals are Non-Taxable and the remaining item totals are Taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT. Expected VAT is Taxable × 13%, including duty or excise when VAT is charged on a previous tax row. If accounting VAT disagrees, the invoice is tagged VAT Accounting Error; recorded VAT is retained because GL is not rewritten.")}</p>
+		<p>${__("Applying updates the selected taxable-summary suggestions. Invoices with a VAT accounting error are tagged and commented even when summary fields do not change.")}</p>
 		<ul>
 			${fy_line}
 			<li>${__("Posting date range")}: <b>${frappe.utils.escape_html(preview.from_date)}</b> – <b>${frappe.utils.escape_html(preview.to_date)}</b></li>
@@ -337,15 +342,22 @@ function show_preview_dialog(preview, values) {
 		);
 		const check = row.calculation_check || {};
 		const calculation = check.has_vat_mismatch
-			? `<span class="text-danger">${__(
-					"Expected {0}; recorded {1}; difference {2}",
+			? `<span class="indicator-pill red filterable no-indicator-dot">${__(
+					"Error"
+				)}</span><br><small class="text-danger">${__(
+					"Expected {0}; accounting {1}; difference {2}",
 					[
 						fmt(check.expected_vat),
 						fmt(check.recorded_vat),
 						fmt(check.vat_difference),
 					]
-				)}</span>`
+				)}</small>`
 			: `<span class="text-success">${__("OK")}</span>`;
+		const note = row.would_change
+			? ""
+			: `<br><small>${__(
+					"IRD summary unchanged; tag accounting VAT error"
+				)}</small>`;
 		return `${extra_check}
 			<td>${frappe.utils.escape_html(row.document_type || row.doctype)}</td>
 			<td>${invoice_link}</td>
@@ -355,7 +367,7 @@ function show_preview_dialog(preview, values) {
 			<td class="text-right">${fmt(row.old_non_taxable_amount)} → ${fmt(row.new_non_taxable_amount)}</td>
 			<td class="text-right">${fmt(row.old_vat_amount)} → ${fmt(row.new_vat_amount)}</td>
 			<td class="text-right">${fmt(row.old_summary_grand_total)} → ${fmt(row.new_summary_grand_total)}</td>
-			<td>${calculation}${row.would_change ? "" : `<br><small>${__("Review only; no summary change")}</small>`}</td>`;
+			<td>${calculation}${note}</td>`;
 	};
 
 	const render_page = () => {
@@ -469,6 +481,10 @@ function show_preview_dialog(preview, values) {
 		dialog.$wrapper.find(".modal-body").prepend(
 			`<div class="alert alert-info">${__("No invoices in this range would change. Review any calculation warnings below.")}</div>`
 		);
+	} else if (!preview.changed) {
+		dialog.$wrapper.find(".modal-body").prepend(
+			`<div class="alert alert-danger">${__("Accounting VAT disagrees with Taxable × 13% on some invoices. Apply to tag them VAT Accounting Error. GL is not rewritten.")}</div>`
+		);
 	}
 }
 
@@ -502,7 +518,7 @@ function listen_for_refresh_done() {
 					? "orange"
 					: "green",
 			message: __(
-				"Updated {0} invoice(s) from {1} to {2}. Warnings: {3}; denied: {4}; stale: {5}; failed: {6}.",
+				"Updated {0} invoice(s) from {1} to {2}. VAT accounting errors tagged: {3}; denied: {4}; stale: {5}; failed: {6}.",
 				[
 				data.updated,
 				data.from_date,
@@ -566,7 +582,7 @@ function run_apply(values, selected_invoices) {
 			}
 			delete frappe._taxable_summary_apply_pending[request_id];
 			frappe.msgprint(
-				__("Updated {0} invoice(s). Warnings: {1}; denied: {2}; stale: {3}; failed: {4}.", [
+				__("Updated {0} invoice(s). VAT accounting errors tagged: {1}; denied: {2}; stale: {3}; failed: {4}.", [
 					r.message.updated,
 					r.message.calculation_warnings || 0,
 					r.message.denied || 0,
