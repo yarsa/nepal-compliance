@@ -21,6 +21,15 @@ function open_date_prompt() {
 		title: __("Recompute Taxable Summary"),
 		fields: [
 			{
+				fieldname: "recompute_help_button",
+				fieldtype: "HTML",
+				options: `<div class="text-right">
+					<button type="button" class="btn btn-xs btn-default recompute-help" title="${__(
+						"About Recompute Taxable Summary"
+					)}">?</button>
+				</div>`,
+			},
+			{
 				fieldname: "fiscal_year",
 				fieldtype: "Link",
 				options: "Fiscal Year",
@@ -56,11 +65,20 @@ function open_date_prompt() {
 				reqd: 1,
 			},
 			{
+				fieldname: "consider_is_non_taxable_item",
+				fieldtype: "Check",
+				label: __("Consider Is Non-Taxable Item"),
+				default: 0,
+				description: __(
+					"Classify flagged item rows as non-taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT."
+				),
+			},
+			{
 				fieldname: "help",
 				fieldtype: "HTML",
 				options: `<p class="text-muted">
 					${__(
-						"Select a Fiscal Year to fill the dates, or enter a posting date range. Only submitted Sales and Purchase Invoices in this range will be scanned."
+						"Only submitted Sales and Purchase Invoices in this range will be scanned. VAT calculation mismatches are warnings; VAT recorded in invoice tax rows is retained."
 					)}
 				</p>`,
 			},
@@ -76,6 +94,40 @@ function open_date_prompt() {
 		},
 	});
 	dialog.show();
+	dialog.fields_dict.recompute_help_button.$wrapper
+		.find(".recompute-help")
+		.on("click", show_taxable_summary_help);
+}
+
+function show_taxable_summary_help() {
+	frappe.msgprint({
+		title: __("About Recompute Taxable Summary"),
+		message: `
+			<p>${__(
+				"Use this tool to preview and correct the Taxable Amount, Non-Taxable Amount, VAT Amount, Bill Total, and item VAT summary stored on submitted Sales and Purchase Invoices. You can select which suggestions to apply."
+			)}</p>
+			<p><b>${__("Example")}</b></p>
+			<ul>
+				<li>${__("Taxable item total")}: ${fmt(4189.33)}</li>
+				<li>${__("Non-taxable item total")}: ${fmt(28029)}</li>
+				<li>${__("Expected VAT")}: ${fmt(4189.33)} × 13% = ${fmt(544.61)}</li>
+				<li>${__("Bill Total")}: ${fmt(32218.33)} + ${fmt(544.61)} = ${fmt(32762.94)}</li>
+			</ul>
+			<p>${__(
+				"If Is PAN/Abbreviated Bill is checked, a Purchase Invoice has no Taxes and Charges rows, or its recorded VAT is zero, all its items are treated as non-taxable and expected VAT is zero."
+			)}</p>
+			<p>${__(
+				"If VAT is charged on a previous tax row (import duty, excise, or similar), taxable value is the VAT base (item net plus those added taxes), then expected VAT is that base × 13%."
+			)}</p>
+			<p>${__(
+				"Paisa-level Taxable or Bill Total differences smaller than 1 are ignored. If Disable Rounded Total is checked, the values already on the invoice are kept; if it is unchecked, rounded total is in use and that rounding error is skipped."
+			)}</p>
+			<p>${__(
+				"If accounting VAT (tax table / GL) disagrees with Taxable × 13%, the invoice is tagged VAT Accounting Error and a comment is added. Applying the summary does not correct GL entries."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
 }
 
 function listen_for_preview_done() {
@@ -124,6 +176,7 @@ function run_preview(values) {
 		args: {
 			from_date: values.from_date,
 			to_date: values.to_date,
+			consider_is_non_taxable_item: values.consider_is_non_taxable_item || 0,
 			request_id: request_id,
 		},
 		freeze: true,
@@ -180,91 +233,260 @@ function show_preview_dialog(preview, values) {
 	const fy_line = values.fiscal_year
 		? `<li>${__("Fiscal Year")}: <b>${frappe.utils.escape_html(values.fiscal_year)}</b></li>`
 		: "";
-	const more_line = preview.hidden_rows
-		? `<p class="text-muted">${__("…and {0} more invoice(s) not shown in the table. Confirm still updates all of them.", [preview.hidden_rows])}</p>`
-		: "";
 	const batch_line = preview.batched
-		? `<p><b>${__("More than 500 invoices are in this range. Confirm will run in the background in batches of 500.")}</b></p>`
+		? `<p><b>${__("More than 500 invoices were scanned. Large selections will be applied in the background.")}</b></p>`
 		: "";
-
-	let table = "";
-	if (preview.changes && preview.changes.length) {
-		const rows = preview.changes
-			.map((row) => {
-				const name = frappe.utils.escape_html(row.name);
-				const company = frappe.utils.escape_html(row.company || "");
-				const doctype = frappe.utils.escape_html(row.doctype);
-				const invoice_link = frappe.utils.get_form_link(
-					row.doctype,
-					row.name,
-					true,
-					name
-				);
-				return `<tr>
-					<td>${doctype}</td>
-					<td>${invoice_link}</td>
-					<td>${frappe.utils.escape_html(row.posting_date || "")}</td>
-					<td>${company}</td>
-					<td class="text-right">${fmt(row.old_taxable_amount)} → ${fmt(row.new_taxable_amount)}</td>
-					<td class="text-right">${fmt(row.old_non_taxable_amount)} → ${fmt(row.new_non_taxable_amount)}</td>
-					<td class="text-right">${fmt(row.old_vat_amount)} → ${fmt(row.new_vat_amount)}</td>
-					<td class="text-right">${fmt(row.old_summary_grand_total)} → ${fmt(row.new_summary_grand_total)}</td>
-				</tr>`;
-			})
-			.join("");
-		table = `<div class="mt-3" style="max-height: 320px; overflow: auto;">
-			<table class="table table-bordered table-sm">
-				<thead>
-					<tr>
-						<th>${__("Type")}</th>
-						<th>${__("Invoice")}</th>
-						<th>${__("Posting Date")}</th>
-						<th>${__("Company")}</th>
-						<th>${__("Taxable")}</th>
-						<th>${__("Non-Taxable")}</th>
-						<th>${__("VAT")}</th>
-						<th>${__("Bill Total")}</th>
-					</tr>
-				</thead>
-				<tbody>${rows}</tbody>
-			</table>
-		</div>${more_line}`;
-	}
+	const suggestions = preview.changes || [];
+	const has_vat_error = (row) =>
+		Boolean(row.calculation_check && row.calculation_check.has_vat_mismatch);
+	const can_select = (row) => row.would_change || has_vat_error(row);
+	const selectable_count = suggestions.filter(can_select).length;
+	const selected = new Set(
+		suggestions
+			.map((row, index) => (can_select(row) ? index : null))
+			.filter((index) => index !== null)
+	);
+	const page_size = 50;
+	let page = 0;
 
 	const html = `
-		<p>${__("Taxable amount will become the VAT base (VAT ÷ rate). Invoices where VAT is charged on a previous-row total (excise, import duty) will increase. Invoices where VAT is charged on net total stay the same. Purchase invoices with TDS update Bill Total to Grand Total plus TDS (the billed value before withholding).")}</p>
-		<p>${__("Fields that may change: Taxable Amount, Non-Taxable Amount, VAT Amount, Bill Total, and the hidden item VAT detail. IRD Sales/Purchase (and return) registers will use the new taxable column and Bill Total for these invoices. A comment with the new figures is added on each changed invoice.")}</p>
+		<p>${__("When the item flag option is enabled, flagged item totals are Non-Taxable and the remaining item totals are Taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT. Expected VAT is Taxable × 13%, including duty or excise when VAT is charged on a previous tax row. If accounting VAT disagrees, the invoice is tagged VAT Accounting Error; recorded VAT is retained because GL is not rewritten.")}</p>
+		<p>${__("Applying updates the selected taxable-summary suggestions. Invoices with a VAT accounting error are tagged and commented even when summary fields do not change.")}</p>
 		<ul>
 			${fy_line}
 			<li>${__("Posting date range")}: <b>${frappe.utils.escape_html(preview.from_date)}</b> – <b>${frappe.utils.escape_html(preview.to_date)}</b></li>
+			<li>${__("Consider Is Non-Taxable Item")}: <b>${preview.consider_is_non_taxable_item ? __("Yes") : __("No")}</b></li>
 			<li>${__("Scanned")}: <b>${preview.scanned}</b></li>
 			<li>${__("Would change")}: <b>${preview.changed}</b> (${__("Sales")}: ${preview.sales_changed}, ${__("Purchase")}: ${preview.purchase_changed})</li>
+			<li>${__("Calculation warnings")}: <b>${preview.calculation_warnings || 0}</b></li>
 			<li>${__("Unchanged")}: <b>${preview.unchanged}</b></li>
 			<li>${__("Skipped (no VAT account configured)")}: <b>${preview.skipped}</b></li>
 			<li>${__("Denied by permissions")}: <b>${preview.denied || 0}</b></li>
 			<li>${__("Failed")}: <b>${preview.failed || 0}</b></li>
 		</ul>
 		${batch_line}
-		${table}
+		<div class="taxable-summary-selection ${suggestions.length ? "" : "hide"}">
+			<div class="d-flex align-items-center mb-2" style="gap: 8px; flex-wrap: wrap;">
+				<button type="button" class="btn btn-xs btn-default select-all">${__("Select All")}</button>
+				<button type="button" class="btn btn-xs btn-default unselect-all">${__("Unselect All")}</button>
+				<select class="form-control input-xs document-type-filter" style="width: auto;">
+					<option value="Sales Invoice">${__("Sales Invoice")}</option>
+					<option value="Sales Return">${__("Sales Return")}</option>
+					<option value="Purchase Invoice">${__("Purchase Invoice")}</option>
+					<option value="Purchase Return">${__("Purchase Return")}</option>
+				</select>
+				<button type="button" class="btn btn-xs btn-default select-type">${__("Select Type")}</button>
+				<button type="button" class="btn btn-xs btn-default unselect-type">${__("Unselect Type")}</button>
+				<button type="button" class="btn btn-xs btn-default download-csv">${__("Download CSV")}</button>
+				<span class="selected-count text-muted"></span>
+				<span class="pagination-controls ml-auto">
+					<button type="button" class="btn btn-xs btn-default previous-page">${__("Previous")}</button>
+					<span class="page-count mx-2"></span>
+					<button type="button" class="btn btn-xs btn-default next-page">${__("Next")}</button>
+				</span>
+			</div>
+			<div style="max-height: 420px; overflow: auto;">
+				<table class="table table-bordered table-sm">
+					<thead>
+						<tr>
+							<th style="width: 32px;"></th>
+							<th>${__("Type")}</th>
+							<th>${__("Invoice")}</th>
+							<th>${__("Posting Date")}</th>
+							<th>${__("Company")}</th>
+							<th>${__("Taxable")}</th>
+							<th>${__("Non-Taxable")}</th>
+							<th>${__("VAT")}</th>
+							<th>${__("Bill Total")}</th>
+							<th>${__("Calculation Check")}</th>
+						</tr>
+					</thead>
+					<tbody class="suggestion-rows"></tbody>
+				</table>
+			</div>
+		</div>
 	`;
 
 	const dialog = new frappe.ui.Dialog({
 		title: __("Confirm Taxable Summary Refresh"),
 		size: "extra-large",
 		fields: [{ fieldname: "preview_html", fieldtype: "HTML" }],
-		primary_action_label: preview.changed ? __("Apply Changes") : __("Close"),
+		primary_action_label: selectable_count ? __("Apply Changes") : __("Close"),
 		primary_action() {
-			dialog.hide();
-			if (preview.changed) {
-				run_apply(values);
+			if (!selectable_count) {
+				dialog.hide();
+				return;
 			}
+			const selected_invoices = [...selected]
+				.filter((index) => can_select(suggestions[index]))
+				.map((index) => ({
+					doctype: suggestions[index].doctype,
+					name: suggestions[index].name,
+				}));
+			if (!selected_invoices.length) {
+				frappe.msgprint(__("Select at least one suggestion to apply."));
+				return;
+			}
+			dialog.hide();
+			run_apply(values, selected_invoices);
 		},
 	});
 	dialog.show();
-	dialog.fields_dict.preview_html.$wrapper.html(html);
-	if (!preview.changed) {
+	const $wrapper = dialog.fields_dict.preview_html.$wrapper;
+	$wrapper.html(html);
+
+	const render_row = (row, extra_check) => {
+		const name = frappe.utils.escape_html(row.name);
+		const invoice_link = frappe.utils.get_form_link(
+			row.doctype,
+			row.name,
+			true,
+			name
+		);
+		const check = row.calculation_check || {};
+		const calculation = check.has_vat_mismatch
+			? `<span class="indicator-pill red filterable no-indicator-dot">${__(
+					"Error"
+				)}</span><br><small class="text-danger">${__(
+					"Expected {0}; accounting {1}; difference {2}",
+					[
+						fmt(check.expected_vat),
+						fmt(check.recorded_vat),
+						fmt(check.vat_difference),
+					]
+				)}</small>`
+			: `<span class="text-success">${__("OK")}</span>`;
+		const note = row.would_change
+			? ""
+			: `<br><small>${__(
+					"IRD summary unchanged; tag accounting VAT error"
+				)}</small>`;
+		return `${extra_check}
+			<td>${frappe.utils.escape_html(row.document_type || row.doctype)}</td>
+			<td>${invoice_link}</td>
+			<td>${frappe.utils.escape_html(row.posting_date || "")}</td>
+			<td>${frappe.utils.escape_html(row.company || "")}</td>
+			<td class="text-right">${fmt(row.old_taxable_amount)} → ${fmt(row.new_taxable_amount)}</td>
+			<td class="text-right">${fmt(row.old_non_taxable_amount)} → ${fmt(row.new_non_taxable_amount)}</td>
+			<td class="text-right">${fmt(row.old_vat_amount)} → ${fmt(row.new_vat_amount)}</td>
+			<td class="text-right">${fmt(row.old_summary_grand_total)} → ${fmt(row.new_summary_grand_total)}</td>
+			<td>${calculation}${note}</td>`;
+	};
+
+	const render_page = () => {
+		const page_count = Math.max(Math.ceil(suggestions.length / page_size), 1);
+		page = Math.min(Math.max(page, 0), page_count - 1);
+		const start = page * page_size;
+		const rows = suggestions.slice(start, start + page_size).map((row, offset) => {
+			const index = start + offset;
+			const disabled = can_select(row) ? "" : "disabled";
+			const checked = selected.has(index) ? "checked" : "";
+			return `<tr>${render_row(
+				row,
+				`<td><input type="checkbox" class="suggestion-select" data-index="${index}" ${checked} ${disabled}></td>`
+			)}</tr>`;
+		});
+		$wrapper.find(".suggestion-rows").html(rows.join(""));
+		$wrapper.find(".selected-count").text(
+			__("{0} of {1} suggestion(s) selected", [selected.size, selectable_count])
+		);
+		$wrapper.find(".download-csv").prop("disabled", !selected.size);
+		$wrapper.find(".page-count").text(
+			__("Page {0} of {1}", [page + 1, page_count])
+		);
+		$wrapper.find(".previous-page").prop("disabled", page === 0);
+		$wrapper.find(".next-page").prop("disabled", page >= page_count - 1);
+		dialog.get_primary_btn().prop("disabled", selectable_count && !selected.size);
+	};
+
+	$wrapper.on("change", ".suggestion-select", function () {
+		const index = Number(this.dataset.index);
+		if (this.checked) {
+			selected.add(index);
+		} else {
+			selected.delete(index);
+		}
+		render_page();
+	});
+	$wrapper.on("click", ".select-all", () => {
+		suggestions.forEach((row, index) => {
+			if (can_select(row)) selected.add(index);
+		});
+		render_page();
+	});
+	$wrapper.on("click", ".unselect-all", () => {
+		selected.clear();
+		render_page();
+	});
+	$wrapper.on("click", ".select-type", () => {
+		const document_type = $wrapper.find(".document-type-filter").val();
+		suggestions.forEach((row, index) => {
+			if (can_select(row) && row.document_type === document_type) {
+				selected.add(index);
+			}
+		});
+		render_page();
+	});
+	$wrapper.on("click", ".unselect-type", () => {
+		const document_type = $wrapper.find(".document-type-filter").val();
+		suggestions.forEach((row, index) => {
+			if (row.document_type === document_type) {
+				selected.delete(index);
+			}
+		});
+		render_page();
+	});
+	$wrapper.on("click", ".download-csv", () => {
+		const selected_rows = [...selected]
+			.sort((a, b) => a - b)
+			.map((index) => suggestions[index])
+			.filter(Boolean);
+		if (!selected_rows.length) {
+			frappe.msgprint(__("Select at least one row to download."));
+			return;
+		}
+		frappe.call({
+			method: "nepal_compliance.taxable_summary.download_taxable_summary_csv",
+			args: {
+				rows: JSON.stringify(selected_rows),
+				from_date: preview.from_date,
+				to_date: preview.to_date,
+			},
+			freeze: true,
+			freeze_message: __("Preparing CSV..."),
+			callback(r) {
+				if (!r.message || !r.message.csv) {
+					return;
+				}
+				const blob = new Blob(["\uFEFF" + r.message.csv], {
+					type: "text/csv;charset=utf-8;",
+				});
+				const link = document.createElement("a");
+				link.href = URL.createObjectURL(blob);
+				link.download = r.message.filename || "taxable_summary.csv";
+				document.body.appendChild(link);
+				link.click();
+				link.remove();
+				URL.revokeObjectURL(link.href);
+			},
+		});
+	});
+	$wrapper.on("click", ".previous-page", () => {
+		page -= 1;
+		render_page();
+	});
+	$wrapper.on("click", ".next-page", () => {
+		page += 1;
+		render_page();
+	});
+	render_page();
+	if (!selectable_count) {
 		dialog.$wrapper.find(".modal-body").prepend(
-			`<div class="alert alert-info">${__("No invoices in this range would change.")}</div>`
+			`<div class="alert alert-info">${__("No invoices in this range would change. Review any calculation warnings below.")}</div>`
+		);
+	} else if (!preview.changed) {
+		dialog.$wrapper.find(".modal-body").prepend(
+			`<div class="alert alert-danger">${__("Accounting VAT disagrees with Taxable × 13% on some invoices. Apply to tag them VAT Accounting Error. GL is not rewritten.")}</div>`
 		);
 	}
 }
@@ -294,15 +516,19 @@ function listen_for_refresh_done() {
 		}
 		frappe.msgprint({
 			title: __("Taxable Summary Refresh"),
-			indicator: data.denied || data.failed ? "orange" : "green",
+			indicator:
+				data.denied || data.failed || data.stale || data.calculation_warnings
+					? "orange"
+					: "green",
 			message: __(
-				"Updated {0} invoice(s) from {1} to {2}. Denied: {3}; skipped: {4}; failed: {5}.",
+				"Updated {0} invoice(s) from {1} to {2}. VAT accounting errors tagged: {3}; denied: {4}; stale: {5}; failed: {6}.",
 				[
 				data.updated,
 				data.from_date,
 				data.to_date,
+				data.calculation_warnings || 0,
 				data.denied || 0,
-				data.skipped || 0,
+				data.stale || 0,
 				data.failed || 0,
 				]
 			),
@@ -310,7 +536,7 @@ function listen_for_refresh_done() {
 	});
 }
 
-function run_apply(values) {
+function run_apply(values, selected_invoices) {
 	frappe._taxable_summary_apply_pending = frappe._taxable_summary_apply_pending || {};
 	const already_running = Object.values(frappe._taxable_summary_apply_pending).some(
 		(pending) =>
@@ -328,6 +554,8 @@ function run_apply(values) {
 		args: {
 			from_date: values.from_date,
 			to_date: values.to_date,
+			selected_invoices: JSON.stringify(selected_invoices),
+			consider_is_non_taxable_item: values.consider_is_non_taxable_item || 0,
 			request_id: request_id,
 		},
 		freeze: true,
@@ -350,17 +578,18 @@ function run_apply(values) {
 				}
 				frappe.msgprint(
 					__(
-						"More than 500 invoices are in this range. The update is running in the background in batches of 500. You will be notified when it finishes."
+						"More than 500 invoices were selected. The update is running in the background in batches of 500. You will be notified when it finishes."
 					)
 				);
 				return;
 			}
 			delete frappe._taxable_summary_apply_pending[request_id];
 			frappe.msgprint(
-				__("Updated {0} invoice(s). Denied: {1}; skipped: {2}; failed: {3}.", [
+				__("Updated {0} invoice(s). VAT accounting errors tagged: {1}; denied: {2}; stale: {3}; failed: {4}.", [
 					r.message.updated,
+					r.message.calculation_warnings || 0,
 					r.message.denied || 0,
-					r.message.skipped || 0,
+					r.message.stale || 0,
 					r.message.failed || 0,
 				])
 			);
@@ -376,6 +605,15 @@ function open_tds_base_prompt() {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Audit TDS Bases"),
 		fields: [
+			{
+				fieldname: "tds_help_button",
+				fieldtype: "HTML",
+				options: `<div class="text-right">
+					<button type="button" class="btn btn-xs btn-default tds-base-help" title="${__(
+						"About Audit TDS Bases"
+					)}">?</button>
+				</div>`,
+			},
 			{
 				fieldname: "fiscal_year",
 				fieldtype: "Link",
@@ -422,6 +660,29 @@ function open_tds_base_prompt() {
 		},
 	});
 	dialog.show();
+	dialog.fields_dict.tds_help_button.$wrapper
+		.find(".tds-base-help")
+		.on("click", show_tds_base_help);
+}
+
+function show_tds_base_help() {
+	frappe.msgprint({
+		title: __("About Audit TDS Bases"),
+		message: `
+			<p>${__(
+				"Use this tool to check the transaction-currency and company-currency TDS base fields on submitted Purchase Invoices where TDS is enabled and the withholding category calculates TDS on the taxable amount."
+			)}</p>
+			<p><b>${__("Example")}</b></p>
+			<p>${__(
+				"An invoice has a taxable value of {0} and VAT of {1}. If its stored TDS base is incorrectly {2}, the audit suggests changing the TDS base to {0}.",
+				[fmt(1000), fmt(130), fmt(1130)]
+			)}</p>
+			<p>${__(
+				"Applying updates only the two TDS base fields and adds an audit comment. It does not recalculate historical TDS, change VAT rows, or alter General Ledger entries."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
 }
 
 function preview_tds_bases(values) {
