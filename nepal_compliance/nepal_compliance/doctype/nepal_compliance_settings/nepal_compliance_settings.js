@@ -120,6 +120,9 @@ function show_taxable_summary_help() {
 				"If VAT is charged on a previous tax row (import duty, excise, or similar), taxable value is the VAT base (item net plus those added taxes), then expected VAT is that base × 13%."
 			)}</p>
 			<p>${__(
+				"Paisa-level Taxable or Bill Total differences smaller than 1 are ignored. If Disable Rounded Total is checked, the values already on the invoice are kept; if it is unchecked, rounded total is in use and that rounding error is skipped."
+			)}</p>
+			<p>${__(
 				"If accounting VAT (tax table / GL) disagrees with Taxable × 13%, the invoice is tagged VAT Accounting Error and a comment is added. Applying the summary does not correct GL entries."
 			)}</p>
 		`,

@@ -247,6 +247,60 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertEqual(result["updated"], 1)
         self.assertEqual(result["calculation_warnings"], 1)
 
+    def test_paisa_taxable_difference_is_ignored(self):
+        old = frappe._dict(
+            taxable_amount=681.41,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+        )
+        new = frappe._dict(
+            taxable_amount=681.42,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+        )
+
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=1)
+        )
+
+    def test_sub_rupee_bill_total_difference_is_ignored(self):
+        old = frappe._dict(
+            taxable_amount=35690,
+            non_taxable_amount=0,
+            vat_amount=4639.7,
+            summary_grand_total=40330,
+        )
+        new = frappe._dict(
+            taxable_amount=35690,
+            non_taxable_amount=0,
+            vat_amount=4639.7,
+            summary_grand_total=40329.7,
+        )
+
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=0)
+        )
+
+    def test_real_taxable_change_is_not_ignored(self):
+        old = frappe._dict(
+            taxable_amount=4849.5,
+            non_taxable_amount=0,
+            vat_amount=661.96,
+            summary_grand_total=5753.93,
+        )
+        new = frappe._dict(
+            taxable_amount=5091.98,
+            non_taxable_amount=0,
+            vat_amount=661.96,
+            summary_grand_total=5753.93,
+        )
+
+        self.assertTrue(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=0)
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
