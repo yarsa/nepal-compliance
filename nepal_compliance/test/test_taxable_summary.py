@@ -139,101 +139,6 @@ class TestTaxableSummaryCalculation(unittest.TestCase):
 
         self.assertFalse(check["has_vat_mismatch"])
 
-    @patch("nepal_compliance.utils.get_configured_vat_accounts")
-    def test_vat_on_previous_row_is_detected(self, configured):
-        configured.return_value = {
-            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
-        }
-        invoice = frappe._dict(
-            doctype="Purchase Invoice",
-            company="ACME",
-            taxes=[
-                frappe._dict(
-                    account_head="Import Duty",
-                    charge_type="On Net Total",
-                ),
-                frappe._dict(
-                    account_head="VAT Receivable",
-                    charge_type="On Previous Row Total",
-                ),
-            ],
-        )
-
-        self.assertTrue(utils.vat_charged_on_added_taxes(invoice))
-
-    @patch("nepal_compliance.utils.get_configured_vat_accounts")
-    def test_on_net_total_vat_is_not_added_taxes(self, configured):
-        configured.return_value = {
-            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
-        }
-        invoice = frappe._dict(
-            doctype="Purchase Invoice",
-            company="ACME",
-            taxes=[
-                frappe._dict(
-                    account_head="VAT Receivable",
-                    charge_type="On Net Total",
-                ),
-            ],
-        )
-
-        self.assertFalse(utils.vat_charged_on_added_taxes(invoice))
-
-    @patch("nepal_compliance.utils.get_configured_vat_accounts")
-    def test_previous_row_vat_includes_excise_in_taxable_base(self, configured):
-        configured.return_value = {
-            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
-        }
-        invoice = frappe._dict(
-            doctype="Purchase Invoice",
-            company="ACME",
-            grand_total=5753.9318,
-            items=[
-                frappe._dict(
-                    item_code="Y101642",
-                    net_amount=4849.5,
-                    is_nontaxable_item=0,
-                )
-            ],
-            taxes=[
-                frappe._dict(
-                    account_head="Import Duty",
-                    charge_type="On Net Total",
-                    tax_amount=0,
-                    tax_amount_after_discount_amount=0,
-                    add_deduct_tax="Add",
-                    item_wise_tax_detail={"Y101642": [0.0, 0.0]},
-                ),
-                frappe._dict(
-                    account_head="Excise",
-                    charge_type="On Previous Row Total",
-                    tax_amount=242.475,
-                    tax_amount_after_discount_amount=242.475,
-                    add_deduct_tax="Add",
-                    item_wise_tax_detail={"Y101642": [5.0, 242.475]},
-                ),
-                frappe._dict(
-                    account_head="VAT Receivable",
-                    charge_type="On Previous Row Total",
-                    tax_amount=661.9568,
-                    tax_amount_after_discount_amount=661.9568,
-                    add_deduct_tax="Add",
-                    item_wise_tax_detail={"Y101642": [13.0, 661.95675]},
-                ),
-            ],
-        )
-
-        check = utils.set_taxable_amounts(
-            invoice, None, consider_is_non_taxable_item=True
-        )
-
-        self.assertEqual(invoice.taxable_amount, 5091.98)
-        self.assertEqual(invoice.non_taxable_amount, 0)
-        self.assertEqual(check["expected_vat"], 661.96)
-        self.assertEqual(check["recorded_vat"], 661.96)
-        self.assertFalse(check["has_vat_mismatch"])
-        self.assertTrue(check["vat_on_added_taxes"])
-
 
 class TestSelectableTaxableSummary(unittest.TestCase):
     def test_document_types_separate_invoices_and_returns(self):
@@ -362,6 +267,40 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertIn("Bill Total: 113.0 → 113.0", comment)
         doc.add_tag.assert_not_called()
 
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
+    def test_mismatch_adds_error_tag_and_comment(self, _set_value, get_doc):
+        doc = Mock()
+        get_doc.return_value = doc
+        change = {
+            "doctype": "Sales Invoice",
+            "name": "YTCN-1",
+            "old_taxable_amount": 1663.7,
+            "new_taxable_amount": 1796.44,
+            "old_non_taxable_amount": 132.74,
+            "new_non_taxable_amount": 0,
+            "old_vat_amount": 216.28,
+            "new_vat_amount": 216.28,
+            "old_summary_grand_total": 2012.72,
+            "new_summary_grand_total": 2012.72,
+            "summary_grand_total": 2012.72,
+            "item_vat_detail": None,
+            "calculation_check": {
+                "expected_vat": 233.54,
+                "recorded_vat": 216.28,
+                "vat_difference": -17.26,
+                "has_vat_mismatch": True,
+            },
+        }
+
+        taxable_summary._apply_change(change)
+
+        doc.add_tag.assert_called_once_with("VAT Accounting Error")
+        comments = [call.args[1] for call in doc.add_comment.call_args_list]
+        self.assertTrue(any("VAT Accounting Error" in text for text in comments))
+        self.assertTrue(any("accounting has 216.28" in text for text in comments))
+        self.assertTrue(any("Expected VAT 233.54" in text for text in comments))
+
     def test_csv_includes_selected_preview_rows(self):
         data = taxable_summary.taxable_summary_csv_data(
             [
@@ -400,6 +339,101 @@ class TestSelectableTaxableSummary(unittest.TestCase):
     def test_csv_download_requires_selected_rows(self, _permission):
         with self.assertRaises(frappe.ValidationError):
             taxable_summary.download_taxable_summary_csv([])
+
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_vat_on_previous_row_is_detected(self, configured):
+        configured.return_value = {
+            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
+        }
+        invoice = frappe._dict(
+            doctype="Purchase Invoice",
+            company="ACME",
+            taxes=[
+                frappe._dict(
+                    account_head="Import Duty",
+                    charge_type="On Net Total",
+                ),
+                frappe._dict(
+                    account_head="VAT Receivable",
+                    charge_type="On Previous Row Total",
+                ),
+            ],
+        )
+
+        self.assertTrue(utils.vat_charged_on_added_taxes(invoice))
+
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_on_net_total_vat_is_not_added_taxes(self, configured):
+        configured.return_value = {
+            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
+        }
+        invoice = frappe._dict(
+            doctype="Purchase Invoice",
+            company="ACME",
+            taxes=[
+                frappe._dict(
+                    account_head="VAT Receivable",
+                    charge_type="On Net Total",
+                ),
+            ],
+        )
+
+        self.assertFalse(utils.vat_charged_on_added_taxes(invoice))
+
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_previous_row_vat_includes_excise_in_taxable_base(self, configured):
+        configured.return_value = {
+            "ACME": {"sales": "VAT Payable", "purchase": "VAT Receivable"}
+        }
+        invoice = frappe._dict(
+            doctype="Purchase Invoice",
+            company="ACME",
+            grand_total=5753.9318,
+            items=[
+                frappe._dict(
+                    item_code="Y101642",
+                    net_amount=4849.5,
+                    is_nontaxable_item=0,
+                )
+            ],
+            taxes=[
+                frappe._dict(
+                    account_head="Import Duty",
+                    charge_type="On Net Total",
+                    tax_amount=0,
+                    tax_amount_after_discount_amount=0,
+                    add_deduct_tax="Add",
+                    item_wise_tax_detail={"Y101642": [0.0, 0.0]},
+                ),
+                frappe._dict(
+                    account_head="Excise",
+                    charge_type="On Previous Row Total",
+                    tax_amount=242.475,
+                    tax_amount_after_discount_amount=242.475,
+                    add_deduct_tax="Add",
+                    item_wise_tax_detail={"Y101642": [5.0, 242.475]},
+                ),
+                frappe._dict(
+                    account_head="VAT Receivable",
+                    charge_type="On Previous Row Total",
+                    tax_amount=661.9568,
+                    tax_amount_after_discount_amount=661.9568,
+                    add_deduct_tax="Add",
+                    item_wise_tax_detail={"Y101642": [13.0, 661.95675]},
+                ),
+            ],
+        )
+
+        check = utils.set_taxable_amounts(
+            invoice, None, consider_is_non_taxable_item=True
+        )
+
+        self.assertEqual(invoice.taxable_amount, 5091.98)
+        self.assertEqual(invoice.non_taxable_amount, 0)
+        self.assertEqual(check["expected_vat"], 661.96)
+        self.assertEqual(check["recorded_vat"], 661.96)
+        self.assertFalse(check["has_vat_mismatch"])
+        self.assertTrue(check["vat_on_added_taxes"])
 
     @patch("nepal_compliance.taxable_summary.frappe.has_permission", return_value=True)
     @patch("nepal_compliance.taxable_summary.frappe.get_doc")
@@ -471,40 +505,6 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         apply_change.assert_called_once_with(change)
         self.assertEqual(result["updated"], 1)
 
-    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
-    @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
-    def test_mismatch_adds_error_tag_and_comment(self, _set_value, get_doc):
-        doc = Mock()
-        get_doc.return_value = doc
-        change = {
-            "doctype": "Sales Invoice",
-            "name": "YTCN-1",
-            "old_taxable_amount": 1663.7,
-            "new_taxable_amount": 1796.44,
-            "old_non_taxable_amount": 132.74,
-            "new_non_taxable_amount": 0,
-            "old_vat_amount": 216.28,
-            "new_vat_amount": 216.28,
-            "old_summary_grand_total": 2012.72,
-            "new_summary_grand_total": 2012.72,
-            "summary_grand_total": 2012.72,
-            "item_vat_detail": None,
-            "calculation_check": {
-                "expected_vat": 233.54,
-                "recorded_vat": 216.28,
-                "vat_difference": -17.26,
-                "has_vat_mismatch": True,
-            },
-        }
-
-        taxable_summary._apply_change(change)
-
-        doc.add_tag.assert_called_once_with("VAT Accounting Error")
-        comments = [call.args[1] for call in doc.add_comment.call_args_list]
-        self.assertTrue(any("VAT Accounting Error" in text for text in comments))
-        self.assertTrue(any("accounting has 216.28" in text for text in comments))
-        self.assertTrue(any("Expected VAT 233.54" in text for text in comments))
-
     @patch("nepal_compliance.taxable_summary.frappe.db.commit")
     @patch("nepal_compliance.taxable_summary._flag_invoice")
     @patch("nepal_compliance.taxable_summary._apply_change")
@@ -538,6 +538,107 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertEqual(result["updated"], 1)
         self.assertEqual(result["calculation_warnings"], 1)
 
+    def test_paisa_taxable_rounding_is_ignored(self):
+        old = frappe._dict(
+            taxable_amount=681.41,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+        )
+        new = frappe._dict(
+            taxable_amount=681.42,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+        )
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=1)
+        )
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=0)
+        )
+
+    def test_sub_rupee_bill_total_rounding_is_ignored(self):
+        old = frappe._dict(
+            taxable_amount=35690,
+            non_taxable_amount=0,
+            vat_amount=4639.7,
+            summary_grand_total=40330,
+        )
+        new = frappe._dict(
+            taxable_amount=35690,
+            non_taxable_amount=0,
+            vat_amount=4639.7,
+            summary_grand_total=40329.7,
+        )
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=0)
+        )
+        self.assertFalse(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=1)
+        )
+
+    def test_real_taxable_change_is_not_ignored(self):
+        old = frappe._dict(
+            taxable_amount=4849.5,
+            non_taxable_amount=0,
+            vat_amount=661.96,
+            summary_grand_total=5753.93,
+        )
+        new = frappe._dict(
+            taxable_amount=5091.98,
+            non_taxable_amount=0,
+            vat_amount=661.96,
+            summary_grand_total=5753.93,
+        )
+        self.assertTrue(
+            taxable_summary._figures_changed(old, new, disable_rounded_total=0)
+        )
+
+    @patch("nepal_compliance.taxable_summary.frappe.has_permission", return_value=True)
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary.set_taxable_amounts")
+    def test_compute_skips_minor_rounding(self, set_summary, get_doc, _perm):
+        doc = frappe._dict(
+            doctype="Sales Invoice",
+            disable_rounded_total=0,
+            taxable_amount=681.42,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+            item_vat_detail=None,
+        )
+        get_doc.return_value = doc
+
+        def mutate(invoice, _method, consider_is_non_taxable_item=False):
+            invoice.taxable_amount = 681.42
+            return {
+                "expected_vat": 88.58,
+                "recorded_vat": 88.58,
+                "vat_difference": 0,
+                "has_vat_mismatch": False,
+                "vat_on_added_taxes": False,
+            }
+
+        set_summary.side_effect = mutate
+        row = frappe._dict(
+            name="YTSI-1",
+            company="ACME",
+            posting_date="2026-07-20",
+            is_return=0,
+            taxable_amount=681.41,
+            non_taxable_amount=0,
+            vat_amount=88.58,
+            summary_grand_total=770,
+        )
+
+        status, change = taxable_summary._compute_refresh_row(
+            "Sales Invoice", row, True
+        )
+
+        self.assertEqual(status, "unchanged")
+        self.assertIsNone(change)
+
     @patch("nepal_compliance.taxable_summary.frappe.has_permission", return_value=True)
     @patch("nepal_compliance.taxable_summary.frappe.get_doc")
     @patch("nepal_compliance.taxable_summary.set_taxable_amounts")
@@ -546,6 +647,7 @@ class TestSelectableTaxableSummary(unittest.TestCase):
     ):
         doc = frappe._dict(
             doctype="Sales Invoice",
+            disable_rounded_total=0,
             taxable_amount=1796.44,
             non_taxable_amount=0,
             vat_amount=216.28,

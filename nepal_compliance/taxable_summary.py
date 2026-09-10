@@ -74,6 +74,7 @@ def _iter_invoice_rows(from_date, to_date):
         "non_taxable_amount",
         "vat_amount",
         "summary_grand_total",
+        "disable_rounded_total",
     ]
     for doctype in DOCTYPE_ORDER:
         start = 0
@@ -101,6 +102,7 @@ SUMMARY_COMPARE_FIELDS = (
     "vat_amount",
     "summary_grand_total",
 )
+ROUNDING_IGNORE_LIMIT = 1.0
 VAT_ACCOUNTING_ERROR_TAG = "VAT Accounting Error"
 
 
@@ -109,12 +111,34 @@ def _amt(value):
     return None if value is None else flt(value, 2)
 
 
-def _figures_changed(old, new):
-    """True when taxable, non-taxable, VAT, or Bill Total would change."""
-    return any(
-        _amt(old.get(field)) != _amt(new.get(field))
+def _abs_diff(old_value, new_value):
+    """Absolute difference between two money fields, treating None as 0."""
+    return abs(flt(old_value) - flt(new_value))
+
+
+def _is_minor_rounding(old, new):
+    """True when every summary field differs by less than 1 rupee."""
+    return all(
+        _abs_diff(old.get(field), new.get(field)) < ROUNDING_IGNORE_LIMIT
         for field in SUMMARY_COMPARE_FIELDS
     )
+
+
+def _figures_changed(old, new, disable_rounded_total=False):
+    """True when taxable, non-taxable, VAT, or Bill Total would change.
+
+    Differences smaller than 1 rupee are ignored. If Disable Rounded Total is
+    checked, the figures already on the invoice are treated as correct. If it
+    is unchecked, rounded total is in use and the same sub-rupee gap is noise.
+    """
+    if not any(
+        _amt(old.get(field)) != _amt(new.get(field))
+        for field in SUMMARY_COMPARE_FIELDS
+    ):
+        return False
+    if _is_minor_rounding(old, new):
+        return False
+    return True
 
 
 def _document_type(doctype, is_return):
@@ -137,7 +161,11 @@ def _compute_refresh_row(doctype, row, consider_is_non_taxable_item=False):
     if doc.get("taxable_amount") is None:
         return "skipped", None
 
-    figures_changed = _figures_changed(row, doc)
+    figures_changed = _figures_changed(
+        row,
+        doc,
+        disable_rounded_total=cint(doc.get("disable_rounded_total")),
+    )
     has_warning = bool(
         calculation_check and calculation_check.get("has_vat_mismatch")
     )
