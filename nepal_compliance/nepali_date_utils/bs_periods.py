@@ -23,16 +23,26 @@ def end_of(y, m):
     return bs_to_ad(y, m, days_in_bs_month(y, m))
 
 
+def is_fiscal_period_month(y, m, freq):
+    """Return whether a BS month closes a continuous Ashadh-anchored period."""
+    freq = max(cint(freq), 1)
+    month_index = y * 12 + (m - 1)
+    ashadh_index = 2
+    return (month_index - ashadh_index) % freq == 0
+
+
 def next_fiscal_period_end(y, m, freq):
     """First BS month on or after (y, m) that ends a Nepali fiscal period.
 
     The Nepali fiscal year runs 1 Shrawan to end of Ashadh (months 4..3), so a
-    month closes a fiscal period exactly when (m - 3) % freq == 0:
+    continuous month offset from Ashadh determines each period end:
     monthly (1) -> every month; quarterly (3) -> Ashwin/Poush/Chaitra/Ashadh;
     half-yearly (6) -> Poush/Ashadh; yearly (12) -> Ashadh (FY end).
+    Including the BS year keeps arbitrary ERPNext frequencies consistent when
+    a period crosses a year boundary.
     """
     freq = max(cint(freq), 1)
-    while (m - 3) % freq != 0:
+    while not is_fiscal_period_month(y, m, freq):
         y, m = advance(y, m, 1)
     return y, m
 
