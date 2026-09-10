@@ -303,7 +303,13 @@ function show_preview_dialog(preview, values) {
 		primary_action() {
 			dialog.hide();
 			if (preview.changed) {
-				run_apply(values);
+				run_apply(
+					values,
+					preview.changes.map((row) => ({
+						doctype: row.doctype,
+						name: row.name,
+					}))
+				);
 			}
 		},
 	});
@@ -357,7 +363,7 @@ function listen_for_refresh_done() {
 	});
 }
 
-function run_apply(values) {
+function run_apply(values, selected_invoices) {
 	frappe._taxable_summary_apply_pending = frappe._taxable_summary_apply_pending || {};
 	const already_running = Object.values(frappe._taxable_summary_apply_pending).some(
 		(pending) =>
@@ -376,6 +382,7 @@ function run_apply(values) {
 			from_date: values.from_date,
 			to_date: values.to_date,
 			consider_is_non_taxable_item: values.consider_is_non_taxable_item || 0,
+			selected_invoices: JSON.stringify(selected_invoices),
 			request_id: request_id,
 		},
 		freeze: true,
