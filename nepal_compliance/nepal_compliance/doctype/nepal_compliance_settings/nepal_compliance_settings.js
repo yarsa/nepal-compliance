@@ -21,6 +21,15 @@ function open_date_prompt() {
 		title: __("Recompute Taxable Summary"),
 		fields: [
 			{
+				fieldname: "recompute_help_button",
+				fieldtype: "HTML",
+				options: `<div class="text-right">
+					<button type="button" class="btn btn-xs btn-default recompute-help" title="${__(
+						"About Recompute Taxable Summary"
+					)}">?</button>
+				</div>`,
+			},
+			{
 				fieldname: "fiscal_year",
 				fieldtype: "Link",
 				options: "Fiscal Year",
@@ -56,11 +65,20 @@ function open_date_prompt() {
 				reqd: 1,
 			},
 			{
+				fieldname: "consider_is_non_taxable_item",
+				fieldtype: "Check",
+				label: __("Consider Is Non-Taxable Item"),
+				default: 0,
+				description: __(
+					"Classify flagged item rows as non-taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT."
+				),
+			},
+			{
 				fieldname: "help",
 				fieldtype: "HTML",
 				options: `<p class="text-muted">
 					${__(
-						"Select a Fiscal Year to fill the dates, or enter a posting date range. Only submitted Sales and Purchase Invoices in this range will be scanned."
+						"Only submitted Sales and Purchase Invoices in this range will be scanned. VAT calculation mismatches are warnings; VAT recorded in invoice tax rows is retained."
 					)}
 				</p>`,
 			},
@@ -76,6 +94,34 @@ function open_date_prompt() {
 		},
 	});
 	dialog.show();
+	dialog.fields_dict.recompute_help_button.$wrapper
+		.find(".recompute-help")
+		.on("click", show_taxable_summary_help);
+}
+
+function show_taxable_summary_help() {
+	frappe.msgprint({
+		title: __("About Recompute Taxable Summary"),
+		message: `
+			<p>${__(
+				"Use this tool to preview and correct the Taxable Amount, Non-Taxable Amount, VAT Amount, Bill Total, and item VAT summary stored on submitted Sales and Purchase Invoices. You can select which suggestions to apply."
+			)}</p>
+			<p><b>${__("Example")}</b></p>
+			<ul>
+				<li>${__("Taxable item total")}: ${fmt(4189.33)}</li>
+				<li>${__("Non-taxable item total")}: ${fmt(28029)}</li>
+				<li>${__("Expected VAT")}: ${fmt(4189.33)} × 13% = ${fmt(544.61)}</li>
+				<li>${__("Bill Total")}: ${fmt(32218.33)} + ${fmt(544.61)} = ${fmt(32762.94)}</li>
+			</ul>
+			<p>${__(
+				"If Is PAN/Abbreviated Bill is checked, a Purchase Invoice has no Taxes and Charges rows, or its recorded VAT is zero, all its items are treated as non-taxable and expected VAT is zero."
+			)}</p>
+			<p>${__(
+				"If VAT is charged on a previous tax row (import duty, excise, or similar), taxable value is the VAT base (item net plus those added taxes), then expected VAT is that base × 13%."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
 }
 
 function listen_for_preview_done() {
@@ -124,6 +170,7 @@ function run_preview(values) {
 		args: {
 			from_date: values.from_date,
 			to_date: values.to_date,
+			consider_is_non_taxable_item: values.consider_is_non_taxable_item || 0,
 			request_id: request_id,
 		},
 		freeze: true,
@@ -328,6 +375,7 @@ function run_apply(values) {
 		args: {
 			from_date: values.from_date,
 			to_date: values.to_date,
+			consider_is_non_taxable_item: values.consider_is_non_taxable_item || 0,
 			request_id: request_id,
 		},
 		freeze: true,
