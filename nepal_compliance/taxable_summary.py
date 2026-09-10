@@ -101,6 +101,7 @@ SUMMARY_COMPARE_FIELDS = (
     "vat_amount",
     "summary_grand_total",
 )
+VAT_ACCOUNTING_ERROR_TAG = "VAT Accounting Error"
 
 
 def _amt(value):
@@ -225,6 +226,37 @@ def _scan_changes(from_date, to_date, consider_is_non_taxable_item=False):
     }
 
 
+def _has_vat_accounting_error(calculation_check):
+    """True when tax-table VAT disagrees with Taxable × 13%."""
+    return bool(calculation_check and calculation_check.get("has_vat_mismatch"))
+
+
+def _flag_vat_accounting_error(doc, calculation_check):
+    """Add an Error tag and comment when accounting VAT is wrong."""
+    if not _has_vat_accounting_error(calculation_check):
+        return
+    doc.add_tag(VAT_ACCOUNTING_ERROR_TAG)
+    doc.add_comment(
+        "Comment",
+        _(
+            "Nepal Compliance: VAT Accounting Error. "
+            "Expected VAT {0} (Taxable × 13%) but accounting has {1} "
+            "(difference {2}). IRD taxable summary can be correct while "
+            "GL / tax-table VAT stays wrong."
+        ).format(
+            flt(calculation_check["expected_vat"], 2),
+            flt(calculation_check["recorded_vat"], 2),
+            flt(calculation_check["vat_difference"], 2),
+        ),
+    )
+
+
+def _flag_invoice(change):
+    """Tag and comment a VAT accounting error without rewriting summary fields."""
+    doc = frappe.get_doc(change["doctype"], change["name"])
+    _flag_vat_accounting_error(doc, change.get("calculation_check") or {})
+
+
 def _apply_change(change):
     """Write recomputed taxable summary fields and add a comment on the invoice."""
     frappe.db.set_value(
@@ -257,6 +289,7 @@ def _apply_change(change):
             flt(change["new_summary_grand_total"], 2),
         ),
     )
+    _flag_vat_accounting_error(doc, change.get("calculation_check") or {})
 
 
 def _parse_selected_invoices(selected_invoices):
@@ -317,14 +350,15 @@ def _run_apply(
         if status == "denied":
             denied += 1
             continue
-        if status != "changed":
+        if status not in ("changed", "warning"):
             stale += 1
             continue
-        if change["calculation_check"] and change["calculation_check"].get(
-            "has_vat_mismatch"
-        ):
+        if _has_vat_accounting_error(change.get("calculation_check")):
             calculation_warnings += 1
-        _apply_change(change)
+        if status == "changed":
+            _apply_change(change)
+        else:
+            _flag_invoice(change)
         updated += 1
         batch_count += 1
         if batch_count >= BATCH_SIZE:
@@ -352,12 +386,14 @@ def _calculation_check_label(change):
     """Human-readable calculation status for a preview row."""
     check = change.get("calculation_check") or {}
     if check.get("has_vat_mismatch"):
-        return _("Mismatch")
+        return _("Error")
     return _("OK")
 
 
 def _change_group(change):
     """Preview/CSV group label for a taxable-summary row."""
+    if _has_vat_accounting_error(change.get("calculation_check")):
+        return _("VAT Accounting Error")
     if change.get("vat_on_added_taxes"):
         return _("Includes added taxes")
     return _("Suggestion")

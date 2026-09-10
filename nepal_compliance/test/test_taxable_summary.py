@@ -360,6 +360,7 @@ class TestSelectableTaxableSummary(unittest.TestCase):
 
         comment = doc.add_comment.call_args.args[1]
         self.assertIn("Bill Total: 113.0 → 113.0", comment)
+        doc.add_tag.assert_not_called()
 
     def test_csv_includes_selected_preview_rows(self):
         data = taxable_summary.taxable_summary_csv_data(
@@ -392,8 +393,8 @@ class TestSelectableTaxableSummary(unittest.TestCase):
 
         self.assertEqual(data[0], taxable_summary.TAXABLE_SUMMARY_CSV_COLUMNS)
         self.assertEqual(data[1][1], "YTPI-2083/84-00268")
-        self.assertEqual(data[1][13], "Includes added taxes")
-        self.assertEqual(data[1][17], "Mismatch")
+        self.assertEqual(data[1][13], "VAT Accounting Error")
+        self.assertEqual(data[1][17], "Error")
 
     @patch("nepal_compliance.taxable_summary._ensure_permission")
     def test_csv_download_requires_selected_rows(self, _permission):
@@ -469,6 +470,118 @@ class TestSelectableTaxableSummary(unittest.TestCase):
 
         apply_change.assert_called_once_with(change)
         self.assertEqual(result["updated"], 1)
+
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
+    def test_mismatch_adds_error_tag_and_comment(self, _set_value, get_doc):
+        doc = Mock()
+        get_doc.return_value = doc
+        change = {
+            "doctype": "Sales Invoice",
+            "name": "YTCN-1",
+            "old_taxable_amount": 1663.7,
+            "new_taxable_amount": 1796.44,
+            "old_non_taxable_amount": 132.74,
+            "new_non_taxable_amount": 0,
+            "old_vat_amount": 216.28,
+            "new_vat_amount": 216.28,
+            "old_summary_grand_total": 2012.72,
+            "new_summary_grand_total": 2012.72,
+            "summary_grand_total": 2012.72,
+            "item_vat_detail": None,
+            "calculation_check": {
+                "expected_vat": 233.54,
+                "recorded_vat": 216.28,
+                "vat_difference": -17.26,
+                "has_vat_mismatch": True,
+            },
+        }
+
+        taxable_summary._apply_change(change)
+
+        doc.add_tag.assert_called_once_with("VAT Accounting Error")
+        comments = [call.args[1] for call in doc.add_comment.call_args_list]
+        self.assertTrue(any("VAT Accounting Error" in text for text in comments))
+        self.assertTrue(any("accounting has 216.28" in text for text in comments))
+        self.assertTrue(any("Expected VAT 233.54" in text for text in comments))
+
+    @patch("nepal_compliance.taxable_summary.frappe.db.commit")
+    @patch("nepal_compliance.taxable_summary._flag_invoice")
+    @patch("nepal_compliance.taxable_summary._apply_change")
+    @patch("nepal_compliance.taxable_summary._compute_refresh_row")
+    @patch("nepal_compliance.taxable_summary._iter_invoice_rows")
+    def test_apply_tags_warning_only_vat_error(
+        self, iter_rows, compute, apply_change, flag_invoice, _commit
+    ):
+        row = frappe._dict(name="YTCN-1")
+        iter_rows.return_value = iter([("Sales Invoice", row)])
+        change = {
+            "would_change": False,
+            "calculation_check": {
+                "expected_vat": 233.54,
+                "recorded_vat": 216.28,
+                "vat_difference": -17.26,
+                "has_vat_mismatch": True,
+            },
+        }
+        compute.return_value = ("warning", change)
+
+        result = taxable_summary._run_apply(
+            "2026-01-01",
+            "2026-12-31",
+            [{"doctype": "Sales Invoice", "name": "YTCN-1"}],
+            True,
+        )
+
+        apply_change.assert_not_called()
+        flag_invoice.assert_called_once_with(change)
+        self.assertEqual(result["updated"], 1)
+        self.assertEqual(result["calculation_warnings"], 1)
+
+    @patch("nepal_compliance.taxable_summary.frappe.has_permission", return_value=True)
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary.set_taxable_amounts")
+    def test_compute_returns_warning_for_vat_accounting_error(
+        self, set_summary, get_doc, _perm
+    ):
+        doc = frappe._dict(
+            doctype="Sales Invoice",
+            taxable_amount=1796.44,
+            non_taxable_amount=0,
+            vat_amount=216.28,
+            summary_grand_total=2012.72,
+            item_vat_detail=None,
+        )
+        get_doc.return_value = doc
+
+        def mutate(invoice, _method, consider_is_non_taxable_item=False):
+            return {
+                "expected_vat": 233.54,
+                "recorded_vat": 216.28,
+                "vat_difference": -17.26,
+                "has_vat_mismatch": True,
+                "vat_on_added_taxes": False,
+            }
+
+        set_summary.side_effect = mutate
+        row = frappe._dict(
+            name="YTCN-1",
+            company="ACME",
+            posting_date="2026-07-20",
+            is_return=1,
+            taxable_amount=1796.44,
+            non_taxable_amount=0,
+            vat_amount=216.28,
+            summary_grand_total=2012.72,
+        )
+
+        status, change = taxable_summary._compute_refresh_row(
+            "Sales Invoice", row, True
+        )
+
+        self.assertEqual(status, "warning")
+        self.assertFalse(change["would_change"])
+        self.assertTrue(change["calculation_check"]["has_vat_mismatch"])
 
 
 if __name__ == "__main__":
