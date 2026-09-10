@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import frappe
 
-from nepal_compliance import utils
+from nepal_compliance import taxable_summary, utils
 
 
 class TestTaxableSummaryCalculation(unittest.TestCase):
@@ -109,6 +109,82 @@ class TestTaxableSummaryCalculation(unittest.TestCase):
         )
 
         self.assertFalse(utils.vat_charged_on_added_taxes(invoice))
+
+
+class TestSelectableTaxableSummary(unittest.TestCase):
+    def test_refresh_endpoints_are_post_only(self):
+        allowed = frappe.allowed_http_methods_for_whitelisted_func
+        self.assertEqual(
+            allowed[taxable_summary.preview_taxable_summary_refresh], ["POST"]
+        )
+        self.assertEqual(
+            allowed[taxable_summary.apply_taxable_summary_refresh], ["POST"]
+        )
+        self.assertEqual(
+            allowed[taxable_summary.download_taxable_summary_csv], ["POST"]
+        )
+
+    @patch("nepal_compliance.taxable_summary.frappe.db.commit")
+    @patch("nepal_compliance.taxable_summary._apply_change")
+    @patch("nepal_compliance.taxable_summary._compute_refresh_row")
+    @patch("nepal_compliance.taxable_summary._iter_invoice_rows")
+    def test_apply_updates_only_selected_invoice(
+        self, iter_rows, compute, apply_change, _commit
+    ):
+        selected_row = frappe._dict(name="PINV-1")
+        other_row = frappe._dict(name="PINV-2")
+        iter_rows.return_value = iter(
+            [
+                ("Purchase Invoice", selected_row),
+                ("Purchase Invoice", other_row),
+            ]
+        )
+        change = {"calculation_check": {"has_vat_mismatch": False}}
+        compute.return_value = ("changed", change)
+
+        result = taxable_summary._run_apply(
+            "2026-01-01",
+            "2026-12-31",
+            [{"doctype": "Purchase Invoice", "name": "PINV-1"}],
+            True,
+        )
+
+        compute.assert_called_once_with("Purchase Invoice", selected_row, True)
+        apply_change.assert_called_once_with(change)
+        self.assertEqual(result["updated"], 1)
+
+    def test_csv_contains_selected_preview_row(self):
+        data = taxable_summary.taxable_summary_csv_data(
+            [
+                {
+                    "document_type": "Purchase Invoice",
+                    "name": "YTPI-1",
+                    "posting_date": "2026-08-24",
+                    "company": "ACME",
+                    "old_taxable_amount": 4849.5,
+                    "new_taxable_amount": 5091.98,
+                    "old_non_taxable_amount": 0,
+                    "new_non_taxable_amount": 0,
+                    "old_vat_amount": 661.96,
+                    "new_vat_amount": 661.96,
+                    "old_summary_grand_total": 5753.93,
+                    "new_summary_grand_total": 5753.93,
+                    "would_change": True,
+                    "vat_on_added_taxes": True,
+                    "calculation_check": {
+                        "expected_vat": 661.96,
+                        "recorded_vat": 661.96,
+                        "vat_difference": 0,
+                        "has_vat_mismatch": False,
+                    },
+                }
+            ]
+        )
+
+        self.assertEqual(data[0], taxable_summary.TAXABLE_SUMMARY_CSV_COLUMNS)
+        self.assertEqual(data[1][1], "YTPI-1")
+        self.assertEqual(data[1][13], "Includes added taxes")
+        self.assertEqual(data[1][17], "OK")
 
 
 if __name__ == "__main__":

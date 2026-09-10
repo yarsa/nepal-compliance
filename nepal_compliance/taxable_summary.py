@@ -2,11 +2,32 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate
 from frappe.utils.background_jobs import enqueue
+from frappe.utils.csvutils import to_csv
 
 from nepal_compliance.utils import set_taxable_amounts
 
 BATCH_SIZE = 500
 DOCTYPE_ORDER = ("Sales Invoice", "Purchase Invoice")
+TAXABLE_SUMMARY_CSV_COLUMNS = [
+    "Type",
+    "Invoice",
+    "Posting Date",
+    "Company",
+    "Taxable (Old)",
+    "Taxable (New)",
+    "Non-Taxable (Old)",
+    "Non-Taxable (New)",
+    "VAT (Old)",
+    "VAT (New)",
+    "Bill Total (Old)",
+    "Bill Total (New)",
+    "Would Change",
+    "Group",
+    "Expected VAT",
+    "Recorded VAT",
+    "Difference",
+    "Calculation Check",
+]
 
 
 def _ensure_permission():
@@ -319,6 +340,64 @@ def _run_apply(
         "failed": failed,
         "calculation_warnings": calculation_warnings,
         "stale": stale,
+    }
+
+
+def _csv_amount(value):
+    """Format a money field for CSV, leaving blanks when unset."""
+    return "" if value is None else flt(value, 2)
+
+
+def taxable_summary_csv_data(changes):
+    """Return CSV header plus one row per taxable-summary preview change."""
+    data = [TAXABLE_SUMMARY_CSV_COLUMNS]
+    for change in changes or []:
+        check = change.get("calculation_check") or {}
+        data.append(
+            [
+                change.get("document_type") or change.get("doctype") or "",
+                change.get("name") or "",
+                change.get("posting_date") or "",
+                change.get("company") or "",
+                _csv_amount(change.get("old_taxable_amount")),
+                _csv_amount(change.get("new_taxable_amount")),
+                _csv_amount(change.get("old_non_taxable_amount")),
+                _csv_amount(change.get("new_non_taxable_amount")),
+                _csv_amount(change.get("old_vat_amount")),
+                _csv_amount(change.get("new_vat_amount")),
+                _csv_amount(change.get("old_summary_grand_total")),
+                _csv_amount(change.get("new_summary_grand_total")),
+                _("Yes") if change.get("would_change") else _("No"),
+                _("Includes added taxes")
+                if change.get("vat_on_added_taxes")
+                else _("Suggestion"),
+                _csv_amount(check.get("expected_vat")),
+                _csv_amount(check.get("recorded_vat")),
+                _csv_amount(check.get("vat_difference")),
+                _("Mismatch") if check.get("has_vat_mismatch") else _("OK"),
+            ]
+        )
+    return data
+
+
+@frappe.whitelist(methods=["POST"])
+def download_taxable_summary_csv(
+    rows: list | str,
+    from_date: str | None = None,
+    to_date: str | None = None,
+):
+    """Return a CSV file for the selected taxable-summary preview rows."""
+    _ensure_permission()
+    changes = frappe.parse_json(rows) if isinstance(rows, str) else rows
+    if not isinstance(changes, list) or not changes:
+        frappe.throw(_("Select at least one row to download."))
+
+    filename = "taxable_summary"
+    if from_date and to_date:
+        filename = f"taxable_summary_{from_date}_to_{to_date}"
+    return {
+        "filename": f"{filename}.csv",
+        "csv": to_csv(taxable_summary_csv_data(changes)),
     }
 
 
