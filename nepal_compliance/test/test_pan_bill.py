@@ -5,9 +5,68 @@ from unittest.mock import Mock, patch
 import frappe
 
 from nepal_compliance import default_tax_template, pan_supplier, utils
+from nepal_compliance.nepal_compliance.report.purchase_register_ird import (
+    purchase_register_ird,
+)
 
 
 class TestPanBill(unittest.TestCase):
+    @patch.object(purchase_register_ird, "resolve_ird_fiscal_year_start")
+    @patch.object(purchase_register_ird, "invoice_ird_total", return_value=1000)
+    @patch.object(
+        purchase_register_ird,
+        "resolve_report_vat_source",
+        return_value=({"Item": [13, 130]}, True, {}),
+    )
+    @patch.object(purchase_register_ird, "get_vat_breakup", return_value={})
+    @patch.object(
+        purchase_register_ird, "use_legacy_ird_report_calculation", return_value=False
+    )
+    @patch.object(purchase_register_ird.frappe, "get_all")
+    @patch.object(purchase_register_ird.frappe.db, "sql")
+    def test_pan_bill_is_fully_tax_exempt_in_purchase_register(
+        self, sql, get_all, _legacy, _breakup, _source, _total, _fy
+    ):
+        sql.return_value = [
+            frappe._dict(
+                invoice="PINV-1",
+                bill_no="SUP-1",
+                bill_date=None,
+                customs_declaration_number=None,
+                rounded_total=1000,
+                grand_total=1000,
+                summary_grand_total=1000,
+                posting_date="2026-01-01",
+                supplier_name="Local Supplier",
+                invoice_pan="123456789",
+                total=1000,
+                total_tax=130,
+                supplier="SUP-1",
+                company="ACME",
+                stored_taxable_amount=1000,
+                stored_item_vat_detail=None,
+                stored_party_country="Nepal",
+                address_country="Nepal",
+                supplier_tax_id="123456789",
+                is_pan_or_abbreviated_bill=1,
+            )
+        ]
+        get_all.return_value = [
+            frappe._dict(
+                parent="PINV-1",
+                item_code="Item",
+                net_amount=1000,
+                asset_category=None,
+                is_nontaxable_item=0,
+            )
+        ]
+
+        row = purchase_register_ird.get_data({})[0]
+
+        self.assertEqual(row["tax_exempt"], 1000)
+        self.assertEqual(row["taxable_amount"], 0)
+        self.assertEqual(row["tax_amount"], 0)
+
     @patch("nepal_compliance.pan_supplier.supplier_billing_country")
     def test_non_vat_supplier_must_be_nepal_company(self, billing_country):
         billing_country.return_value = "Nepal"
