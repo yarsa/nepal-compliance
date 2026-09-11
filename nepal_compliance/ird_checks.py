@@ -180,3 +180,87 @@ def check_summary(rows):
         "datatype": "Int",
         "indicator": "Red" if invoices else "Green",
     }
+
+
+def _invoice_contexts(doctype, names):
+    if not names:
+        return {}
+    party_field = "customer" if doctype == "Sales Invoice" else "supplier"
+    fields = [
+        "name",
+        "company",
+        "currency",
+        "conversion_rate",
+        "is_return",
+        "return_against",
+        "tax_id",
+        "ird_party_country",
+        "taxable_amount",
+        "non_taxable_amount",
+        "vat_amount",
+        "summary_grand_total",
+        party_field,
+    ]
+    if doctype == "Purchase Invoice":
+        fields.extend(["attach_purchase_invoice", "is_pan_or_abbreviated_bill"])
+    rows = frappe.get_all(
+        doctype,
+        filters={"name": ["in", names]},
+        fields=fields,
+        limit_page_length=0,
+    )
+    for row in rows:
+        row.doctype = doctype
+    return {row.name: row for row in rows}
+
+
+def _parties(doctype, contexts):
+    party_doctype = "Customer" if doctype == "Sales Invoice" else "Supplier"
+    party_field = party_doctype.lower()
+    names = {row.get(party_field) for row in contexts.values() if row.get(party_field)}
+    if not names:
+        return {}
+    fields = ["name", "tax_id"]
+    if party_doctype == "Customer":
+        fields.extend(["customer_type", "customer_group"])
+    else:
+        fields.extend(["supplier_type", "supplier_group", "country"])
+    return {
+        row.name: row
+        for row in frappe.get_all(
+            party_doctype,
+            filters={"name": ["in", list(names)]},
+            fields=fields,
+            limit_page_length=0,
+        )
+    }
+
+
+def decorate_rows(rows, doctype, filters=None):
+    """Attach configured errors to report rows, then apply the error filter."""
+    names = list(
+        {
+            row.get("invoice_name")
+            for row in rows
+            if row.get("invoice_name") and not row.get("is_section")
+        }
+    )
+    contexts = _invoice_contexts(doctype, names)
+    parties = _parties(doctype, contexts)
+    settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    party_field = "customer" if doctype == "Sales Invoice" else "supplier"
+    errors_by_invoice = {
+        name: check_context(
+            context,
+            parties.get(context.get(party_field)),
+            settings,
+        )
+        for name, context in contexts.items()
+    }
+
+    for row in rows:
+        errors = errors_by_invoice.get(row.get("invoice_name"), [])
+        row["compliance_errors"] = errors
+        row["compliance_error_codes"] = [error["code"] for error in errors]
+        row["compliance_checks"] = ", ".join(error["label"] for error in errors)
+    return filter_rows(rows, filters)

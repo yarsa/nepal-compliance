@@ -68,6 +68,24 @@
     cursor: help;
 }
 
+.ird-error-pill {
+    display: inline-block;
+    margin: 0.1rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.75rem;
+    background: var(--red-100);
+    color: var(--red-700);
+    font-size: 0.72rem;
+    line-height: 1.25;
+    cursor: help;
+}
+
+.ird-check-ok {
+    color: var(--green-600);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
 .ird-prior-fy-section {
     border-top: 1px solid var(--border-color, #d1d8dd);
     padding-top: 1rem;
@@ -118,7 +136,7 @@
 /* Fit all IRD register filters on one row without clipping Link dropdowns */
 .ird-register-page .page-form,
 .ird-purchase-register-page .page-form {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0;
     overflow: visible;

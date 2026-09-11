@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import frappe
 
@@ -92,6 +93,46 @@ class TestIrdChecks(unittest.TestCase):
         )
 
         self.assertEqual([row.invoice for row in filtered], ["A"])
+
+    @patch("nepal_compliance.ird_checks.frappe.get_cached_doc")
+    @patch("nepal_compliance.ird_checks._parties")
+    @patch("nepal_compliance.ird_checks._invoice_contexts")
+    def test_decorate_rows_adds_errors_and_filters(
+        self, contexts, parties, get_settings
+    ):
+        contexts.return_value = {
+            "SINV-1": frappe._dict(
+                name="SINV-1",
+                doctype="Sales Invoice",
+                customer="CUST-1",
+                tax_id="123456789",
+                ird_party_country="Nepal",
+                taxable_amount=1000,
+                non_taxable_amount=0,
+                vat_amount=120,
+                summary_grand_total=1120,
+            )
+        }
+        parties.return_value = {
+            "CUST-1": frappe._dict(
+                customer_type="Company", customer_group="Commercial"
+            )
+        }
+        get_settings.return_value = self.settings
+        rows = [
+            frappe._dict(
+                invoice="SINV-1",
+                invoice_name="SINV-1",
+                invoice_doctype="Sales Invoice",
+            )
+        ]
+
+        result = ird_checks.decorate_rows(
+            rows, "Sales Invoice", {"error_types": ["vat_mismatch"]}
+        )
+
+        self.assertEqual(result[0].compliance_error_codes, ["vat_mismatch"])
+        self.assertIn("VAT Mismatch", result[0].compliance_checks)
 
 
 if __name__ == "__main__":
