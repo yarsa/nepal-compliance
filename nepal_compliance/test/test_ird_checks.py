@@ -94,11 +94,12 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual([row.invoice for row in filtered], ["A"])
 
+    @patch("nepal_compliance.ird_checks._submitted_returns", return_value={})
     @patch("nepal_compliance.ird_checks.frappe.get_cached_doc")
     @patch("nepal_compliance.ird_checks._parties")
     @patch("nepal_compliance.ird_checks._invoice_contexts")
     def test_decorate_rows_adds_errors_and_filters(
-        self, contexts, parties, get_settings
+        self, contexts, parties, get_settings, _returns
     ):
         contexts.return_value = {
             "SINV-1": frappe._dict(
@@ -133,6 +134,25 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(result[0].compliance_error_codes, ["vat_mismatch"])
         self.assertIn("VAT Mismatch", result[0].compliance_checks)
+
+    def test_return_without_original_invoice_is_error(self):
+        context = frappe._dict(is_return=1, return_against=None)
+        self.settings.enable_return_match_check = 1
+
+        errors = ird_checks.check_return_reference(context, self.settings)
+
+        self.assertEqual(errors[0]["code"], "missing_return_against")
+
+    @patch("nepal_compliance.ird_checks.frappe.get_all")
+    def test_submitted_notes_are_grouped_by_original(self, get_all):
+        get_all.return_value = [
+            frappe._dict(name="CN-1", return_against="SINV-1"),
+            frappe._dict(name="CN-2", return_against="SINV-1"),
+        ]
+
+        grouped = ird_checks._submitted_returns("Sales Invoice", ["SINV-1"])
+
+        self.assertEqual(grouped["SINV-1"], ["CN-1", "CN-2"])
 
 
 if __name__ == "__main__":
