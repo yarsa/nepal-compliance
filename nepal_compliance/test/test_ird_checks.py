@@ -35,6 +35,14 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(errors[0]["code"], "invalid_nepal_tax_id")
 
+    def test_missing_country_uses_nepal_pan_rule(self):
+        context = frappe._dict(doctype="Sales Invoice", tax_id="123")
+        party = frappe._dict(customer_type="Company", customer_group="Commercial")
+
+        errors = ird_checks.check_party_tax_id(context, party, self.settings)
+
+        self.assertEqual(errors[0]["code"], "invalid_nepal_tax_id")
+
     def test_unselected_party_rule_does_not_require_tax_id(self):
         context = frappe._dict(
             doctype="Purchase Invoice", tax_id="", ird_party_country="Nepal"

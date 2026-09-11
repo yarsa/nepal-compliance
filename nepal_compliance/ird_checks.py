@@ -64,7 +64,9 @@ def check_party_tax_id(context, party, settings):
                 _("Tax ID is required for the configured party type or group."),
             )
         ]
-    country = str(context.get("ird_party_country") or "").strip()
+    country = str(
+        context.get("ird_party_country") or party.get("country") or "Nepal"
+    ).strip()
     if country.casefold() == "nepal" and not NEPAL_PAN.fullmatch(tax_id):
         return [
             issue(
@@ -227,6 +229,9 @@ def _invoice_contexts(doctype, names):
     if not names:
         return {}
     party_field = "customer" if doctype == "Sales Invoice" else "supplier"
+    address_field = (
+        "customer_address" if doctype == "Sales Invoice" else "supplier_address"
+    )
     fields = [
         "name",
         "company",
@@ -241,6 +246,7 @@ def _invoice_contexts(doctype, names):
         "vat_amount",
         "summary_grand_total",
         party_field,
+        address_field,
     ]
     if doctype == "Purchase Invoice":
         fields.extend(["attach_purchase_invoice", "is_pan_or_abbreviated_bill"])
@@ -252,6 +258,24 @@ def _invoice_contexts(doctype, names):
     )
     for row in rows:
         row.doctype = doctype
+    address_names = {row.get(address_field) for row in rows if row.get(address_field)}
+    countries = (
+        dict(
+            frappe.get_all(
+                "Address",
+                filters={"name": ["in", list(address_names)]},
+                fields=["name", "country"],
+                as_list=True,
+                limit_page_length=0,
+            )
+        )
+        if address_names
+        else {}
+    )
+    for row in rows:
+        row.ird_party_country = (
+            row.get("ird_party_country") or countries.get(row.get(address_field)) or ""
+        )
     return {row.name: row for row in rows}
 
 
