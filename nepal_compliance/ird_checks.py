@@ -12,23 +12,24 @@ from frappe.utils import flt
 MONEY_TOLERANCE = 0.01
 NEPAL_PAN = re.compile(r"^[0-9]{9}$")
 
-ERROR_LABELS = {
-    "missing_tax_id": _("Missing Tax ID"),
-    "invalid_nepal_tax_id": _("Invalid Nepal Tax ID"),
-    "vat_mismatch": _("VAT Mismatch"),
-    "total_mismatch": _("Total Mismatch"),
-    "missing_purchase_attachment": _("Missing Purchase Attachment"),
-    "missing_invoice_number": _("Missing Invoice Number"),
-    "invoice_sequence_gap": _("Invoice Sequence Gap"),
-    "missing_return_against": _("Missing Original Invoice"),
-    "return_value_mismatch": _("Credit/Debit Note Mismatch"),
-}
+def error_labels():
+    return {
+        "missing_tax_id": _("Missing Tax ID"),
+        "invalid_nepal_tax_id": _("Invalid Nepal Tax ID"),
+        "vat_mismatch": _("VAT Mismatch"),
+        "total_mismatch": _("Total Mismatch"),
+        "missing_purchase_attachment": _("Missing Purchase Attachment"),
+        "missing_invoice_number": _("Missing Invoice Number"),
+        "invoice_sequence_gap": _("Invoice Sequence Gap"),
+        "missing_return_against": _("Missing Original Invoice"),
+        "return_value_mismatch": _("Credit/Debit Note Mismatch"),
+    }
 
 
 def issue(code, message, *, expected=None, actual=None):
     return {
         "code": code,
-        "label": ERROR_LABELS[code],
+        "label": error_labels()[code],
         "message": message,
         "expected": expected,
         "actual": actual,
