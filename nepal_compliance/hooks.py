@@ -26,7 +26,7 @@ add_to_apps_screen = [
 # include js, css files in header of desk.html
 app_include_css = [
     "/assets/nepal_compliance/css/nepali_calendar.css",
-    "/assets/nepal_compliance/css/date.css?v=ird-prior-fy-7"]
+    "/assets/nepal_compliance/css/date.css?v=ird-checks-1"]
 
 app_include_js = [
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
@@ -39,7 +39,7 @@ app_include_js = [
     "/assets/nepal_compliance/js/report_filter.js",
     "/assets/nepal_compliance/js/ird_bs_dates.js",
     "/assets/nepal_compliance/js/ird_month_picker.js",
-    "/assets/nepal_compliance/js/ird_register.js?v=ird-prior-fy-5",
+    "/assets/nepal_compliance/js/ird_register.js?v=ird-checks-1",
     "/assets/nepal_compliance/js/icon_patch.js",
     "/assets/nepal_compliance/js/employee_benefit_claim.js"]
 
