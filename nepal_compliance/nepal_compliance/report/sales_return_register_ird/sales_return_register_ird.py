@@ -10,6 +10,7 @@ from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
 )
+from nepal_compliance.ird_sequence import append_sequence_gaps
 from nepal_compliance.utils import (
     distribute_item_vat,
     get_vat_breakup,
@@ -28,6 +29,7 @@ def execute(filters=None):
     """Run the IRD Sales Return Register and return columns plus rows."""
     columns = get_columns() + check_columns()
     data = decorate_rows(get_data(filters or {}), "Sales Invoice", filters)
+    data = append_sequence_gaps(data, filters, is_return=True)
     return columns, data, None, None, [check_summary(data)]
 
 def get_columns():
