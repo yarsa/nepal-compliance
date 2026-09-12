@@ -184,13 +184,15 @@ def filter_rows(rows, filters):
 
 
 def checks_enabled(settings=None):
-    settings = settings or frappe.get_cached_doc("Nepal Compliance Settings")
+    if settings is None:
+        settings = frappe.get_cached_doc("Nepal Compliance Settings")
     return any(settings.get(fieldname) for fieldname in IRD_CHECK_FIELDS)
 
 
 def check_columns(columns, settings=None):
     """Insert enabled compliance columns without disturbing the register layout."""
-    settings = settings or frappe.get_cached_doc("Nepal Compliance Settings")
+    if settings is None:
+        settings = frappe.get_cached_doc("Nepal Compliance Settings")
     columns = list(columns)
     if not checks_enabled(settings):
         return columns
