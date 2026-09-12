@@ -230,6 +230,8 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(result[0].compliance_error_codes, ["vat_mismatch"])
         self.assertIn("VAT Mismatch", result[0].compliance_checks)
+        self.assertEqual(result[0].party_type, "Company")
+        self.assertEqual(result[0].party_group, "Commercial")
 
     def test_return_without_original_invoice_is_error(self):
         context = frappe._dict(is_return=1, return_against=None)

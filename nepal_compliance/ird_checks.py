@@ -522,6 +522,7 @@ def decorate_rows(rows, doctype, filters=None):
 
     for row in rows:
         context = contexts.get(row.get("invoice_name"))
+        party = parties.get(context.get(party_field)) if context else None
         errors = list(errors_by_invoice.get(row.get("invoice_name"), []))
         if (
             doctype == "Sales Invoice"
@@ -547,4 +548,10 @@ def decorate_rows(rows, doctype, filters=None):
         ]
         row["adjustment_notes"] = ", ".join(note_names)
         row["invoice_hover_items"] = hover_items.get(row.get("invoice_name"), [])
+        row["party_type"] = (
+            party.get("customer_type") or party.get("supplier_type") if party else ""
+        )
+        row["party_group"] = (
+            party.get("customer_group") or party.get("supplier_group") if party else ""
+        )
     return filter_rows(rows, filters)

@@ -300,6 +300,16 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 				.join(", ")
 		);
 	}
+	if (["customer_name", "supplier_name"].includes(fieldname) && data) {
+		const formatted = default_formatter(value, row, column, data);
+		const details = [
+			`${__("Type")}: ${data.party_type || "—"}`,
+			`${__("Group")}: ${data.party_group || "—"}`,
+		].join("\n");
+		return mark_error_row(
+			`<span title="${frappe.utils.escape_html(details)}">${formatted}</span>`
+		);
+	}
 	if (fieldname === "bill_date" && data && cint(data.bill_month_mismatch)) {
 		const formatted = default_formatter(value, row, column, data);
 		const days = data.bill_posting_day_diff;
