@@ -11,6 +11,14 @@ from frappe.utils import flt
 
 MONEY_TOLERANCE = 0.01
 NEPAL_PAN = re.compile(r"^[0-9]{9}$")
+IRD_CHECK_FIELDS = (
+    "enable_party_tax_id_check",
+    "enable_vat_amount_check",
+    "enable_total_amount_check",
+    "enable_sales_invoice_number_check",
+    "enable_purchase_attachment_check",
+    "enable_return_match_check",
+)
 
 def error_labels():
     return {
@@ -175,21 +183,37 @@ def filter_rows(rows, filters):
     ]
 
 
-def check_columns():
-    return [
-        {
-            "label": _("Credit / Debit Note"),
-            "fieldname": "adjustment_notes",
-            "fieldtype": "Data",
-            "width": 180,
-        },
+def checks_enabled(settings=None):
+    settings = settings or frappe.get_cached_doc("Nepal Compliance Settings")
+    return any(settings.get(fieldname) for fieldname in IRD_CHECK_FIELDS)
+
+
+def check_columns(columns, settings=None):
+    """Insert enabled compliance columns without disturbing the register layout."""
+    settings = settings or frappe.get_cached_doc("Nepal Compliance Settings")
+    columns = list(columns)
+    if not checks_enabled(settings):
+        return columns
+
+    columns.insert(
+        1,
         {
             "label": _("Checks"),
             "fieldname": "compliance_checks",
             "fieldtype": "Data",
             "width": 220,
-        }
-    ]
+        },
+    )
+    if settings.get("enable_return_match_check"):
+        columns.append(
+            {
+                "label": _("Credit / Debit Note"),
+                "fieldname": "adjustment_notes",
+                "fieldtype": "Data",
+                "width": 180,
+            }
+        )
+    return columns
 
 
 def check_summary(rows):

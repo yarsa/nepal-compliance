@@ -65,7 +65,7 @@ def get_sales_register_summary(rows):
 
 def execute(filters=None):
     """Run the IRD Sales Register and return columns, rows, and summary."""
-    columns = get_columns() + check_columns()
+    columns = check_columns(get_columns())
     data = decorate_rows(get_data(filters), "Sales Invoice", filters)
     data = append_sequence_gaps(data, filters, is_return=False)
     summary = get_sales_register_summary(data)

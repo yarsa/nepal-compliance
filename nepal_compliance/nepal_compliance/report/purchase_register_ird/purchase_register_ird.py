@@ -117,7 +117,7 @@ def get_purchase_register_summary(rows, prior_fy_count=0):
 
 def execute(filters=None):
     """Run the IRD Purchase Register and return columns, rows, and summary."""
-    columns = get_columns() + check_columns()
+    columns = check_columns(get_columns())
     data = decorate_rows(get_data(filters, bucket="all"), "Purchase Invoice", filters)
     prior_fy_count = sum(1 for r in data if r.get("is_prior_fy"))
     summary = get_purchase_register_summary(data, prior_fy_count=prior_fy_count)
