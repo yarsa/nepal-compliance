@@ -133,6 +133,18 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual([row.invoice for row in filtered], ["A"])
 
+    def test_summary_filter_selects_taxable_and_error_rows(self):
+        rows = [
+            frappe._dict(invoice="A", taxable_amount=100, compliance_error_codes=[]),
+            frappe._dict(invoice="B", tax_exempt=100, compliance_error_codes=["vat_mismatch"]),
+        ]
+
+        taxable = ird_checks.filter_summary_rows(rows, {"ird_summary_view": "taxable"})
+        errors = ird_checks.filter_summary_rows(rows, {"ird_summary_view": "errors"})
+
+        self.assertEqual([row.invoice for row in taxable], ["A"])
+        self.assertEqual([row.invoice for row in errors], ["B"])
+
     def test_checks_column_is_second_only_when_enabled(self):
         base = [
             {"fieldname": "invoice_date"},
@@ -177,12 +189,13 @@ class TestIrdChecks(unittest.TestCase):
         self.assertEqual(contexts["PINV-1"].check_vat_amount, 78)
         self.assertEqual(contexts["PINV-1"].check_non_taxable_amount, 50)
 
+    @patch("nepal_compliance.ird_checks._invoice_hover_items", return_value={})
     @patch("nepal_compliance.ird_checks._submitted_returns", return_value={})
     @patch("nepal_compliance.ird_checks.frappe.get_cached_doc")
     @patch("nepal_compliance.ird_checks._parties")
     @patch("nepal_compliance.ird_checks._invoice_contexts")
     def test_decorate_rows_adds_errors_and_filters(
-        self, contexts, parties, get_settings, _returns
+        self, contexts, parties, get_settings, _returns, _hover_items
     ):
         contexts.return_value = {
             "SINV-1": frappe._dict(
