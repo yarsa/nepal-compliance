@@ -175,7 +175,11 @@ def get_data(filters):
                 tax_exempt_item = net
                 tax_exempt_total += net
             else:
-                taxable_amount_item = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+                taxable_amount_item = (
+                    net
+                    if legacy
+                    else item_taxable_amount(item, item_vat, item_vat_map, 4)
+                )
                 tax_amount_item = (
                     net / legacy_taxable_total * flt(inv.total_tax)
                     if legacy and legacy_taxable_total

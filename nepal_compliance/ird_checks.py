@@ -18,6 +18,7 @@ IRD_CHECK_FIELDS = (
     "enable_total_amount_check",
     "enable_sales_invoice_number_check",
     "enable_purchase_attachment_check",
+    "enable_purchase_vat_tax_id_check",
     "enable_return_match_check",
 )
 
@@ -54,24 +55,42 @@ def _rule_matches(party, rules, type_field, group_field):
 
 
 def check_party_tax_id(context, party, settings):
-    if not settings.get("enable_party_tax_id_check") or not party:
+    if not party:
         return []
 
     is_sales = context.get("doctype") == "Sales Invoice"
+    vat = (
+        context.get("check_vat_amount")
+        if context.get("check_vat_amount") is not None
+        else context.get("vat_amount")
+    )
+    vat_requires_tax_id = (
+        not is_sales
+        and settings.get("enable_purchase_vat_tax_id_check")
+        and abs(flt(vat)) >= MONEY_TOLERANCE
+    )
     rules = settings.get(
         "customer_tax_id_rules" if is_sales else "supplier_tax_id_rules"
     )
     type_field = "customer_type" if is_sales else "supplier_type"
     group_field = "customer_group" if is_sales else "supplier_group"
-    if not _rule_matches(party, rules, type_field, group_field):
+    rule_requires_tax_id = settings.get("enable_party_tax_id_check") and _rule_matches(
+        party, rules, type_field, group_field
+    )
+    if not vat_requires_tax_id and not rule_requires_tax_id:
         return []
 
     tax_id = str(context.get("tax_id") or party.get("tax_id") or "").strip()
     if not tax_id:
+        message = (
+            _("Tax ID is required when a Purchase Invoice includes VAT.")
+            if vat_requires_tax_id
+            else _("Tax ID is required for the configured party type or group.")
+        )
         return [
             issue(
                 "missing_tax_id",
-                _("Tax ID is required for the configured party type or group."),
+                message,
             )
         ]
     country = str(

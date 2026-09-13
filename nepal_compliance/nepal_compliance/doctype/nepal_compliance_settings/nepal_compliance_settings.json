@@ -33,6 +33,7 @@
   "enable_sales_invoice_number_check",
   "ird_checks_column",
   "enable_purchase_attachment_check",
+  "enable_purchase_vat_tax_id_check",
   "consider_sidebar_purchase_attachments",
   "accepted_purchase_attachment_fields",
   "enable_return_match_check",
@@ -207,6 +208,13 @@
    "fieldname": "enable_purchase_attachment_check",
    "fieldtype": "Check",
    "label": "Check Purchase Invoice Attachment"
+  },
+  {
+   "default": "0",
+   "description": "Require a Supplier Tax ID whenever a Purchase Invoice has a VAT amount.",
+   "fieldname": "enable_purchase_vat_tax_id_check",
+   "fieldtype": "Check",
+   "label": "Require Supplier Tax ID for VAT Purchases"
   },
   {
    "default": "0",
