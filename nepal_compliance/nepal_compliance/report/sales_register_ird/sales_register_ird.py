@@ -162,6 +162,42 @@ def get_data(filters):
         else get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
     )
 
+    invoice_names = [inv.invoice for inv in invoices]
+    all_items = (
+        frappe.get_all(
+            "Sales Invoice Item",
+            filters={"parent": ["in", invoice_names]},
+            fields=[
+                "parent",
+                "is_nontaxable_item",
+                "net_amount",
+                "amount",
+                "item_code",
+                "item_name",
+                "item_tax_template",
+            ],
+            limit_page_length=0,
+        )
+        if invoice_names
+        else []
+    )
+    items_by_invoice = {}
+    for item in all_items:
+        items_by_invoice.setdefault(item.parent, []).append(item)
+
+    item_codes = {item.item_code for item in all_items if item.item_code}
+    asset_items = (
+        set(
+            frappe.get_all(
+                "Item",
+                filters={"name": ["in", list(item_codes)], "is_fixed_asset": 1},
+                pluck="name",
+            )
+        )
+        if item_codes
+        else set()
+    )
+
     for inv in invoices:
         customer_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
         is_export = is_foreign_country(customer_country)
@@ -171,13 +207,7 @@ def get_data(filters):
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
         tax_domestic_nc = 0.0
 
-        item_filters = {"parent": inv.invoice}
-
-        items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_name", "item_tax_template"])
-
-        item_codes = [item["item_code"] for item in items]
-        asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
+        items = items_by_invoice.get(inv.invoice, [])
 
         item_vat_map, stored, breakup = (
             ({}, False, {})
