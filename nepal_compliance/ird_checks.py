@@ -238,6 +238,8 @@ def filter_summary_rows(rows, filters):
     def matches(row):
         if view == "errors":
             return bool(row.get("compliance_error_codes"))
+        if view == "zero_value":
+            return bool(row.get("invoice_name")) and flt(row.get("total")) == 0
         if view == "tax_exempt":
             return flt(row.get("tax_exempt")) > 0
         if view == "taxable":

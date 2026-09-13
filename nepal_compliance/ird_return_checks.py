@@ -71,6 +71,7 @@ def _items(doctype, names):
             "name",
             "parent",
             "item_code",
+            "item_name",
             "uom",
             "qty",
             "rate",

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import frappe
 
@@ -90,6 +91,12 @@ class TestIrdReturnChecks(unittest.TestCase):
         )
 
         self.assertTrue(any("not linked" in text for text in differences))
+
+    @patch("nepal_compliance.ird_return_checks.frappe.get_all", return_value=[])
+    def test_manual_items_load_item_name_for_vat_allocation(self, get_all):
+        ird_return_checks._items("Sales Invoice", ["SINV-1"])
+
+        self.assertIn("item_name", get_all.call_args.kwargs["fields"])
 
 
 if __name__ == "__main__":
