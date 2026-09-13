@@ -165,7 +165,7 @@ def get_data(filters):
                 tax_exempt += net
                 continue
 
-            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map, 4)
             if item.get("asset_category"):
                 capital_taxable_amount += amt
                 tax_capital += item_vat

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import frappe
 
-from nepal_compliance import ird_checks
+from nepal_compliance import ird_checks, utils
 
 
 class TestIrdChecks(unittest.TestCase):
@@ -55,6 +55,25 @@ class TestIrdChecks(unittest.TestCase):
             ird_checks.check_party_tax_id(context, party, self.settings), []
         )
 
+    def test_vat_purchase_requires_supplier_tax_id_when_enabled(self):
+        self.settings.enable_party_tax_id_check = 0
+        self.settings.enable_purchase_vat_tax_id_check = 1
+        context = frappe._dict(
+            doctype="Purchase Invoice",
+            check_vat_amount=130,
+            tax_id="",
+            ird_party_country="Nepal",
+        )
+        party = frappe._dict(
+            supplier_type="Company",
+            supplier_group="Foreign",
+            tax_id="",
+        )
+
+        errors = ird_checks.check_party_tax_id(context, party, self.settings)
+
+        self.assertEqual(errors[0]["code"], "missing_tax_id")
+
     def test_vat_and_total_mismatches_are_separate_errors(self):
         context = frappe._dict(
             taxable_amount=1000,
@@ -84,6 +103,14 @@ class TestIrdChecks(unittest.TestCase):
         context.check_vat_amount = 40495.5753
         errors = ird_checks.check_amounts(context, self.settings)
         self.assertEqual([error["code"] for error in errors], ["vat_mismatch"])
+
+    def test_report_taxable_base_preserves_added_tax_precision(self):
+        item = frappe._dict(item_code="ITEM-1", net_amount=4849.5)
+        vat_map = {"ITEM-1": [13, 661.95675]}
+
+        taxable = utils.item_taxable_amount(item, 661.95675, vat_map, 4)
+
+        self.assertEqual(taxable, 5091.975)
 
     def test_total_check_accepts_enabled_rounding(self):
         context = frappe._dict(
