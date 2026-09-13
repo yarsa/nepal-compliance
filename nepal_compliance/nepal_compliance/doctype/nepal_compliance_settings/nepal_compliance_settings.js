@@ -68,7 +68,7 @@ function open_date_prompt() {
 				fieldname: "consider_is_non_taxable_item",
 				fieldtype: "Check",
 				label: __("Consider Is Non-Taxable Item"),
-				default: 0,
+				default: 1,
 				description: __(
 					"Classify flagged item rows as non-taxable. A Purchase Invoice is fully non-taxable when it is a PAN/Abbreviated Bill, has no tax rows, or has zero recorded VAT."
 				),
