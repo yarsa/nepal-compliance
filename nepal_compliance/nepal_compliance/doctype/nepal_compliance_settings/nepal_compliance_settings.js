@@ -2,6 +2,14 @@
 // For license information, please see LICENSE at the root of this repository
 
 frappe.ui.form.on("Nepal Compliance Settings", {
+	setup(frm) {
+		frm.set_query("custom_field", "accepted_purchase_attachment_fields", () => ({
+			filters: {
+				dt: "Purchase Invoice",
+				fieldtype: ["in", ["Attach", "Attach Image"]],
+			},
+		}));
+	},
 	refresh(frm) {
 		if (!frm.has_perm("write")) {
 			return;

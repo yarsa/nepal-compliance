@@ -143,6 +143,9 @@ def check_amounts(context, settings):
 
 
 def check_attachment(context, settings):
+    field_attachment = context.get("attach_purchase_invoice") or context.get(
+        "has_accepted_purchase_attachment"
+    )
     sidebar_attachment = (
         settings.get("consider_sidebar_purchase_attachments")
         and context.get("has_sidebar_purchase_attachment")
@@ -150,13 +153,13 @@ def check_attachment(context, settings):
     if (
         context.get("doctype") == "Purchase Invoice"
         and settings.get("enable_purchase_attachment_check")
-        and not context.get("attach_purchase_invoice")
+        and not field_attachment
         and not sidebar_attachment
     ):
         return [
             issue(
                 "missing_purchase_attachment",
-                _("Attach the supplier invoice in Attach Purchase Invoice or the sidebar."),
+                _("Attach the supplier invoice in an accepted attachment field or the sidebar."),
             )
         ]
     return []
@@ -314,6 +317,28 @@ def _submitted_returns(doctype, source_names):
     return grouped
 
 
+def _accepted_purchase_attachment_fields(settings):
+    fields = {"attach_purchase_invoice"}
+    selected = {
+        row.get("custom_field")
+        for row in (settings.get("accepted_purchase_attachment_fields") or [])
+        if row.get("custom_field")
+    }
+    if selected:
+        fields.update(
+            frappe.get_all(
+                "Custom Field",
+                filters={
+                    "name": ["in", list(selected)],
+                    "dt": "Purchase Invoice",
+                    "fieldtype": ["in", ["Attach", "Attach Image"]],
+                },
+                pluck="fieldname",
+            )
+        )
+    return fields
+
+
 def _invoice_contexts(doctype, names, settings=None):
     if not names:
         return {}
@@ -338,8 +363,10 @@ def _invoice_contexts(doctype, names, settings=None):
         party_field,
         address_field,
     ]
+    attachment_fields = set()
     if doctype == "Purchase Invoice":
-        fields.extend(["attach_purchase_invoice", "is_pan_or_abbreviated_bill"])
+        attachment_fields = _accepted_purchase_attachment_fields(settings or {})
+        fields.extend(["is_pan_or_abbreviated_bill", *sorted(attachment_fields)])
     rows = frappe.get_all(
         doctype,
         filters={"name": ["in", names]},
@@ -366,6 +393,10 @@ def _invoice_contexts(doctype, names, settings=None):
         row.ird_party_country = (
             row.get("ird_party_country") or countries.get(row.get(address_field)) or ""
         )
+        if attachment_fields:
+            row.has_accepted_purchase_attachment = any(
+                row.get(fieldname) for fieldname in attachment_fields
+            )
     if (
         doctype == "Purchase Invoice"
         and settings

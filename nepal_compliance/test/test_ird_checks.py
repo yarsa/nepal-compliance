@@ -130,6 +130,31 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(ird_checks.check_attachment(context, self.settings), [])
 
+    def test_selected_attachment_field_satisfies_purchase_check(self):
+        context = frappe._dict(
+            doctype="Purchase Invoice",
+            attach_purchase_invoice=None,
+            has_accepted_purchase_attachment=1,
+        )
+
+        self.assertEqual(ird_checks.check_attachment(context, self.settings), [])
+
+    @patch("nepal_compliance.ird_checks.frappe.get_all")
+    def test_selected_custom_fields_are_resolved_safely(self, get_all):
+        get_all.return_value = ["custom_bill_photo"]
+        settings = frappe._dict(
+            accepted_purchase_attachment_fields=[
+                frappe._dict(custom_field="Purchase Invoice-custom_bill_photo")
+            ]
+        )
+
+        fields = ird_checks._accepted_purchase_attachment_fields(settings)
+
+        self.assertEqual(
+            fields, {"attach_purchase_invoice", "custom_bill_photo"}
+        )
+        get_all.assert_called_once()
+
     @patch("nepal_compliance.ird_checks.frappe.get_all")
     def test_invoice_context_detects_only_direct_sidebar_file(self, get_all):
         get_all.side_effect = [

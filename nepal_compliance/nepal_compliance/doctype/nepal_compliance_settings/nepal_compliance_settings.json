@@ -34,6 +34,7 @@
   "ird_checks_column",
   "enable_purchase_attachment_check",
   "consider_sidebar_purchase_attachments",
+  "accepted_purchase_attachment_fields",
   "enable_return_match_check",
   "enable_supplier_pan_automation",
   "party_tax_rules_section",
@@ -214,6 +215,14 @@
    "fieldname": "consider_sidebar_purchase_attachments",
    "fieldtype": "Check",
    "label": "Consider Sidebar Attachments as Purchase Invoice Attachments"
+  },
+  {
+   "depends_on": "eval:doc.enable_purchase_attachment_check === 1",
+   "description": "Selected Purchase Invoice attachment fields also satisfy the check. Attach Purchase Invoice is always accepted.",
+   "fieldname": "accepted_purchase_attachment_fields",
+   "fieldtype": "Table MultiSelect",
+   "label": "Additional Accepted Attachment Fields",
+   "options": "Nepal Compliance Purchase Attachment Field"
   },
   {
    "default": "0",
