@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Nepal Compliance Settings", {
 	setup(frm) {
-		frm.set_query("custom_field", "accepted_purchase_attachment_fields", () => ({
+		frm.set_query("accepted_purchase_attachment_fields", () => ({
 			filters: {
 				dt: "Purchase Invoice",
 				fieldtype: ["in", ["Attach", "Attach Image"]],
