@@ -36,6 +36,11 @@ def get_sales_register_summary(rows):
     total = len(rows)
     tax_exempt = sum(1 for r in rows if flt(r.get("tax_exempt")) > 0)
     taxable = sum(1 for r in rows if flt(r.get("taxable_amount")) > 0)
+    zero_value = sum(
+        1
+        for r in rows
+        if r.get("invoice_name") and flt(r.get("total")) == 0
+    )
     export = sum(
         1 for r in rows if flt(r.get("Value of Exported Goods or Services")) > 0
     )
@@ -68,6 +73,13 @@ def get_sales_register_summary(rows):
             "datatype": "Int",
             "indicator": "Orange",
             "ird_view": "export",
+        },
+        {
+            "value": zero_value,
+            "label": _("Zero Value Sales"),
+            "datatype": "Int",
+            "indicator": "Grey",
+            "ird_view": "zero_value",
         },
     ]
 

@@ -223,17 +223,39 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual([row.invoice for row in filtered], ["A"])
 
-    def test_summary_filter_selects_taxable_and_error_rows(self):
+    def test_summary_filter_selects_taxable_error_and_zero_value_rows(self):
         rows = [
-            frappe._dict(invoice="A", taxable_amount=100, compliance_error_codes=[]),
-            frappe._dict(invoice="B", tax_exempt=100, compliance_error_codes=["vat_mismatch"]),
+            frappe._dict(
+                invoice="A",
+                invoice_name="A",
+                total=113,
+                taxable_amount=100,
+                compliance_error_codes=[],
+            ),
+            frappe._dict(
+                invoice="B",
+                invoice_name="B",
+                total=100,
+                tax_exempt=100,
+                compliance_error_codes=["vat_mismatch"],
+            ),
+            frappe._dict(
+                invoice="C",
+                invoice_name="C",
+                total=0,
+                compliance_error_codes=[],
+            ),
         ]
 
         taxable = ird_checks.filter_summary_rows(rows, {"ird_summary_view": "taxable"})
         errors = ird_checks.filter_summary_rows(rows, {"ird_summary_view": "errors"})
+        zero_value = ird_checks.filter_summary_rows(
+            rows, {"ird_summary_view": "zero_value"}
+        )
 
         self.assertEqual([row.invoice for row in taxable], ["A"])
         self.assertEqual([row.invoice for row in errors], ["B"])
+        self.assertEqual([row.invoice for row in zero_value], ["C"])
 
     def test_checks_column_is_second_only_when_enabled(self):
         base = [
