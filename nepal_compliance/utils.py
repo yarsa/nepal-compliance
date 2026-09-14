@@ -288,7 +288,7 @@ def get_or_create_vat_exempt_template(company, vat_account, side):
         ):
             template.taxes = [{"tax_type": vat_account, "tax_rate": 0}]
             template.save(ignore_permissions=True)
-        return template.name
+        return template.name or existing[0]
 
     template = frappe.get_doc({
         "doctype": "Item Tax Template",

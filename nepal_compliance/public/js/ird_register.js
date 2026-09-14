@@ -36,6 +36,29 @@ nepal_compliance.ird_from_to_filters = function () {
 	];
 };
 
+nepal_compliance.ird_error_filter = function () {
+	const labels = {
+		missing_tax_id: __("Missing Tax ID"),
+		invalid_nepal_tax_id: __("Invalid Nepal Tax ID"),
+		vat_mismatch: __("VAT Mismatch"),
+		total_mismatch: __("Total Mismatch"),
+		missing_purchase_attachment: __("Missing Purchase Attachment"),
+		missing_invoice_number: __("Missing Invoice Number"),
+		invoice_sequence_gap: __("Invoice Sequence Gap"),
+		missing_return_against: __("Missing Original Invoice"),
+		return_value_mismatch: __("Credit/Debit Note Mismatch"),
+	};
+	return {
+		fieldname: "error_types",
+		label: __("Error Type"),
+		fieldtype: "MultiSelectList",
+		get_data: (txt) =>
+			Object.entries(labels)
+				.filter(([, label]) => !txt || label.toLowerCase().includes(txt.toLowerCase()))
+				.map(([value, label]) => ({ value, label })),
+	};
+};
+
 nepal_compliance.ird_register_filters = function (opts) {
 	opts = opts || {};
 	const from_to = nepal_compliance.ird_from_to_filters();
@@ -69,6 +92,7 @@ nepal_compliance.ird_register_filters = function (opts) {
 			get_query: opts.document.get_query,
 		});
 	}
+	filters.push(nepal_compliance.ird_error_filter());
 	return filters;
 };
 
@@ -175,6 +199,12 @@ nepal_compliance.setup_ird_register = function (report, download_method) {
 
 nepal_compliance.ird_invoice_formatter = function (value, row, column, data, default_formatter) {
 	const fieldname = column.fieldname || column.id;
+	const mark_error_row = (formatted) => {
+		if (!(data && (data.compliance_errors || []).length)) {
+			return formatted;
+		}
+		return `<span class="ird-error-row-marker" aria-hidden="true"></span>${formatted}`;
+	};
 	if (data && data.is_section) {
 		if (fieldname === "invoice") {
 			const label = frappe.utils.escape_html(value || "");
@@ -188,8 +218,22 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 		if (name && doctype) {
 			const href = frappe.utils.get_form_link(doctype, name);
 			const label = frappe.utils.escape_html(value || name);
-			return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+			return mark_error_row(
+				`<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`
+			);
 		}
+	}
+	if (fieldname === "adjustment_notes" && data) {
+		return mark_error_row(
+			(data.adjustment_note_links || [])
+				.map((note) => {
+					const href = frappe.utils.get_form_link(note.doctype, note.name);
+					return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${frappe.utils.escape_html(
+						note.name
+					)}</a>`;
+				})
+				.join(", ")
+		);
 	}
 	if (fieldname === "bill_date" && data && cint(data.bill_month_mismatch)) {
 		const formatted = default_formatter(value, row, column, data);
@@ -198,11 +242,34 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 			days == null
 				? __("Bill date and posting date are in different BS months")
 				: __("{0} day(s) between bill date and posting date (different BS months)", [days]);
-		return `<span class="ird-bill-date-mismatch" title="${frappe.utils.escape_html(
-			title
-		)}">${formatted}</span>`;
+		return mark_error_row(
+			`<span class="ird-bill-date-mismatch" title="${frappe.utils.escape_html(
+				title
+			)}">${formatted}</span>`
+		);
 	}
-	return default_formatter(value, row, column, data);
+	if (fieldname === "compliance_checks" && data) {
+		const errors = data.compliance_errors || [];
+		if (!errors.length) {
+			return `<span class="ird-check-ok">${__("OK")}</span>`;
+		}
+		return mark_error_row(
+			errors
+				.map((error) => {
+					let detail = error.message || error.label;
+					if (error.expected !== null && error.expected !== undefined) {
+						detail += ` ${__("Expected")}: ${error.expected}; ${__("Actual")}: ${
+							error.actual ?? "—"
+						}`;
+					}
+					return `<span class="ird-error-pill" title="${frappe.utils.escape_html(
+						detail
+					)}">${frappe.utils.escape_html(error.label)}</span>`;
+				})
+				.join(" ")
+		);
+	}
+	return mark_error_row(default_formatter(value, row, column, data));
 };
 
 nepal_compliance.destroy_prior_fy_purchase_table = function (report) {

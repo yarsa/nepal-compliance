@@ -26,7 +26,7 @@ add_to_apps_screen = [
 # include js, css files in header of desk.html
 app_include_css = [
     "/assets/nepal_compliance/css/nepali_calendar.css",
-    "/assets/nepal_compliance/css/date.css?v=ird-prior-fy-7"]
+    "/assets/nepal_compliance/css/date.css?v=ird-checks-1"]
 
 app_include_js = [
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
@@ -39,7 +39,7 @@ app_include_js = [
     "/assets/nepal_compliance/js/report_filter.js",
     "/assets/nepal_compliance/js/ird_bs_dates.js",
     "/assets/nepal_compliance/js/ird_month_picker.js",
-    "/assets/nepal_compliance/js/ird_register.js?v=ird-prior-fy-5",
+    "/assets/nepal_compliance/js/ird_register.js?v=ird-checks-1",
     "/assets/nepal_compliance/js/icon_patch.js",
     "/assets/nepal_compliance/js/employee_benefit_claim.js"]
 
@@ -190,6 +190,7 @@ doc_events = {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
         "before_validate": [
+            "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
@@ -218,6 +219,12 @@ doc_events = {
     },
     "Sales Order" : {
         "validate": "nepal_compliance.utils.load_nepali_date"
+    },
+    "Purchase Order": {
+        "before_validate": "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
+    },
+    "Supplier": {
+        "validate": "nepal_compliance.pan_supplier.validate_non_vat_supplier",
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",
