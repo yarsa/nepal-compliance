@@ -21,6 +21,25 @@ class TestIrdChecks(unittest.TestCase):
             ],
         )
 
+    @patch(
+        "nepal_compliance.ird_checks.get_match_cond",
+        return_value=" and `tabSales Invoice`.`company` = 'ACME'",
+    )
+    def test_report_permission_condition_rewrites_table_alias(self, _match):
+        condition = ird_checks.report_permission_condition("Sales Invoice", "si")
+
+        self.assertEqual(condition, " and `si`.`company` = 'ACME'")
+
+    @patch("nepal_compliance.ird_checks.frappe.get_all")
+    @patch("nepal_compliance.ird_checks.frappe.get_list", return_value=[])
+    def test_permission_aware_batches_use_get_list(self, get_list, get_all):
+        ird_checks._get_all_in_batches(
+            "Sales Invoice", ["SINV-1"], "name", with_permissions=True
+        )
+
+        get_list.assert_called_once()
+        get_all.assert_not_called()
+
     def test_nepal_party_requires_nine_digit_tax_id(self):
         context = frappe._dict(
             doctype="Sales Invoice",
@@ -280,7 +299,7 @@ class TestIrdChecks(unittest.TestCase):
         self.assertEqual(columns[1]["fieldname"], "compliance_checks")
         self.assertEqual(columns[-1]["fieldname"], "adjustment_notes")
 
-    def test_report_check_amounts_combine_all_taxable_buckets(self):
+    def test_report_check_amounts_combine_all_register_buckets(self):
         contexts = {"PINV-1": frappe._dict(is_return=0)}
         rows = [
             frappe._dict(
@@ -292,6 +311,7 @@ class TestIrdChecks(unittest.TestCase):
                 capital_taxable_amount=300,
                 capital_taxable_tax=39,
                 tax_exempt=50,
+                **{"Value of Exported Goods or Services": 25},
             )
         ]
 
@@ -299,7 +319,7 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(contexts["PINV-1"].check_taxable_amount, 600)
         self.assertEqual(contexts["PINV-1"].check_vat_amount, 78)
-        self.assertEqual(contexts["PINV-1"].check_non_taxable_amount, 50)
+        self.assertEqual(contexts["PINV-1"].check_non_taxable_amount, 25)
 
     @patch("nepal_compliance.ird_checks._invoice_hover_items", return_value={})
     @patch("nepal_compliance.ird_checks._submitted_returns", return_value={})
@@ -353,9 +373,9 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(errors[0]["code"], "missing_return_against")
 
-    @patch("nepal_compliance.ird_checks.frappe.get_all")
-    def test_submitted_notes_are_grouped_by_original(self, get_all):
-        get_all.return_value = [
+    @patch("nepal_compliance.ird_checks.frappe.get_list")
+    def test_submitted_notes_are_grouped_by_original(self, get_list):
+        get_list.return_value = [
             frappe._dict(name="CN-1", return_against="SINV-1"),
             frappe._dict(name="CN-2", return_against="SINV-1"),
         ]

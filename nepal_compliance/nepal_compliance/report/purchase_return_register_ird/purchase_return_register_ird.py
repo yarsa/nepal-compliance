@@ -10,6 +10,7 @@ from nepal_compliance.ird_checks import (
     check_summary,
     decorate_rows,
     filter_summary_rows,
+    report_permission_condition,
 )
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
@@ -80,7 +81,9 @@ def get_data(filters):
 
     apply_ird_posting_date_filters(filters, conditions, values, "pi.posting_date")
 
-    conditions_sql = " AND ".join(conditions)
+    conditions_sql = " AND ".join(conditions) + report_permission_condition(
+        "Purchase Invoice", "pi"
+    )
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.summary_grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,

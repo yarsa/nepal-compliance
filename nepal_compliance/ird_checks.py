@@ -7,10 +7,12 @@ import re
 
 import frappe
 from frappe import _
+from frappe.desk.reportview import get_match_cond
 from frappe.utils import flt
 
 MONEY_TOLERANCE = 0.01
 VAT_CHECK_PRECISION = 4
+QUERY_BATCH_SIZE = 500
 NEPAL_PAN = re.compile(r"^[0-9]{9}$")
 IRD_CHECK_FIELDS = (
     "enable_party_tax_id_check",
@@ -21,6 +23,29 @@ IRD_CHECK_FIELDS = (
     "enable_purchase_vat_tax_id_check",
     "enable_return_match_check",
 )
+
+
+def report_permission_condition(doctype, alias):
+    """Return Frappe user-permission SQL rewritten for a report table alias."""
+    condition = get_match_cond(doctype)
+    return condition.replace(f"`tab{doctype}`", f"`{alias}`")
+
+
+def _get_all_in_batches(
+    doctype, names, filter_field, *, with_permissions=False, **kwargs
+):
+    rows = []
+    names = list(names)
+    base_filters = kwargs.pop("filters", {})
+    query = frappe.get_list if with_permissions else frappe.get_all
+    for start in range(0, len(names), QUERY_BATCH_SIZE):
+        filters = {
+            **base_filters,
+            filter_field: ["in", names[start : start + QUERY_BATCH_SIZE]],
+        }
+        rows.extend(query(doctype, filters=filters, **kwargs))
+    return rows
+
 
 def error_labels():
     return {
@@ -323,12 +348,14 @@ def _submitted_returns(doctype, source_names):
     if not source_names:
         return {}
     grouped = {}
-    rows = frappe.get_all(
+    rows = _get_all_in_batches(
         doctype,
+        source_names,
+        "return_against",
+        with_permissions=True,
         filters={
             "docstatus": 1,
             "is_return": 1,
-            "return_against": ["in", source_names],
         },
         fields=["name", "return_against"],
         limit_page_length=0,
@@ -388,9 +415,10 @@ def _invoice_contexts(doctype, names, settings=None):
     if doctype == "Purchase Invoice":
         attachment_fields = _accepted_purchase_attachment_fields(settings or {})
         fields.extend(["is_pan_or_abbreviated_bill", *sorted(attachment_fields)])
-    rows = frappe.get_all(
+    rows = _get_all_in_batches(
         doctype,
-        filters={"name": ["in", names]},
+        names,
+        "name",
         fields=fields,
         limit_page_length=0,
     )
@@ -399,9 +427,10 @@ def _invoice_contexts(doctype, names, settings=None):
     address_names = {row.get(address_field) for row in rows if row.get(address_field)}
     countries = (
         dict(
-            frappe.get_all(
+            _get_all_in_batches(
                 "Address",
-                filters={"name": ["in", list(address_names)]},
+                address_names,
+                "name",
                 fields=["name", "country"],
                 as_list=True,
                 limit_page_length=0,
@@ -424,11 +453,12 @@ def _invoice_contexts(doctype, names, settings=None):
         and settings.get("enable_purchase_attachment_check")
         and settings.get("consider_sidebar_purchase_attachments")
     ):
-        files = frappe.get_all(
+        files = _get_all_in_batches(
             "File",
+            names,
+            "attached_to_name",
             filters={
                 "attached_to_doctype": doctype,
-                "attached_to_name": ["in", names],
                 "is_folder": 0,
             },
             fields=["attached_to_name", "attached_to_field", "file_url"],
@@ -457,9 +487,10 @@ def _parties(doctype, contexts):
         fields.extend(["supplier_type", "supplier_group", "country"])
     return {
         row.name: row
-        for row in frappe.get_all(
+        for row in _get_all_in_batches(
             party_doctype,
-            filters={"name": ["in", list(names)]},
+            names,
+            "name",
             fields=fields,
             limit_page_length=0,
         )
@@ -470,9 +501,10 @@ def _invoice_hover_items(doctype, contexts):
     if not contexts:
         return {}
     item_doctype = f"{doctype} Item"
-    rows = frappe.get_all(
+    rows = _get_all_in_batches(
         item_doctype,
-        filters={"parent": ["in", list(contexts)]},
+        contexts,
+        "parent",
         fields=[
             "parent",
             "item_code",
@@ -490,9 +522,11 @@ def _invoice_hover_items(doctype, contexts):
     item_codes = list({row.item_code for row in rows if row.item_code})
     fixed_assets = (
         set(
-            frappe.get_all(
+            _get_all_in_batches(
                 "Item",
-                filters={"name": ["in", item_codes], "is_fixed_asset": 1},
+                item_codes,
+                "name",
+                filters={"is_fixed_asset": 1},
                 pluck="name",
             )
         )
@@ -528,6 +562,7 @@ def _report_check_amounts(rows, contexts):
         "taxable_import_non_capital_tax",
         "capital_taxable_tax",
         "tax_exempt",
+        "Value of Exported Goods or Services",
     )
     amounts = {}
     for row in rows:
@@ -558,7 +593,8 @@ def _report_check_amounts(rows, contexts):
                 "capital_taxable_tax",
             )
         )
-        values["non_taxable"] += flt(row.get("tax_exempt"))
+        export_value = flt(row.get("Value of Exported Goods or Services"))
+        values["non_taxable"] += export_value or flt(row.get("tax_exempt"))
 
     for name, values in amounts.items():
         context = contexts.get(name)

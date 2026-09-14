@@ -11,6 +11,7 @@ from nepal_compliance.nepal_compliance.report.purchase_register_ird import (
 
 
 class TestPanBill(unittest.TestCase):
+    @patch.object(purchase_register_ird, "report_permission_condition", return_value="")
     @patch.object(purchase_register_ird, "resolve_ird_fiscal_year_start")
     @patch.object(purchase_register_ird, "invoice_ird_total", return_value=1000)
     @patch.object(
@@ -25,7 +26,7 @@ class TestPanBill(unittest.TestCase):
     @patch.object(purchase_register_ird.frappe, "get_all")
     @patch.object(purchase_register_ird.frappe.db, "sql")
     def test_pan_bill_is_fully_tax_exempt_in_purchase_register(
-        self, sql, get_all, _legacy, _breakup, _source, _total, _fy
+        self, sql, get_all, _legacy, _breakup, _source, _total, _fy, _permission
     ):
         sql.return_value = [
             frappe._dict(

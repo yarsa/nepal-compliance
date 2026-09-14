@@ -6,7 +6,11 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from nepal_compliance.ird_checks import MONEY_TOLERANCE, issue
+from nepal_compliance.ird_checks import (
+    MONEY_TOLERANCE,
+    _get_all_in_batches,
+    issue,
+)
 from nepal_compliance.utils import distribute_item_vat, get_vat_breakup
 
 
@@ -29,18 +33,21 @@ def _headers(doctype, report_names):
         "vat_amount",
         "summary_grand_total",
     ]
-    report_docs = frappe.get_all(
+    report_docs = _get_all_in_batches(
         doctype,
-        filters={"name": ["in", report_names]},
+        report_names,
+        "name",
         fields=fields,
         limit_page_length=0,
     )
-    linked_returns = frappe.get_all(
+    linked_returns = _get_all_in_batches(
         doctype,
+        report_names,
+        "return_against",
+        with_permissions=True,
         filters={
             "docstatus": 1,
             "is_return": 1,
-            "return_against": ["in", report_names],
         },
         fields=fields,
         limit_page_length=0,
@@ -49,9 +56,11 @@ def _headers(doctype, report_names):
     source_names = {row.return_against for row in docs.values() if row.return_against}
     missing = source_names.difference(docs)
     if missing:
-        for row in frappe.get_all(
+        for row in _get_all_in_batches(
             doctype,
-            filters={"name": ["in", list(missing)]},
+            missing,
+            "name",
+            with_permissions=True,
             fields=fields,
             limit_page_length=0,
         ):
@@ -64,9 +73,10 @@ def _items(doctype, names):
     source_field = (
         "sales_invoice_item" if doctype == "Sales Invoice" else "purchase_invoice_item"
     )
-    rows = frappe.get_all(
+    rows = _get_all_in_batches(
         item_doctype,
-        filters={"parent": ["in", names]},
+        names,
+        "parent",
         fields=[
             "name",
             "parent",
