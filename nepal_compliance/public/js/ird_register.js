@@ -36,6 +36,29 @@ nepal_compliance.ird_from_to_filters = function () {
 	];
 };
 
+nepal_compliance.ird_error_filter = function () {
+	const labels = {
+		missing_tax_id: __("Missing Tax ID"),
+		invalid_nepal_tax_id: __("Invalid Nepal Tax ID"),
+		vat_mismatch: __("VAT Mismatch"),
+		total_mismatch: __("Total Mismatch"),
+		missing_purchase_attachment: __("Missing Purchase Attachment"),
+		missing_invoice_number: __("Missing Invoice Number"),
+		invoice_sequence_gap: __("Invoice Sequence Gap"),
+		missing_return_against: __("Missing Original Invoice"),
+		return_value_mismatch: __("Credit/Debit Note Mismatch"),
+	};
+	return {
+		fieldname: "error_types",
+		label: __("Error Type"),
+		fieldtype: "MultiSelectList",
+		get_data: (txt) =>
+			Object.entries(labels)
+				.filter(([, label]) => !txt || label.toLowerCase().includes(txt.toLowerCase()))
+				.map(([value, label]) => ({ value, label })),
+	};
+};
+
 nepal_compliance.ird_register_filters = function (opts) {
 	opts = opts || {};
 	const from_to = nepal_compliance.ird_from_to_filters();
@@ -69,6 +92,12 @@ nepal_compliance.ird_register_filters = function (opts) {
 			get_query: opts.document.get_query,
 		});
 	}
+	filters.push({
+		fieldname: "ird_summary_view",
+		fieldtype: "Data",
+		hidden: 1,
+	});
+	filters.push(nepal_compliance.ird_error_filter());
 	return filters;
 };
 
@@ -134,6 +163,42 @@ nepal_compliance.on_ird_fiscal_year_change = function (report) {
 	});
 };
 
+nepal_compliance.patch_ird_summary_filters = function (report) {
+	if (report._ird_summary_filters_patched) {
+		return;
+	}
+	report._ird_summary_filters_patched = true;
+	const original = report.render_summary.bind(report);
+	report.render_summary = function (summary) {
+		original(summary);
+		const selected = this.get_filter_value("ird_summary_view", false) || "all";
+		this.$summary.find(".summary-item").each((index, element) => {
+			const view = summary[index] && summary[index].ird_view;
+			if (!view) {
+				return;
+			}
+			const $item = $(element);
+			$item
+				.addClass("ird-summary-filter")
+				.toggleClass("active", selected === view)
+				.attr({
+					role: "button",
+					tabindex: 0,
+					title: __("Show only this category"),
+				})
+				.off(".irdSummary")
+				.on("click.irdSummary keydown.irdSummary", (event) => {
+					if (event.type === "keydown" && !["Enter", " "].includes(event.key)) {
+						return;
+					}
+					event.preventDefault();
+					const current = this.get_filter_value("ird_summary_view", false);
+					this.set_filter_value("ird_summary_view", current === view || view === "all" ? "" : view);
+				});
+		});
+	};
+};
+
 nepal_compliance.setup_ird_register = function (report, download_method) {
 	if (report && report.page && report.page.main) {
 		report.page.main.addClass("ird-register-page");
@@ -141,6 +206,7 @@ nepal_compliance.setup_ird_register = function (report, download_method) {
 	nepal_compliance.bind_ird_month_picker(report);
 	nepal_compliance.bind_ird_bs_date_filter(report, "from_nepali_date");
 	nepal_compliance.bind_ird_bs_date_filter(report, "to_nepali_date");
+	nepal_compliance.patch_ird_summary_filters(report);
 	const has_explicit_dates =
 		report.get_filter_value("from_nepali_date") || report.get_filter_value("to_nepali_date");
 	if (has_explicit_dates) {
@@ -173,8 +239,36 @@ nepal_compliance.setup_ird_register = function (report, download_method) {
 	});
 };
 
+nepal_compliance.ird_invoice_hover_text = function (data) {
+	const items = (data && data.invoice_hover_items) || [];
+	if (!items.length) {
+		return "";
+	}
+	return items
+		.map((item) => {
+			const details = [
+				item.item_name,
+				`${__("Qty")}: ${item.qty}${item.uom ? ` ${item.uom}` : ""}`,
+				`${__("Rate")}: ${format_currency(item.rate)}`,
+				`${__("Amount")}: ${format_currency(item.amount)}`,
+				item.is_taxable ? __("Taxable") : __("Tax Exempt"),
+			];
+			if (item.is_fixed_asset) {
+				details.push(__("Fixed Asset"));
+			}
+			return details.join(" | ");
+		})
+		.join("\n");
+};
+
 nepal_compliance.ird_invoice_formatter = function (value, row, column, data, default_formatter) {
 	const fieldname = column.fieldname || column.id;
+	const mark_error_row = (formatted) => {
+		if (!(data && (data.compliance_errors || []).length)) {
+			return formatted;
+		}
+		return `<span class="ird-error-row-marker" aria-hidden="true"></span>${formatted}`;
+	};
 	if (data && data.is_section) {
 		if (fieldname === "invoice") {
 			const label = frappe.utils.escape_html(value || "");
@@ -188,8 +282,33 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 		if (name && doctype) {
 			const href = frappe.utils.get_form_link(doctype, name);
 			const label = frappe.utils.escape_html(value || name);
-			return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+			const hover = frappe.utils.escape_html(nepal_compliance.ird_invoice_hover_text(data));
+			return mark_error_row(
+				`<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer" title="${hover}">${label}</a>`
+			);
 		}
+	}
+	if (fieldname === "adjustment_notes" && data) {
+		return mark_error_row(
+			(data.adjustment_note_links || [])
+				.map((note) => {
+					const href = frappe.utils.get_form_link(note.doctype, note.name);
+					return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${frappe.utils.escape_html(
+						note.name
+					)}</a>`;
+				})
+				.join(", ")
+		);
+	}
+	if (["customer_name", "supplier_name"].includes(fieldname) && data) {
+		const formatted = default_formatter(value, row, column, data);
+		const details = [
+			`${__("Type")}: ${data.party_type || "—"}`,
+			`${__("Group")}: ${data.party_group || "—"}`,
+		].join("\n");
+		return mark_error_row(
+			`<span title="${frappe.utils.escape_html(details)}">${formatted}</span>`
+		);
 	}
 	if (fieldname === "bill_date" && data && cint(data.bill_month_mismatch)) {
 		const formatted = default_formatter(value, row, column, data);
@@ -198,11 +317,34 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 			days == null
 				? __("Bill date and posting date are in different BS months")
 				: __("{0} day(s) between bill date and posting date (different BS months)", [days]);
-		return `<span class="ird-bill-date-mismatch" title="${frappe.utils.escape_html(
-			title
-		)}">${formatted}</span>`;
+		return mark_error_row(
+			`<span class="ird-bill-date-mismatch" title="${frappe.utils.escape_html(
+				title
+			)}">${formatted}</span>`
+		);
 	}
-	return default_formatter(value, row, column, data);
+	if (fieldname === "compliance_checks" && data) {
+		const errors = data.compliance_errors || [];
+		if (!errors.length) {
+			return `<span class="ird-check-ok">${__("OK")}</span>`;
+		}
+		return mark_error_row(
+			errors
+				.map((error) => {
+					let detail = error.message || error.label;
+					if (error.expected !== null && error.expected !== undefined) {
+						detail += ` ${__("Expected")}: ${error.expected}; ${__("Actual")}: ${
+							error.actual ?? "—"
+						}`;
+					}
+					return `<span class="ird-error-pill" title="${frappe.utils.escape_html(
+						detail
+					)}">${frappe.utils.escape_html(error.label)}</span>`;
+				})
+				.join(" ")
+		);
+	}
+	return mark_error_row(default_formatter(value, row, column, data));
 };
 
 nepal_compliance.destroy_prior_fy_purchase_table = function (report) {
