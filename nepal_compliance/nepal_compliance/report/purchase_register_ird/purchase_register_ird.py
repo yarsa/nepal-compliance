@@ -31,6 +31,8 @@ from nepal_compliance.utils import (
     use_legacy_ird_report_calculation,
 )
 
+ITEM_QUERY_BATCH_SIZE = 500
+
 
 def _bill_posting_date_meta(bill_date, posting_date):
     """Return BS month-mismatch flag and absolute day gap for bill vs posting date."""
@@ -219,12 +221,30 @@ def get_data(filters, bucket="all"):
     )
 
     invoice_names = [inv.invoice for inv in invoices]
-    all_items = frappe.get_all(
-        "Purchase Invoice Item",
-        filters={"parent": ["in", invoice_names]},
-        fields=["parent", "is_nontaxable_item", "net_amount", "amount", "asset_category", "item_code", "item_name", "item_tax_template"],
-        limit_page_length=0
-    )
+    all_items = []
+    for start in range(0, len(invoice_names), ITEM_QUERY_BATCH_SIZE):
+        all_items.extend(
+            frappe.get_all(
+                "Purchase Invoice Item",
+                filters={
+                    "parent": [
+                        "in",
+                        invoice_names[start : start + ITEM_QUERY_BATCH_SIZE],
+                    ]
+                },
+                fields=[
+                    "parent",
+                    "is_nontaxable_item",
+                    "net_amount",
+                    "amount",
+                    "asset_category",
+                    "item_code",
+                    "item_name",
+                    "item_tax_template",
+                ],
+                limit_page_length=0,
+            )
+        )
     items_by_invoice = {}
     for item in all_items:
         items_by_invoice.setdefault(item.parent, []).append(item)

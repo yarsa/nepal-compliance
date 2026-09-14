@@ -6,6 +6,8 @@ from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname
 from typing import Union
 
+REPORT_QUERY_BATCH_SIZE = 500
+
 def prevent_invoice_deletion(doc, method):
     if (doc.docstatus == 1):
         frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
@@ -511,11 +513,28 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
             alert=True,
         )
 
-    tax_rows = frappe.get_all(
-        taxes_doctype,
-        filters={"parent": ["in", list(invoice_company_map)], "parenttype": invoice_doctype},
-        fields=["parent", "account_head", "tax_amount", "tax_amount_after_discount_amount", "item_wise_tax_detail"],
-    )
+    tax_rows = []
+    invoice_names = list(invoice_company_map)
+    for start in range(0, len(invoice_names), REPORT_QUERY_BATCH_SIZE):
+        tax_rows.extend(
+            frappe.get_all(
+                taxes_doctype,
+                filters={
+                    "parent": [
+                        "in",
+                        invoice_names[start : start + REPORT_QUERY_BATCH_SIZE],
+                    ],
+                    "parenttype": invoice_doctype,
+                },
+                fields=[
+                    "parent",
+                    "account_head",
+                    "tax_amount",
+                    "tax_amount_after_discount_amount",
+                    "item_wise_tax_detail",
+                ],
+            )
+        )
 
     for row in tax_rows:
         vat_account = configured.get(invoice_company_map.get(row.parent), {}).get(side)
