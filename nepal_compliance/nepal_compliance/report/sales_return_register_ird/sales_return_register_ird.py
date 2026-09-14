@@ -5,10 +5,17 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+)
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
 )
+from nepal_compliance.ird_sequence import append_sequence_gaps
 from nepal_compliance.utils import (
     distribute_item_vat,
     get_vat_breakup,
@@ -25,9 +32,11 @@ ITEM_QUERY_BATCH_SIZE = 500
 
 def execute(filters=None):
     """Run the IRD Sales Return Register and return columns plus rows."""
-    columns = get_columns()
-    data = get_data(filters or {})
-    return columns, data
+    columns = check_columns(get_columns())
+    data = decorate_rows(get_data(filters or {}), "Sales Invoice", filters)
+    data = append_sequence_gaps(data, filters, is_return=True)
+    summary = [check_summary(data)]
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 def get_columns():
     """Column definitions for the IRD Sales Return Register."""
@@ -166,7 +175,11 @@ def get_data(filters):
                 tax_exempt_item = net
                 tax_exempt_total += net
             else:
-                taxable_amount_item = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+                taxable_amount_item = (
+                    net
+                    if legacy
+                    else item_taxable_amount(item, item_vat, item_vat_map, 4)
+                )
                 tax_amount_item = (
                     net / legacy_taxable_total * flt(inv.total_tax)
                     if legacy and legacy_taxable_total
