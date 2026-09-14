@@ -1,0 +1,24 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "custom_field"
+ ],
+ "fields": [
+  {
+   "fieldname": "custom_field",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Purchase Invoice Attachment Field",
+   "options": "Custom Field",
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "module": "Nepal Compliance",
+ "name": "Nepal Compliance Purchase Attachment Field",
+ "permissions": []
+}

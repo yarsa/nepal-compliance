@@ -5,7 +5,14 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+)
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
+from nepal_compliance.ird_sequence import append_sequence_gaps
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
@@ -39,34 +46,40 @@ def get_sales_register_summary(rows):
             "label": _("Total Sales"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "all",
         },
         {
             "value": tax_exempt,
             "label": _("कर छुटको बिक्री"),
             "datatype": "Int",
             "indicator": "Grey",
+            "ird_view": "tax_exempt",
         },
         {
             "value": taxable,
             "label": _("करयोग्य बिक्री"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "taxable",
         },
         {
             "value": export,
             "label": _("निकासी"),
             "datatype": "Int",
             "indicator": "Orange",
+            "ird_view": "export",
         },
     ]
 
 
 def execute(filters=None):
     """Run the IRD Sales Register and return columns, rows, and summary."""
-    columns = get_columns()
-    data = get_data(filters)
+    columns = check_columns(get_columns())
+    data = decorate_rows(get_data(filters), "Sales Invoice", filters)
+    data = append_sequence_gaps(data, filters, is_return=False)
     summary = get_sales_register_summary(data)
-    return columns, data, None, None, summary
+    summary.append(check_summary(data))
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 
 def get_columns():
