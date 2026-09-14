@@ -33,7 +33,7 @@ app_include_js = [
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
     "/assets/nepal_compliance/js/nepali_date_lib.js",
     "/assets/nepal_compliance/js/nepali_calendar_lib.js",
-    "/assets/nepal_compliance/js/nepali_date_override.js",
+    "/assets/nepal_compliance/js/nepali_date_override.js?v=bs-between-1",
     "/assets/nepal_compliance/js/filter_patch.js",
     "/assets/nepal_compliance/js/formatter.js",
     "/assets/nepal_compliance/js/report_filter.js",

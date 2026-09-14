@@ -76,7 +76,8 @@ window.NepaliFunctions = {
     if (
         typeof frappe === "undefined" ||
         !frappe.boot ||
-        !frappe.ui?.form?.ControlDate
+        !frappe.ui?.form?.ControlDate ||
+        !frappe.ui?.form?.ControlDateRange
     ) {
         return setTimeout(waitForFrappeReady, 200);
     }
@@ -97,6 +98,7 @@ function override_with_nepali_date_picker(use_ad_date) {
         extend_with_ad_date_picker();
     } else {
         extend_with_bs_date_picker();
+        extend_with_bs_date_range_picker();
     }
 }
 
@@ -129,6 +131,18 @@ function extend_with_ad_date_picker() {
             display_equivalent_date(this.$wrapper, text);
         }
     };
+}
+
+function attach_filter_popover_guard(el) {
+    // List filters live in a Bootstrap popover. Frappe closes that popover on
+    // any body click that is not `.datepicker`. The BS calendar is mounted on
+    // document.body, so the first Between click was treated as "outside" and
+    // the filter closed before an end date could be picked.
+    if (!el || el._nepaliFilterGuard) return;
+    el._nepaliFilterGuard = true;
+    ["pointerdown", "mousedown", "click"].forEach((type) => {
+        el.addEventListener(type, (event) => event.stopPropagation());
+    });
 }
 
 function extend_with_bs_date_picker() {
@@ -192,6 +206,7 @@ function extend_with_bs_date_picker() {
 
             document.body.appendChild(pop);
             this._popover = pop;
+            attach_filter_popover_guard(pop);
 
             const onClose = () => {
                 NepaliCalendarLib.unmount?.(pop);
@@ -255,6 +270,131 @@ function extend_with_bs_date_picker() {
 
         show_equivalent_date(text) {
             display_equivalent_date(this.$wrapper, text);
+        }
+    };
+}
+
+function extend_with_bs_date_range_picker() {
+    const BaseDateRange = frappe.ui.form.ControlDateRange;
+
+    frappe.ui.form.ControlDateRange = class extends BaseDateRange {
+        make_input() {
+            super.make_input();
+
+            if (this.datepicker) {
+                this.datepicker.destroy();
+                this.datepicker = null;
+            }
+
+            this.$input
+                .attr("type", "text")
+                .off(".nepaliDateRange")
+                .on("focus.nepaliDateRange", () => this.open_nepali_range_popover())
+                .on("focusout.nepaliDateRange", (event) => {
+                    if (this._nepali_range_popover) event.stopImmediatePropagation();
+                });
+        }
+
+        open_nepali_range_popover() {
+            if (this._nepali_range_popover || !this.$input) return;
+
+            const rect = this.$input[0].getBoundingClientRect();
+            const popover = document.createElement("div");
+            popover.classList.add("nepali-calendar-popover");
+            Object.assign(popover.style, {
+                position: "absolute",
+                top: rect.bottom + window.scrollY + "px",
+                left: rect.left + window.scrollX + "px",
+                zIndex: 99999,
+                background: "white",
+            });
+
+            const instruction = document.createElement("div");
+            instruction.className = "text-muted small px-3 pt-2";
+            instruction.textContent = __("Select start date");
+            const calendar = document.createElement("div");
+            popover.append(instruction, calendar);
+            document.body.appendChild(popover);
+            this._nepali_range_popover = popover;
+            attach_filter_popover_guard(popover);
+
+            const selected = [];
+            const close = () => {
+                NepaliCalendarLib.unmount?.(calendar);
+                popover.remove();
+                this._nepali_range_popover = null;
+                document.removeEventListener("mousedown", outsideClick);
+                document.removeEventListener("keydown", closeOnEscape);
+                removalObserver.disconnect();
+            };
+            const outsideClick = (event) => {
+                if (
+                    !popover.contains(event.target) &&
+                    event.target !== this.$input[0]
+                ) {
+                    close();
+                }
+            };
+            const closeOnEscape = (event) => {
+                if (event.key === "Escape") close();
+            };
+            const removalObserver = new MutationObserver(() => {
+                if (!document.body.contains(this.$input[0])) close();
+            });
+            document.addEventListener("mousedown", outsideClick);
+            document.addEventListener("keydown", closeOnEscape);
+            removalObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+
+            const current = this.get_value();
+            const paint = (selectedAD) => {
+                NepaliCalendarLib.render(calendar, {
+                    selectedDateAD: selectedAD,
+                    onSelect: (date) => {
+                        selected.push(
+                            date.format({ format: "YYYY-MM-DD", calendar: "AD" })
+                        );
+                        if (selected.length === 1) {
+                            instruction.textContent = __("Select end date");
+                            paint(selected[0]);
+                            return;
+                        }
+
+                        const range = selected.sort();
+                        Promise.resolve(this.set_value(range)).then(() => {
+                            this.$input.trigger("change");
+                        });
+                        close();
+                    },
+                });
+            };
+            paint(Array.isArray(current) ? current[0] : undefined);
+        }
+
+        format_for_input(value1, value2) {
+            if (!value1 || !value2) return "";
+            const from = NepaliFunctions.AD2BS(value1);
+            const to = NepaliFunctions.AD2BS(value2);
+            return __("{0} to {1}", [from, to]);
+        }
+
+        parse(value) {
+            if (value == null || typeof value === "object") return value;
+
+            const dates = value.match(
+                /\d{1,4}[./-]\d{1,2}[./-]\d{1,4}/g
+            ) || [];
+            if (dates.length !== 2) return;
+
+            try {
+                const from = NepaliFunctions.BS2AD(dates[0]);
+                const to = NepaliFunctions.BS2AD(dates[1]);
+                return from && to ? [from, to].sort() : undefined;
+            } catch {
+                return undefined;
+            }
         }
     };
 }
