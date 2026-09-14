@@ -329,6 +329,7 @@ class TestLegacyIrdReportCalculation(unittest.TestCase):
 
         self.assertEqual(allocated, (78, 39, 13))
 
+    @patch.object(sales_register_ird, "report_permission_condition", return_value="")
     @patch.object(sales_register_ird, "use_legacy_ird_report_calculation", return_value=True)
     @patch.object(sales_register_ird, "get_vat_breakup", return_value={})
     @patch.object(sales_register_ird, "resolve_ird_country", return_value="Singapore")
@@ -336,7 +337,7 @@ class TestLegacyIrdReportCalculation(unittest.TestCase):
     @patch.object(sales_register_ird.frappe.db, "sql")
     @patch.object(sales_register_ird.frappe, "get_all")
     def test_legacy_sales_report_keeps_zero_tax_export_exempt(
-        self, get_all, sql, _foreign, _country, _breakup, _legacy
+        self, get_all, sql, _foreign, _country, _breakup, _legacy, _permission
     ):
         sql.return_value = [
             frappe._dict(
@@ -360,6 +361,7 @@ class TestLegacyIrdReportCalculation(unittest.TestCase):
         get_all.side_effect = [
             [
                 frappe._dict(
+                    parent="SINV-EXPORT",
                     item_code="Service Export",
                     item_name="Service Export",
                     net_amount=1000,

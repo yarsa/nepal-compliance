@@ -5,6 +5,13 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+    report_permission_condition,
+)
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
@@ -27,9 +34,10 @@ ITEM_QUERY_BATCH_SIZE = 500
 
 def execute(filters=None):
     """Run the IRD Purchase Return Register and return columns plus rows."""
-    columns = get_columns()
-    data = get_data(filters)
-    return columns, data
+    columns = check_columns(get_columns())
+    data = decorate_rows(get_data(filters), "Purchase Invoice", filters)
+    summary = [check_summary(data)]
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 def get_columns():
     """Column definitions for the IRD Purchase Return Register."""
@@ -73,12 +81,15 @@ def get_data(filters):
 
     apply_ird_posting_date_filters(filters, conditions, values, "pi.posting_date")
 
-    conditions_sql = " AND ".join(conditions)
+    conditions_sql = " AND ".join(conditions) + report_permission_condition(
+        "Purchase Invoice", "pi"
+    )
     query = """
         SELECT
             pi.name as invoice, pi.bill_no, pi.customs_declaration_number, pi.reason, pi.rounded_total, pi.grand_total, pi.summary_grand_total, pi.posting_date, pi.supplier_name, pi.supplier, pi.tax_id as invoice_pan,
             pi.total, pi.total_taxes_and_charges as total_tax, pi.company,
             pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
+            pi.is_pan_or_abbreviated_bill,
             pi.ird_party_country as stored_party_country,
             supplier_address.country as address_country,
             s.tax_id as supplier_tax_id
@@ -144,6 +155,9 @@ def get_data(filters):
 
         for item, item_vat in zip(items, row_vat, strict=True):
             net = flt(item.get("net_amount"))
+            if inv.is_pan_or_abbreviated_bill:
+                tax_exempt += net
+                continue
 
             is_exempt = (
                 legacy_ird_item_is_exempt(item, inv.total_tax)
@@ -154,7 +168,7 @@ def get_data(filters):
                 tax_exempt += net
                 continue
 
-            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map, 4)
             if item.get("asset_category"):
                 capital_taxable_amount += amt
                 tax_capital += item_vat
