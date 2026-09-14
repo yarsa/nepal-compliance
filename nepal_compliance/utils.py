@@ -834,6 +834,24 @@ def invoice_ird_total(inv):
         return flt(inv.summary_grand_total)
     return flt(inv.rounded_total) or flt(inv.grand_total)
 
+def use_legacy_ird_report_calculation():
+    """Whether IRD reports should reproduce the pre-frozen calculation method."""
+    settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    return bool(settings.get("use_legacy_ird_report_calculation"))
+
+def legacy_ird_item_is_exempt(item, invoice_total_tax):
+    """Apply the item classification used by IRD reports at commit ee01aef."""
+    return bool(
+        item.get("is_nontaxable_item")
+        or (not flt(invoice_total_tax) and not item.get("item_tax_template"))
+    )
+
+def allocate_legacy_ird_tax(amounts, invoice_total_tax):
+    """Allocate total invoice tax proportionally across legacy taxable buckets."""
+    total = sum(flt(amount) for amount in amounts)
+    tax = flt(invoice_total_tax)
+    return tuple((flt(amount) / total * tax) if total and tax else 0.0 for amount in amounts)
+
 def category_calculates_tds_on_taxable_amount(category_name):
     """True when the Tax Withholding Category is set to use Purchase Invoice taxable amount."""
     if not category_name:

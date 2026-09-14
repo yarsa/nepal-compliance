@@ -19,6 +19,7 @@
   "column_break_ftxd",
   "restricted_doctypes",
   "vat_accounts_section",
+  "use_legacy_ird_report_calculation",
   "vat_accounts",
   "purchase_tab",
   "require_supplier_bill_date",
@@ -106,6 +107,13 @@
    "fieldname": "vat_accounts_section",
    "fieldtype": "Section Break",
    "label": "IRD VAT Accounts"
+  },
+  {
+   "default": "0",
+   "description": "Calculate IRD report amounts from invoice items and total taxes using the legacy method from August 2026. When disabled, reports use frozen Taxable Summary values with the configured VAT accounts.",
+   "fieldname": "use_legacy_ird_report_calculation",
+   "fieldtype": "Check",
+   "label": "Use Legacy Calculation for IRD Reports"
   },
   {
    "description": "VAT amounts in IRD reports are picked only from the accounts configured here. Companies without a configured account will show VAT as 0 in IRD reports.",

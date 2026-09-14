@@ -15,7 +15,9 @@ from nepal_compliance.utils import (
     invoice_ird_total,
     is_exempt_report_item,
     item_taxable_amount,
+    legacy_ird_item_is_exempt,
     resolve_report_vat_source,
+    use_legacy_ird_report_calculation,
 )
 
 ITEM_QUERY_BATCH_SIZE = 500
@@ -46,6 +48,7 @@ def get_columns():
 def get_data(filters):
     """Build sales return register rows from submitted returns in the filter range."""
     filters = filters or {}
+    legacy = use_legacy_ird_report_calculation()
     conditions = ["si.docstatus = 1", "si.is_return = 1"]
     values = {}
 
@@ -77,6 +80,7 @@ def get_data(filters):
             si.customer,
             si.company,
             si.total,
+            si.total_taxes_and_charges as total_tax,
             si.taxable_amount as stored_taxable_amount,
             si.vat_amount as stored_vat_amount,
             si.item_vat_detail as stored_item_vat_detail,
@@ -92,7 +96,11 @@ def get_data(filters):
     invoices = frappe.db.sql(query, values, as_dict=True)
     data = []
 
-    vat_breakup = get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
+    vat_breakup = (
+        {}
+        if legacy
+        else get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
+    )
 
     invoice_names = [inv.invoice for inv in invoices]
     items_by_invoice = {}
@@ -101,37 +109,69 @@ def get_data(filters):
         batch_items = frappe.get_all(
             "Sales Invoice Item",
             filters={"parent": ["in", batch_names]},
-            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name"],
+            fields=["parent", "is_nontaxable_item", "net_amount", "amount", "item_code", "qty", "uom", "item_name", "item_tax_template"],
             limit_page_length=0,
         )
         for item in batch_items:
             items_by_invoice.setdefault(item.parent, []).append(item)
+
+    item_codes = {
+        item.get("item_code")
+        for items in items_by_invoice.values()
+        for item in items
+        if item.get("item_code")
+    }
+    asset_items = set(
+        frappe.get_all(
+            "Item",
+            filters={"item_code": ["in", list(item_codes)], "is_fixed_asset": 1},
+            pluck="item_code",
+        )
+    ) if legacy and item_codes else set()
 
     grand_qty = grand_total = grand_tax_exempt = grand_taxable = grand_tax = 0.0
 
     for inv in invoices:
         items = items_by_invoice.get(inv.invoice, [])
 
-        item_vat_map, stored, breakup = resolve_report_vat_source(inv, vat_breakup)
+        item_vat_map, stored, breakup = (
+            ({}, False, {})
+            if legacy
+            else resolve_report_vat_source(inv, vat_breakup)
+        )
 
         tax_exempt_total = taxable_total = total_qty = tax_total = 0.0
 
-        row_vat = distribute_item_vat(items, item_vat_map)
+        row_vat = [0.0] * len(items) if legacy else distribute_item_vat(items, item_vat_map)
+        legacy_taxable_total = sum(
+            flt(item.get("net_amount"))
+            for item in items
+            if not legacy_ird_item_is_exempt(item, inv.total_tax)
+            and item.get("item_code") not in asset_items
+        ) if legacy else 0.0
 
         for item, item_vat in zip(items, row_vat, strict=True):
             net = flt(item.get("net_amount"))
             qty = flt(item.get("qty") or 0)
-            is_nontaxable = is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
+            is_nontaxable = (
+                legacy_ird_item_is_exempt(item, inv.total_tax)
+                if legacy
+                else is_exempt_report_item(item, item_vat, item_vat_map, stored, breakup)
+            )
 
             total_qty += abs(qty)
 
             tax_exempt_item = taxable_amount_item = tax_amount_item = 0.0
-            if is_nontaxable:
+            if is_nontaxable or (legacy and item.get("item_code") in asset_items):
                 tax_exempt_item = net
                 tax_exempt_total += net
             else:
-                taxable_amount_item = item_taxable_amount(item, item_vat, item_vat_map)
-                tax_amount_item = item_vat
+                taxable_amount_item = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+                tax_amount_item = (
+                    net / legacy_taxable_total * flt(inv.total_tax)
+                    if legacy and legacy_taxable_total
+                    else item_vat
+                )
                 taxable_total += taxable_amount_item
                 tax_total += tax_amount_item
 
@@ -159,14 +199,22 @@ def get_data(filters):
             "name": "",
             "qty": abs(total_qty),
             "uom": "",
-            "total": abs(flt(invoice_ird_total(inv))),
+            "total": abs(
+                (flt(inv.rounded_total) or flt(inv.grand_total))
+                if legacy
+                else flt(invoice_ird_total(inv))
+            ),
             "tax_exempt": abs(flt(tax_exempt_total)),
             "taxable_amount": abs(flt(taxable_total)),
             "tax_amount": abs(flt(tax_total)),
         })
 
         grand_qty += abs(total_qty)
-        grand_total += abs(flt(invoice_ird_total(inv)))
+        grand_total += abs(
+            (flt(inv.rounded_total) or flt(inv.grand_total))
+            if legacy
+            else flt(invoice_ird_total(inv))
+        )
         grand_tax_exempt += abs(flt(tax_exempt_total))
         grand_taxable += abs(flt(taxable_total))
         grand_tax += abs(flt(tax_total))
