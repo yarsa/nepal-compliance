@@ -13,9 +13,9 @@ class TestIrdSequence(unittest.TestCase):
             [(3, 4), (6, 8)],
         )
 
-    @patch("nepal_compliance.ird_sequence.frappe.db.sql")
-    def test_gap_rows_are_grouped_by_company_and_prefix(self, sql):
-        sql.return_value = [
+    @patch("nepal_compliance.ird_sequence.frappe.get_all")
+    def test_gap_rows_are_grouped_by_company_and_prefix(self, get_all):
+        get_all.return_value = [
             frappe._dict(name="SINV-0001", company="ACME"),
             frappe._dict(name="SINV-0003", company="ACME"),
             frappe._dict(name="RET-0001", company="ACME"),
