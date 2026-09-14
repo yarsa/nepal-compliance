@@ -92,16 +92,28 @@ def _item_vat(doctype, docs, items):
         doctype, {name: row.company for name, row in docs.items()}
     )
     result = {}
+    configured = {
+        name: bool((breakup.get(name) or {}).get("configured")) for name in docs
+    }
     for name, invoice_items in items.items():
         vat_map = (breakup.get(name) or {}).get("item_vat") or {}
         allocated = distribute_item_vat(invoice_items, vat_map)
         result.update(
-            {(name, row.name): amount for row, amount in zip(invoice_items, allocated)}
+            {
+                (name, row.name): amount
+                for row, amount in zip(invoice_items, allocated, strict=True)
+            }
         )
-    return result
+    return result, configured
 
 
-def _compare_pair(doctype, note, source, items, source_field, item_vat):
+def _vat_ready(note, source, vat_configured):
+    if vat_configured is None:
+        return True
+    return bool(vat_configured.get(note.name) and vat_configured.get(source.name))
+
+
+def _compare_pair(doctype, note, source, items, source_field, item_vat, vat_configured=None):
     differences = []
     party = "customer" if doctype == "Sales Invoice" else "supplier"
     for field in (party, "company", "currency"):
@@ -112,6 +124,7 @@ def _compare_pair(doctype, note, source, items, source_field, item_vat):
 
     source_items = {row.name: row for row in items.get(source.name, [])}
     expected_taxable = expected_non_taxable = expected_vat = 0.0
+    vat_ready = _vat_ready(note, source, vat_configured)
     for row in items.get(note.name, []):
         source_row = source_items.get(row.get(source_field))
         if not source_row:
@@ -129,6 +142,8 @@ def _compare_pair(doctype, note, source, items, source_field, item_vat):
         ):
             differences.append(_("Rate differs for item {0}").format(row.item_code))
 
+        if not vat_ready:
+            continue
         ratio = abs(flt(row.qty)) / abs(flt(source_row.qty)) if source_row.qty else 0
         source_vat = abs(flt(item_vat.get((source.name, source_row.name)))) * ratio
         note_vat = abs(flt(item_vat.get((note.name, row.name))))
@@ -140,17 +155,18 @@ def _compare_pair(doctype, note, source, items, source_field, item_vat):
         else:
             expected_non_taxable += abs(flt(source_row.net_amount)) * ratio
 
-    expected = {
-        "taxable_amount": expected_taxable,
-        "non_taxable_amount": expected_non_taxable,
-        "vat_amount": expected_vat,
-        "summary_grand_total": expected_taxable + expected_non_taxable + expected_vat,
-    }
-    for field, value in expected.items():
-        if _different(abs(flt(note.get(field))), value):
-            differences.append(
-                _("{0} is not proportional").format(frappe.unscrub(field))
-            )
+    if vat_ready:
+        expected = {
+            "taxable_amount": expected_taxable,
+            "non_taxable_amount": expected_non_taxable,
+            "vat_amount": expected_vat,
+            "summary_grand_total": expected_taxable + expected_non_taxable + expected_vat,
+        }
+        for field, value in expected.items():
+            if _different(abs(flt(note.get(field))), value):
+                differences.append(
+                    _("{0} is not proportional").format(frappe.unscrub(field))
+                )
     return list(dict.fromkeys(differences))
 
 
@@ -158,7 +174,7 @@ def return_match_errors(doctype, report_names):
     """Return mismatch errors keyed by both note and original invoice."""
     docs = _headers(doctype, report_names)
     items, source_field = _items(doctype, list(docs))
-    item_vat = _item_vat(doctype, docs, items)
+    item_vat, vat_configured = _item_vat(doctype, docs, items)
     errors = defaultdict(list)
     for note in docs.values():
         if not note.is_return or not note.return_against:
@@ -167,7 +183,7 @@ def return_match_errors(doctype, report_names):
         if not source:
             continue
         differences = _compare_pair(
-            doctype, note, source, items, source_field, item_vat
+            doctype, note, source, items, source_field, item_vat, vat_configured
         )
         if not differences:
             continue
