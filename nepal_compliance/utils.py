@@ -6,6 +6,8 @@ from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname
 from typing import Union
 
+REPORT_QUERY_BATCH_SIZE = 500
+
 def prevent_invoice_deletion(doc, method):
     if (doc.docstatus == 1):
         frappe.throw(_(f"Deletion of {doc.name} is not allowed due to compliance rule."))
@@ -211,7 +213,7 @@ def add_item_wise_vat(item_vat, item_wise_tax_detail):
         rate, amount = parse_item_vat_entry(rate_amount)
         accumulate_item_vat(item_vat, item_key, rate, amount)
 
-def taxable_base_from_vat(vat_amount, rate, net_amount):
+def taxable_base_from_vat(vat_amount, rate, net_amount, precision=2):
     """Amount VAT was charged on (net + prior rows such as excise/duty).
 
     Falls back to net_amount when rate is 0 (manually booked VAT, zero-rated).
@@ -219,14 +221,14 @@ def taxable_base_from_vat(vat_amount, rate, net_amount):
     if flt(rate):
         # round() matches Frappe's default banker's rounding and does not
         # depend on System Settings (flt(x, 2) can collapse to 0 without them).
-        return round(flt(vat_amount) / (flt(rate) / 100.0), 2)
+        return round(flt(vat_amount) / (flt(rate) / 100.0), precision)
     return flt(net_amount)
 
-def item_taxable_amount(item, row_vat, item_vat_map):
+def item_taxable_amount(item, row_vat, item_vat_map, precision=2):
     """Taxable base for one item row: VAT ÷ rate, falling back to net amount."""
     key = item.get("item_code") or item.get("item_name")
     rate, _amount = parse_item_vat_entry(item_vat_map.get(key))
-    return taxable_base_from_vat(row_vat, rate, item.get("net_amount"))
+    return taxable_base_from_vat(row_vat, rate, item.get("net_amount"), precision)
 
 def tax_row_amount(tax):
     """Tax amount after discount when set, else tax_amount."""
@@ -288,7 +290,7 @@ def get_or_create_vat_exempt_template(company, vat_account, side):
         ):
             template.taxes = [{"tax_type": vat_account, "tax_rate": 0}]
             template.save(ignore_permissions=True)
-        return template.name
+        return template.name or existing[0]
 
     template = frappe.get_doc({
         "doctype": "Item Tax Template",
@@ -511,11 +513,28 @@ def get_vat_breakup(invoice_doctype, invoice_company_map):
             alert=True,
         )
 
-    tax_rows = frappe.get_all(
-        taxes_doctype,
-        filters={"parent": ["in", list(invoice_company_map)], "parenttype": invoice_doctype},
-        fields=["parent", "account_head", "tax_amount", "tax_amount_after_discount_amount", "item_wise_tax_detail"],
-    )
+    tax_rows = []
+    invoice_names = list(invoice_company_map)
+    for start in range(0, len(invoice_names), REPORT_QUERY_BATCH_SIZE):
+        tax_rows.extend(
+            frappe.get_all(
+                taxes_doctype,
+                filters={
+                    "parent": [
+                        "in",
+                        invoice_names[start : start + REPORT_QUERY_BATCH_SIZE],
+                    ],
+                    "parenttype": invoice_doctype,
+                },
+                fields=[
+                    "parent",
+                    "account_head",
+                    "tax_amount",
+                    "tax_amount_after_discount_amount",
+                    "item_wise_tax_detail",
+                ],
+            )
+        )
 
     for row in tax_rows:
         vat_account = configured.get(invoice_company_map.get(row.parent), {}).get(side)

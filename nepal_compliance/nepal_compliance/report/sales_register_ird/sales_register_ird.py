@@ -5,7 +5,15 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+    report_permission_condition,
+)
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
+from nepal_compliance.ird_sequence import append_sequence_gaps
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
@@ -22,13 +30,20 @@ from nepal_compliance.utils import (
     use_legacy_ird_report_calculation,
 )
 
+ITEM_QUERY_BATCH_SIZE = 500
+
 
 def get_sales_register_summary(rows):
     """Build colored summary cards for the Sales Register."""
-    rows = rows or []
+    rows = [row for row in (rows or []) if not row.get("is_compliance_issue")]
     total = len(rows)
     tax_exempt = sum(1 for r in rows if flt(r.get("tax_exempt")) > 0)
     taxable = sum(1 for r in rows if flt(r.get("taxable_amount")) > 0)
+    zero_value = sum(
+        1
+        for r in rows
+        if r.get("invoice_name") and flt(r.get("total")) == 0
+    )
     export = sum(
         1 for r in rows if flt(r.get("Value of Exported Goods or Services")) > 0
     )
@@ -39,34 +54,47 @@ def get_sales_register_summary(rows):
             "label": _("Total Sales"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "all",
         },
         {
             "value": tax_exempt,
             "label": _("कर छुटको बिक्री"),
             "datatype": "Int",
             "indicator": "Grey",
+            "ird_view": "tax_exempt",
         },
         {
             "value": taxable,
             "label": _("करयोग्य बिक्री"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "taxable",
         },
         {
             "value": export,
             "label": _("निकासी"),
             "datatype": "Int",
             "indicator": "Orange",
+            "ird_view": "export",
+        },
+        {
+            "value": zero_value,
+            "label": _("Zero Value Sales"),
+            "datatype": "Int",
+            "indicator": "Grey",
+            "ird_view": "zero_value",
         },
     ]
 
 
 def execute(filters=None):
     """Run the IRD Sales Register and return columns, rows, and summary."""
-    columns = get_columns()
-    data = get_data(filters)
+    columns = check_columns(get_columns())
+    data = decorate_rows(get_data(filters), "Sales Invoice", filters)
+    data = append_sequence_gaps(data, filters, is_return=False)
     summary = get_sales_register_summary(data)
-    return columns, data, None, None, summary
+    summary.append(check_summary(data))
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 
 def get_columns():
@@ -108,7 +136,9 @@ def get_data(filters):
 
     apply_ird_posting_date_filters(filters, conditions, values, "si.posting_date")
 
-    conditions_sql = " AND ".join(conditions)
+    conditions_sql = " AND ".join(conditions) + report_permission_condition(
+        "Sales Invoice", "si"
+    )
 
     query = """
         SELECT
@@ -137,6 +167,51 @@ def get_data(filters):
         else get_vat_breakup("Sales Invoice", {inv.invoice: inv.company for inv in invoices})
     )
 
+    invoice_names = [inv.invoice for inv in invoices]
+    all_items = []
+    for start in range(0, len(invoice_names), ITEM_QUERY_BATCH_SIZE):
+        all_items.extend(
+            frappe.get_all(
+            "Sales Invoice Item",
+                filters={
+                    "parent": [
+                        "in",
+                        invoice_names[start : start + ITEM_QUERY_BATCH_SIZE],
+                    ]
+                },
+                fields=[
+                    "parent",
+                    "is_nontaxable_item",
+                    "net_amount",
+                    "amount",
+                    "item_code",
+                    "item_name",
+                    "item_tax_template",
+                ],
+                limit_page_length=0,
+            )
+        )
+    items_by_invoice = {}
+    for item in all_items:
+        items_by_invoice.setdefault(item.parent, []).append(item)
+
+    item_codes = list({item.item_code for item in all_items if item.item_code})
+    asset_items = set()
+    for start in range(0, len(item_codes), ITEM_QUERY_BATCH_SIZE):
+        asset_items.update(
+            frappe.get_all(
+                "Item",
+                filters={
+                    "name": [
+                        "in",
+                        item_codes[start : start + ITEM_QUERY_BATCH_SIZE],
+                    ],
+                    "is_fixed_asset": 1,
+                },
+                pluck="name",
+            )
+        )
+
     for inv in invoices:
         customer_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
         is_export = is_foreign_country(customer_country)
@@ -146,13 +221,7 @@ def get_data(filters):
         tax_exempt = taxable_domestic_nc = taxable_import_nc = capital_taxable_amount = 0.0
         tax_domestic_nc = 0.0
 
-        item_filters = {"parent": inv.invoice}
-
-        items = frappe.get_all("Sales Invoice Item", filters=item_filters,
-            fields=["is_nontaxable_item", "net_amount", "amount", "item_code", "item_name", "item_tax_template"])
-
-        item_codes = [item["item_code"] for item in items]
-        asset_items = frappe.get_all("Item", filters={"item_code": ["in", item_codes], "is_fixed_asset": 1}, pluck="item_code")
+        items = items_by_invoice.get(inv.invoice, [])
 
         item_vat_map, stored, breakup = (
             ({}, False, {})
@@ -173,7 +242,7 @@ def get_data(filters):
                 tax_exempt += net
                 continue
 
-            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map)
+            amt = net if legacy else item_taxable_amount(item, item_vat, item_vat_map, 4)
             if item["item_code"] in asset_items:
                 capital_taxable_amount += amt
             else:
