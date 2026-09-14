@@ -34,3 +34,20 @@ class TestNepalComplianceSettings(FrappeTestCase):
 
 		with self.assertRaises(frappe.ValidationError):
 			NepalComplianceSettings._validate_party_tax_id_rules(settings)
+
+	def test_invalid_party_tax_rule_values_are_rejected(self):
+		supplier_rule = frappe._dict(
+			idx=1, match_by="Type", supplier_type="Company"
+		)
+		for customer_rule in (
+			frappe._dict(idx=1, match_by="Region", customer_group="Commercial"),
+			frappe._dict(idx=1, match_by="Type"),
+		):
+			settings = frappe._dict(
+				enable_party_tax_id_check=1,
+				customer_tax_id_rules=[customer_rule],
+				supplier_tax_id_rules=[supplier_rule],
+			)
+			with self.subTest(rule=customer_rule):
+				with self.assertRaises(frappe.ValidationError):
+					NepalComplianceSettings._validate_party_tax_id_rules(settings)
