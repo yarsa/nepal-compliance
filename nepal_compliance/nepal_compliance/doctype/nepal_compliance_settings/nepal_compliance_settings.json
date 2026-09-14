@@ -24,7 +24,21 @@
   "purchase_tab",
   "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
-  "enable_duplicate_bill_no_check"
+  "enable_duplicate_bill_no_check",
+  "ird_checks_tab",
+  "ird_checks_section",
+  "enable_party_tax_id_check",
+  "enable_vat_amount_check",
+  "enable_total_amount_check",
+  "enable_sales_invoice_number_check",
+  "ird_checks_column",
+  "enable_purchase_attachment_check",
+  "enable_return_match_check",
+  "enable_supplier_pan_automation",
+  "party_tax_rules_section",
+  "customer_tax_id_rules",
+  "party_tax_rules_column",
+  "supplier_tax_id_rules"
  ],
  "fields": [
   {
@@ -147,6 +161,87 @@
    "fieldname": "enable_duplicate_bill_no_check",
    "fieldtype": "Check",
    "label": "Restrict Duplicate Supplier Bill No"
+  },
+  {
+   "fieldname": "ird_checks_tab",
+   "fieldtype": "Tab Break",
+   "label": "IRD Checks"
+  },
+  {
+   "fieldname": "ird_checks_section",
+   "fieldtype": "Section Break",
+   "label": "Checks"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_party_tax_id_check",
+   "fieldtype": "Check",
+   "label": "Check Party Tax ID"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_vat_amount_check",
+   "fieldtype": "Check",
+   "label": "Check VAT Is 13% of Taxable Amount"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_total_amount_check",
+   "fieldtype": "Check",
+   "label": "Check IRD Total"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_sales_invoice_number_check",
+   "fieldtype": "Check",
+   "label": "Check Sales Invoice Number Sequence"
+  },
+  {
+   "fieldname": "ird_checks_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_purchase_attachment_check",
+   "fieldtype": "Check",
+   "label": "Check Purchase Invoice Attachment"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_return_match_check",
+   "fieldtype": "Check",
+   "label": "Check Credit and Debit Notes"
+  },
+  {
+   "default": "0",
+   "description": "Automatically mark eligible Nepal supplier transactions as PAN/abbreviated bills.",
+   "fieldname": "enable_supplier_pan_automation",
+   "fieldtype": "Check",
+   "label": "Enable Non-VAT Supplier PAN Automation"
+  },
+  {
+   "depends_on": "eval:doc.enable_party_tax_id_check === 1",
+   "fieldname": "party_tax_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Parties Requiring Tax ID"
+  },
+  {
+   "depends_on": "eval:doc.enable_party_tax_id_check === 1",
+   "fieldname": "customer_tax_id_rules",
+   "fieldtype": "Table",
+   "label": "Customer Types or Groups",
+   "options": "Nepal Compliance Customer Tax Rule"
+  },
+  {
+   "fieldname": "party_tax_rules_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.enable_party_tax_id_check === 1",
+   "fieldname": "supplier_tax_id_rules",
+   "fieldtype": "Table",
+   "label": "Supplier Types or Groups",
+   "options": "Nepal Compliance Supplier Tax Rule"
   }
  ],
  "index_web_pages_for_search": 1,
