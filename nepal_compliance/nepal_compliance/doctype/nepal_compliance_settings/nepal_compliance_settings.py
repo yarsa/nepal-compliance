@@ -17,6 +17,7 @@ from nepal_compliance.utils import (
 class NepalComplianceSettings(Document):
     def validate(self):
         """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
+        self._validate_party_tax_id_rules()
         seen_companies = set()
         for row in self.get("vat_accounts") or []:
             if row.company:
@@ -29,6 +30,41 @@ class NepalComplianceSettings(Document):
                     )
                 seen_companies.add(row.company)
             row.validate()
+
+    def _validate_party_tax_id_rules(self):
+        """Require complete, unique party rules when the Tax ID check is enabled."""
+        if not self.get("enable_party_tax_id_check"):
+            return
+
+        tables = (
+            ("customer_tax_id_rules", "customer_type", "customer_group", _("Customer")),
+            ("supplier_tax_id_rules", "supplier_type", "supplier_group", _("Supplier")),
+        )
+        for table, type_field, group_field, label in tables:
+            rows = self.get(table) or []
+            if not rows:
+                frappe.throw(
+                    _("Add at least one {0} Type or Group for the Tax ID check.").format(label)
+                )
+
+            seen = set()
+            for row in rows:
+                value_field = type_field if row.match_by == "Type" else group_field
+                value = row.get(value_field)
+                if row.match_by not in ("Type", "Group") or not value:
+                    frappe.throw(
+                        _("Row {0}: select a valid {1} Type or Group.").format(
+                            row.idx, label
+                        )
+                    )
+                key = (row.match_by, value)
+                if key in seen:
+                    frappe.throw(
+                        _("Row {0}: duplicate {1} rule {2}.").format(
+                            row.idx, label, frappe.bold(value)
+                        )
+                    )
+                seen.add(key)
 
     def on_update(self):
         """Clear cached date settings and sync VAT accounts into company tax templates."""
