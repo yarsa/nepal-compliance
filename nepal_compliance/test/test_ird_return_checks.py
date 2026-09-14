@@ -98,6 +98,55 @@ class TestIrdReturnChecks(unittest.TestCase):
 
         self.assertIn("item_name", get_all.call_args.kwargs["fields"])
 
+    def test_unconfigured_vat_skips_treatment_and_totals(self):
+        differences = ird_return_checks._compare_pair(
+            "Sales Invoice",
+            self.note,
+            self.source,
+            {"SINV-1": [self.source_item], "CN-1": [self.note_item]},
+            "sales_invoice_item",
+            {},
+            {"SINV-1": False, "CN-1": False},
+        )
+
+        self.assertEqual(differences, [])
+
+    def test_configured_empty_vat_still_checks_totals(self):
+        differences = ird_return_checks._compare_pair(
+            "Sales Invoice",
+            self.note,
+            self.source,
+            {"SINV-1": [self.source_item], "CN-1": [self.note_item]},
+            "sales_invoice_item",
+            {},
+            {"SINV-1": True, "CN-1": True},
+        )
+
+        self.assertTrue(any("not proportional" in text for text in differences))
+
+    def test_item_vat_preserves_configuration_state(self):
+        docs = {
+            "SINV-1": frappe._dict(name="SINV-1", company="ACME"),
+            "CN-1": frappe._dict(name="CN-1", company="ACME"),
+        }
+        items = {"SINV-1": [self.source_item], "CN-1": [self.note_item]}
+        breakup = {
+            "SINV-1": {"item_vat": {"Item": 130}, "total_vat": 130, "configured": False},
+            "CN-1": {"item_vat": {}, "total_vat": 0.0, "configured": False},
+        }
+
+        with patch(
+            "nepal_compliance.ird_return_checks.get_vat_breakup",
+            return_value=breakup,
+        ):
+            item_vat, configured = ird_return_checks._item_vat(
+                "Sales Invoice", docs, items
+            )
+
+        self.assertFalse(configured["SINV-1"])
+        self.assertFalse(configured["CN-1"])
+        self.assertIn(("SINV-1", "SOURCE-ROW"), item_vat)
+
 
 if __name__ == "__main__":
     unittest.main()
