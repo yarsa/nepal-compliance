@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "match_by",
+  "supplier_type",
+  "supplier_group"
+ ],
+ "fields": [
+  {
+   "fieldname": "match_by",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Match By",
+   "options": "Type\nGroup",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.match_by === 'Type'",
+   "fieldname": "supplier_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Supplier Type",
+   "mandatory_depends_on": "eval:doc.match_by === 'Type'",
+   "options": "Company\nIndividual"
+  },
+  {
+   "depends_on": "eval:doc.match_by === 'Group'",
+   "fieldname": "supplier_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier Group",
+   "link_filters": "[[\"Supplier Group\",\"is_group\",\"=\",0]]",
+   "mandatory_depends_on": "eval:doc.match_by === 'Group'",
+   "options": "Supplier Group"
+  }
+ ],
+ "istable": 1,
+ "module": "Nepal Compliance",
+ "name": "Nepal Compliance Supplier Tax Rule",
+ "permissions": []
+}

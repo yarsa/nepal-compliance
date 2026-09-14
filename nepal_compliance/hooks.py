@@ -190,6 +190,7 @@ doc_events = {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
         "before_validate": [
+            "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
@@ -218,6 +219,12 @@ doc_events = {
     },
     "Sales Order" : {
         "validate": "nepal_compliance.utils.load_nepali_date"
+    },
+    "Purchase Order": {
+        "before_validate": "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
+    },
+    "Supplier": {
+        "validate": "nepal_compliance.pan_supplier.validate_non_vat_supplier",
     },
     "Salary Slip": {
         "after_insert": "nepal_compliance.patches.payroll_entry.execute",

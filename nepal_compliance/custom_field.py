@@ -45,6 +45,13 @@ def create_custom_fields(quiet=False):
         ],
         "Supplier": [
             {"fieldname": "supplier_vat_number", "label": "Supplier Vat/Pan Number", "fieldtype": "Data", "insert_after": "country", "allow_on_submit": 1},
+            {
+                "fieldname": "is_not_vat_registered",
+                "label": "Is Not VAT Registered (PAN)",
+                "fieldtype": "Check",
+                "insert_after": "is_transporter",
+                "description": "For Company suppliers in Nepal that issue PAN or abbreviated bills without VAT.",
+            },
             {"fieldname": "supplier_email_address", "label": "Supplier Email Address", "fieldtype": "Data", "insert_after": "supplier_vat_number"}
         ],
         "Customer": [
@@ -86,7 +93,15 @@ def create_custom_fields(quiet=False):
             {"fieldname": "to_nepali_date_leave_application", "label": "To Date BS", "fieldtype": "Data", "insert_after": "to_date", "allow_on_submit": 1},
         ],
         "Purchase Order":[
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1},
+            {
+                "fieldname": "is_pan_or_abbreviated_bill",
+                "label": "Is PAN/Abbreviated Bill",
+                "fieldtype": "Check",
+                "insert_after": "supplier_name",
+                "allow_on_submit": 1,
+                "description": "Automatically set for eligible Nepal suppliers and copied to Purchase Invoice.",
+            }
         ],
         "Purchase Receipt":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}
