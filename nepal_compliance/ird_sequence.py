@@ -60,7 +60,7 @@ def _occupied_names(filters, is_return):
             "between",
             list(bs_month_to_ad_range(current_bs_month_key())),
         ]
-    return frappe.get_all(
+    return frappe.get_list(
         "Sales Invoice",
         filters=query_filters,
         fields=["name", "company"],

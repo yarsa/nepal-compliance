@@ -9,10 +9,13 @@ from nepal_compliance.nepal_compliance.report.sales_register_ird import (
 
 
 class TestIrdReportPerformance(unittest.TestCase):
+    @patch.object(sales_register_ird, "report_permission_condition", return_value="")
     @patch.object(sales_register_ird, "use_legacy_ird_report_calculation", return_value=True)
     @patch.object(sales_register_ird.frappe, "get_all", return_value=[])
     @patch.object(sales_register_ird.frappe.db, "sql")
-    def test_sales_items_are_loaded_in_one_query(self, sql, get_all, _legacy):
+    def test_sales_items_are_loaded_in_one_query(
+        self, sql, get_all, _legacy, _permission
+    ):
         sql.return_value = [
             frappe._dict(
                 invoice=name,
@@ -31,10 +34,13 @@ class TestIrdReportPerformance(unittest.TestCase):
             {"parent": ["in", ["SINV-1", "SINV-2"]]},
         )
 
+    @patch.object(sales_register_ird, "report_permission_condition", return_value="")
     @patch.object(sales_register_ird, "use_legacy_ird_report_calculation", return_value=True)
     @patch.object(sales_register_ird.frappe, "get_all", return_value=[])
     @patch.object(sales_register_ird.frappe.db, "sql")
-    def test_sales_items_are_batched_for_large_reports(self, sql, get_all, _legacy):
+    def test_sales_items_are_batched_for_large_reports(
+        self, sql, get_all, _legacy, _permission
+    ):
         sql.return_value = [
             frappe._dict(invoice=f"SINV-{index}", company="ACME")
             for index in range(501)
