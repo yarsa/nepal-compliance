@@ -7,9 +7,14 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
+from frappe.utils import getdate
 
 from nepal_compliance.ird_checks import filter_rows, issue
-from nepal_compliance.ird_filters import apply_ird_posting_date_filters
+from nepal_compliance.ird_filters import (
+    bs_month_to_ad_range,
+    current_bs_month_key,
+    fiscal_year_ad_range,
+)
 
 TRAILING_NUMBER = re.compile(r"^(.*?)([0-9]+)$")
 
@@ -24,20 +29,42 @@ def _missing_ranges(numbers):
 
 
 def _occupied_names(filters, is_return):
-    conditions = ["si.is_return = %(is_return)s"]
-    values = {"is_return": int(bool(is_return))}
-    if (filters or {}).get("company"):
-        conditions.append("si.company = %(company)s")
-        values["company"] = filters.get("company")
-    apply_ird_posting_date_filters(filters, conditions, values, "si.posting_date")
-    return frappe.db.sql(
-        f"""
-        SELECT si.name, si.company
-        FROM `tabSales Invoice` si
-        WHERE {" AND ".join(conditions)}
-        """,
-        values,
-        as_dict=True,
+    filters = filters or {}
+    query_filters = {"is_return": int(bool(is_return))}
+    if filters.get("company"):
+        query_filters["company"] = filters.get("company")
+
+    from_date = filters.get("from_nepali_date")
+    to_date = filters.get("to_nepali_date")
+    if from_date and to_date:
+        query_filters["posting_date"] = [
+            "between",
+            [getdate(from_date), getdate(to_date)],
+        ]
+    elif from_date:
+        query_filters["posting_date"] = [">=", getdate(from_date)]
+    elif to_date:
+        query_filters["posting_date"] = ["<=", getdate(to_date)]
+    elif filters.get("bs_month"):
+        query_filters["posting_date"] = [
+            "between",
+            list(bs_month_to_ad_range(filters.get("bs_month"))),
+        ]
+    elif filters.get("fiscal_year"):
+        query_filters["posting_date"] = [
+            "between",
+            list(fiscal_year_ad_range(filters.get("fiscal_year"))),
+        ]
+    else:
+        query_filters["posting_date"] = [
+            "between",
+            list(bs_month_to_ad_range(current_bs_month_key())),
+        ]
+    return frappe.get_all(
+        "Sales Invoice",
+        filters=query_filters,
+        fields=["name", "company"],
+        limit_page_length=0,
     )
 
 
