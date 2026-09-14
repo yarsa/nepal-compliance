@@ -360,6 +360,7 @@ class TestLegacyIrdReportCalculation(unittest.TestCase):
         get_all.side_effect = [
             [
                 frappe._dict(
+                    parent="SINV-EXPORT",
                     item_code="Service Export",
                     item_name="Service Export",
                     net_amount=1000,
