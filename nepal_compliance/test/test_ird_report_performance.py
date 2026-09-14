@@ -31,6 +31,23 @@ class TestIrdReportPerformance(unittest.TestCase):
             {"parent": ["in", ["SINV-1", "SINV-2"]]},
         )
 
+    @patch.object(sales_register_ird, "use_legacy_ird_report_calculation", return_value=True)
+    @patch.object(sales_register_ird.frappe, "get_all", return_value=[])
+    @patch.object(sales_register_ird.frappe.db, "sql")
+    def test_sales_items_are_batched_for_large_reports(self, sql, get_all, _legacy):
+        sql.return_value = [
+            frappe._dict(invoice=f"SINV-{index}", company="ACME")
+            for index in range(501)
+        ]
+
+        sales_register_ird.get_data({})
+
+        self.assertEqual(get_all.call_count, 2)
+        self.assertEqual(
+            get_all.call_args.kwargs["filters"],
+            {"parent": ["in", ["SINV-500"]]},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

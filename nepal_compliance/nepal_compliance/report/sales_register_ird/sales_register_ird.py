@@ -29,10 +29,12 @@ from nepal_compliance.utils import (
     use_legacy_ird_report_calculation,
 )
 
+ITEM_QUERY_BATCH_SIZE = 500
+
 
 def get_sales_register_summary(rows):
     """Build colored summary cards for the Sales Register."""
-    rows = rows or []
+    rows = [row for row in (rows or []) if not row.get("is_compliance_issue")]
     total = len(rows)
     tax_exempt = sum(1 for r in rows if flt(r.get("tax_exempt")) > 0)
     taxable = sum(1 for r in rows if flt(r.get("taxable_amount")) > 0)
@@ -163,40 +165,49 @@ def get_data(filters):
     )
 
     invoice_names = [inv.invoice for inv in invoices]
-    all_items = (
-        frappe.get_all(
+    all_items = []
+    for start in range(0, len(invoice_names), ITEM_QUERY_BATCH_SIZE):
+        all_items.extend(
+            frappe.get_all(
             "Sales Invoice Item",
-            filters={"parent": ["in", invoice_names]},
-            fields=[
-                "parent",
-                "is_nontaxable_item",
-                "net_amount",
-                "amount",
-                "item_code",
-                "item_name",
-                "item_tax_template",
-            ],
-            limit_page_length=0,
+                filters={
+                    "parent": [
+                        "in",
+                        invoice_names[start : start + ITEM_QUERY_BATCH_SIZE],
+                    ]
+                },
+                fields=[
+                    "parent",
+                    "is_nontaxable_item",
+                    "net_amount",
+                    "amount",
+                    "item_code",
+                    "item_name",
+                    "item_tax_template",
+                ],
+                limit_page_length=0,
+            )
         )
-        if invoice_names
-        else []
-    )
     items_by_invoice = {}
     for item in all_items:
         items_by_invoice.setdefault(item.parent, []).append(item)
 
-    item_codes = {item.item_code for item in all_items if item.item_code}
-    asset_items = (
-        set(
+    item_codes = list({item.item_code for item in all_items if item.item_code})
+    asset_items = set()
+    for start in range(0, len(item_codes), ITEM_QUERY_BATCH_SIZE):
+        asset_items.update(
             frappe.get_all(
                 "Item",
-                filters={"name": ["in", list(item_codes)], "is_fixed_asset": 1},
+                filters={
+                    "name": [
+                        "in",
+                        item_codes[start : start + ITEM_QUERY_BATCH_SIZE],
+                    ],
+                    "is_fixed_asset": 1,
+                },
                 pluck="name",
             )
         )
-        if item_codes
-        else set()
-    )
 
     for inv in invoices:
         customer_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
