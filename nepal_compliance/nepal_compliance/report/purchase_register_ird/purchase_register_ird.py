@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, getdate
 
+from nepal_compliance.ird_checks import check_columns, check_summary, decorate_rows
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
@@ -116,10 +117,11 @@ def get_purchase_register_summary(rows, prior_fy_count=0):
 
 def execute(filters=None):
     """Run the IRD Purchase Register and return columns, rows, and summary."""
-    columns = get_columns()
-    data = get_data(filters, bucket="all")
+    columns = get_columns() + check_columns()
+    data = decorate_rows(get_data(filters, bucket="all"), "Purchase Invoice", filters)
     prior_fy_count = sum(1 for r in data if r.get("is_prior_fy"))
     summary = get_purchase_register_summary(data, prior_fy_count=prior_fy_count)
+    summary.append(check_summary(data))
     return columns, data, None, None, summary
 
 
