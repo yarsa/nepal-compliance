@@ -36,6 +36,29 @@ nepal_compliance.ird_from_to_filters = function () {
 	];
 };
 
+nepal_compliance.ird_error_filter = function () {
+	const labels = {
+		missing_tax_id: __("Missing Tax ID"),
+		invalid_nepal_tax_id: __("Invalid Nepal Tax ID"),
+		vat_mismatch: __("VAT Mismatch"),
+		total_mismatch: __("Total Mismatch"),
+		missing_purchase_attachment: __("Missing Purchase Attachment"),
+		missing_invoice_number: __("Missing Invoice Number"),
+		invoice_sequence_gap: __("Invoice Sequence Gap"),
+		missing_return_against: __("Missing Original Invoice"),
+		return_value_mismatch: __("Credit/Debit Note Mismatch"),
+	};
+	return {
+		fieldname: "error_types",
+		label: __("Error Type"),
+		fieldtype: "MultiSelectList",
+		get_data: (txt) =>
+			Object.entries(labels)
+				.filter(([, label]) => !txt || label.toLowerCase().includes(txt.toLowerCase()))
+				.map(([value, label]) => ({ value, label })),
+	};
+};
+
 nepal_compliance.ird_register_filters = function (opts) {
 	opts = opts || {};
 	const from_to = nepal_compliance.ird_from_to_filters();
@@ -69,6 +92,7 @@ nepal_compliance.ird_register_filters = function (opts) {
 			get_query: opts.document.get_query,
 		});
 	}
+	filters.push(nepal_compliance.ird_error_filter());
 	return filters;
 };
 
@@ -201,6 +225,25 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 		return `<span class="ird-bill-date-mismatch" title="${frappe.utils.escape_html(
 			title
 		)}">${formatted}</span>`;
+	}
+	if (fieldname === "compliance_checks" && data) {
+		const errors = data.compliance_errors || [];
+		if (!errors.length) {
+			return `<span class="ird-check-ok">${__("OK")}</span>`;
+		}
+		return errors
+			.map((error) => {
+				let detail = error.message || error.label;
+				if (error.expected !== null && error.expected !== undefined) {
+					detail += ` ${__("Expected")}: ${error.expected}; ${__("Actual")}: ${
+						error.actual ?? "—"
+					}`;
+				}
+				return `<span class="ird-error-pill" title="${frappe.utils.escape_html(
+					detail
+				)}">${frappe.utils.escape_html(error.label)}</span>`;
+			})
+			.join(" ");
 	}
 	return default_formatter(value, row, column, data);
 };
