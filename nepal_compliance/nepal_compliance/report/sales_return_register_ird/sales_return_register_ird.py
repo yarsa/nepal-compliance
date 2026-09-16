@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import check_columns, check_summary, decorate_rows
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
@@ -25,9 +26,9 @@ ITEM_QUERY_BATCH_SIZE = 500
 
 def execute(filters=None):
     """Run the IRD Sales Return Register and return columns plus rows."""
-    columns = get_columns()
-    data = get_data(filters or {})
-    return columns, data
+    columns = get_columns() + check_columns()
+    data = decorate_rows(get_data(filters or {}), "Sales Invoice", filters)
+    return columns, data, None, None, [check_summary(data)]
 
 def get_columns():
     """Column definitions for the IRD Sales Return Register."""

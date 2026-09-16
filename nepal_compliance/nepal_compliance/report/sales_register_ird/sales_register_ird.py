@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.ird_checks import check_columns, check_summary, decorate_rows
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
@@ -63,9 +64,10 @@ def get_sales_register_summary(rows):
 
 def execute(filters=None):
     """Run the IRD Sales Register and return columns, rows, and summary."""
-    columns = get_columns()
-    data = get_data(filters)
+    columns = get_columns() + check_columns()
+    data = decorate_rows(get_data(filters), "Sales Invoice", filters)
     summary = get_sales_register_summary(data)
+    summary.append(check_summary(data))
     return columns, data, None, None, summary
 
 
