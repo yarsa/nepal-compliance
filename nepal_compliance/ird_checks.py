@@ -10,6 +10,7 @@ from frappe import _
 from frappe.utils import flt
 
 MONEY_TOLERANCE = 0.01
+VAT_CHECK_PRECISION = 4
 NEPAL_PAN = re.compile(r"^[0-9]{9}$")
 IRD_CHECK_FIELDS = (
     "enable_party_tax_id_check",
@@ -90,27 +91,45 @@ def check_party_tax_id(context, party, settings):
 
 def check_amounts(context, settings):
     errors = []
-    taxable = flt(context.get("taxable_amount"))
-    non_taxable = flt(context.get("non_taxable_amount"))
-    vat = flt(context.get("vat_amount"))
+    taxable = flt(
+        context.get("check_taxable_amount")
+        if context.get("check_taxable_amount") is not None
+        else context.get("taxable_amount")
+    )
+    non_taxable = flt(
+        context.get("check_non_taxable_amount")
+        if context.get("check_non_taxable_amount") is not None
+        else context.get("non_taxable_amount")
+    )
+    vat = flt(
+        context.get("check_vat_amount")
+        if context.get("check_vat_amount") is not None
+        else context.get("vat_amount")
+    )
     total = flt(context.get("summary_grand_total"))
     pan_bill = bool(context.get("is_pan_or_abbreviated_bill"))
 
     if settings.get("enable_vat_amount_check"):
-        expected_vat = 0.0 if pan_bill else flt(taxable * 0.13, 2)
-        if abs(vat - expected_vat) >= MONEY_TOLERANCE:
+        expected_vat = (
+            0.0 if pan_bill else flt(taxable * 0.13, VAT_CHECK_PRECISION)
+        )
+        actual_vat = flt(vat, VAT_CHECK_PRECISION)
+        if actual_vat != expected_vat:
             errors.append(
                 issue(
                     "vat_mismatch",
                     _("VAT must be 13% of taxable amount."),
                     expected=expected_vat,
-                    actual=flt(vat, 2),
+                    actual=actual_vat,
                 )
             )
 
     if settings.get("enable_total_amount_check"):
         expected_total = flt(taxable + non_taxable + vat, 2)
-        if abs(total - expected_total) >= MONEY_TOLERANCE:
+        allowed_totals = [expected_total]
+        if not context.get("disable_rounded_total"):
+            allowed_totals.append(flt(taxable + non_taxable + vat, 0))
+        if all(abs(total - allowed) >= MONEY_TOLERANCE for allowed in allowed_totals):
             errors.append(
                 issue(
                     "total_mismatch",
@@ -266,6 +285,7 @@ def _invoice_contexts(doctype, names):
         "conversion_rate",
         "is_return",
         "return_against",
+        "disable_rounded_total",
         "tax_id",
         "ird_party_country",
         "taxable_amount",
@@ -328,6 +348,58 @@ def _parties(doctype, contexts):
     }
 
 
+def _report_check_amounts(rows, contexts):
+    """Collect the precise taxable and VAT values displayed by the register."""
+    amount_fields = (
+        "taxable_amount",
+        "taxable_import_non_capital_amount",
+        "capital_taxable_amount",
+        "tax_amount",
+        "taxable_import_non_capital_tax",
+        "capital_taxable_tax",
+        "tax_exempt",
+    )
+    amounts = {}
+    for row in rows:
+        name = row.get("invoice_name")
+        if (
+            not name
+            or row.get("is_section")
+            or not any(fieldname in row for fieldname in amount_fields)
+        ):
+            continue
+        values = amounts.setdefault(
+            name,
+            {"taxable": 0.0, "non_taxable": 0.0, "vat": 0.0},
+        )
+        values["taxable"] += sum(
+            flt(row.get(fieldname))
+            for fieldname in (
+                "taxable_amount",
+                "taxable_import_non_capital_amount",
+                "capital_taxable_amount",
+            )
+        )
+        values["vat"] += sum(
+            flt(row.get(fieldname))
+            for fieldname in (
+                "tax_amount",
+                "taxable_import_non_capital_tax",
+                "capital_taxable_tax",
+            )
+        )
+        values["non_taxable"] += flt(row.get("tax_exempt"))
+
+    for name, values in amounts.items():
+        context = contexts.get(name)
+        if not context:
+            continue
+        sign = -1 if context.get("is_return") else 1
+        context.check_taxable_amount = sign * values["taxable"]
+        context.check_non_taxable_amount = sign * values["non_taxable"]
+        context.check_vat_amount = sign * values["vat"]
+
+
 def decorate_rows(rows, doctype, filters=None):
     """Attach configured errors to report rows, then apply the error filter."""
     names = list(
@@ -338,6 +410,7 @@ def decorate_rows(rows, doctype, filters=None):
         }
     )
     contexts = _invoice_contexts(doctype, names)
+    _report_check_amounts(rows, contexts)
     parties = _parties(doctype, contexts)
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
     returns_by_source = _submitted_returns(doctype, names)

@@ -69,6 +69,37 @@ class TestIrdChecks(unittest.TestCase):
             {error["code"] for error in errors}, {"vat_mismatch", "total_mismatch"}
         )
 
+    def test_vat_check_uses_precise_register_amounts(self):
+        context = frappe._dict(
+            taxable_amount=311504.42,
+            vat_amount=40495.58,
+            check_taxable_amount=311504.4248,
+            check_non_taxable_amount=0,
+            check_vat_amount=40495.5752,
+            summary_grand_total=352000,
+        )
+
+        self.assertEqual(ird_checks.check_amounts(context, self.settings), [])
+
+        context.check_vat_amount = 40495.5753
+        errors = ird_checks.check_amounts(context, self.settings)
+        self.assertEqual([error["code"] for error in errors], ["vat_mismatch"])
+
+    def test_total_check_accepts_enabled_rounding(self):
+        context = frappe._dict(
+            check_taxable_amount=100.35,
+            check_non_taxable_amount=0,
+            check_vat_amount=13.0455,
+            summary_grand_total=113,
+            disable_rounded_total=0,
+        )
+
+        self.assertEqual(ird_checks.check_amounts(context, self.settings), [])
+
+        context.disable_rounded_total = 1
+        errors = ird_checks.check_amounts(context, self.settings)
+        self.assertEqual([error["code"] for error in errors], ["total_mismatch"])
+
     def test_pan_bill_expects_zero_vat(self):
         context = frappe._dict(
             taxable_amount=0,
@@ -124,6 +155,27 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(columns[1]["fieldname"], "compliance_checks")
         self.assertEqual(columns[-1]["fieldname"], "adjustment_notes")
+
+    def test_report_check_amounts_combine_all_taxable_buckets(self):
+        contexts = {"PINV-1": frappe._dict(is_return=0)}
+        rows = [
+            frappe._dict(
+                invoice_name="PINV-1",
+                taxable_amount=100,
+                tax_amount=13,
+                taxable_import_non_capital_amount=200,
+                taxable_import_non_capital_tax=26,
+                capital_taxable_amount=300,
+                capital_taxable_tax=39,
+                tax_exempt=50,
+            )
+        ]
+
+        ird_checks._report_check_amounts(rows, contexts)
+
+        self.assertEqual(contexts["PINV-1"].check_taxable_amount, 600)
+        self.assertEqual(contexts["PINV-1"].check_vat_amount, 78)
+        self.assertEqual(contexts["PINV-1"].check_non_taxable_amount, 50)
 
     @patch("nepal_compliance.ird_checks._submitted_returns", return_value={})
     @patch("nepal_compliance.ird_checks.frappe.get_cached_doc")
