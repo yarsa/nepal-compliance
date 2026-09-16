@@ -179,6 +179,7 @@ def get_data(filters, bucket="all"):
             pi.name as invoice, pi.bill_no, pi.bill_date, pi.customs_declaration_number, pi.rounded_total, pi.grand_total, pi.summary_grand_total, pi.posting_date,
             pi.supplier_name, pi.tax_id as invoice_pan, pi.total, pi.total_taxes_and_charges as total_tax, pi.supplier, pi.company,
             pi.taxable_amount as stored_taxable_amount, pi.item_vat_detail as stored_item_vat_detail,
+            pi.is_pan_or_abbreviated_bill,
             pi.ird_party_country as stored_party_country,
             supplier_address.country as address_country,
             s.tax_id as supplier_tax_id
@@ -236,6 +237,9 @@ def get_data(filters, bucket="all"):
 
         for item, item_vat in zip(items, row_vat, strict=True):
             net = flt(item.get("net_amount"))
+            if inv.is_pan_or_abbreviated_bill:
+                tax_exempt += net
+                continue
 
             is_exempt = (
                 legacy_ird_item_is_exempt(item, inv.total_tax)
