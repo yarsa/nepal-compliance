@@ -260,7 +260,19 @@ def decorate_rows(rows, doctype, filters=None):
     }
 
     for row in rows:
-        errors = errors_by_invoice.get(row.get("invoice_name"), [])
+        errors = list(errors_by_invoice.get(row.get("invoice_name"), []))
+        if (
+            doctype == "Sales Invoice"
+            and settings.get("enable_sales_invoice_number_check")
+            and row.get("invoice_doctype")
+            and not str(row.get("invoice") or "").strip()
+        ):
+            errors.append(
+                issue(
+                    "missing_invoice_number",
+                    _("The Sales Invoice or Sales Return number is blank."),
+                )
+            )
         row["compliance_errors"] = errors
         row["compliance_error_codes"] = [error["code"] for error in errors]
         row["compliance_checks"] = ", ".join(error["label"] for error in errors)
