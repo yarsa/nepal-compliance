@@ -128,11 +128,27 @@ def check_attachment(context, settings):
     return []
 
 
+def check_return_reference(context, settings):
+    if (
+        settings.get("enable_return_match_check")
+        and context.get("is_return")
+        and not context.get("return_against")
+    ):
+        return [
+            issue(
+                "missing_return_against",
+                _("Select the original invoice in Return Against."),
+            )
+        ]
+    return []
+
+
 def check_context(context, party, settings):
     return [
         *check_party_tax_id(context, party, settings),
         *check_amounts(context, settings),
         *check_attachment(context, settings),
+        *check_return_reference(context, settings),
     ]
 
 
@@ -160,6 +176,12 @@ def filter_rows(rows, filters):
 def check_columns():
     return [
         {
+            "label": _("Credit / Debit Note"),
+            "fieldname": "adjustment_notes",
+            "fieldtype": "Data",
+            "width": 180,
+        },
+        {
             "label": _("Checks"),
             "fieldname": "compliance_checks",
             "fieldtype": "Data",
@@ -181,6 +203,25 @@ def check_summary(rows):
         "datatype": "Int",
         "indicator": "Red" if invoices else "Green",
     }
+
+
+def _submitted_returns(doctype, source_names):
+    if not source_names:
+        return {}
+    grouped = {}
+    rows = frappe.get_all(
+        doctype,
+        filters={
+            "docstatus": 1,
+            "is_return": 1,
+            "return_against": ["in", source_names],
+        },
+        fields=["name", "return_against"],
+        limit_page_length=0,
+    )
+    for row in rows:
+        grouped.setdefault(row.return_against, []).append(row.name)
+    return grouped
 
 
 def _invoice_contexts(doctype, names):
@@ -249,6 +290,7 @@ def decorate_rows(rows, doctype, filters=None):
     contexts = _invoice_contexts(doctype, names)
     parties = _parties(doctype, contexts)
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    returns_by_source = _submitted_returns(doctype, names)
     party_field = "customer" if doctype == "Sales Invoice" else "supplier"
     errors_by_invoice = {
         name: check_context(
@@ -260,6 +302,7 @@ def decorate_rows(rows, doctype, filters=None):
     }
 
     for row in rows:
+        context = contexts.get(row.get("invoice_name"))
         errors = list(errors_by_invoice.get(row.get("invoice_name"), []))
         if (
             doctype == "Sales Invoice"
@@ -276,4 +319,12 @@ def decorate_rows(rows, doctype, filters=None):
         row["compliance_errors"] = errors
         row["compliance_error_codes"] = [error["code"] for error in errors]
         row["compliance_checks"] = ", ".join(error["label"] for error in errors)
+        if context and context.get("is_return"):
+            note_names = [context.get("return_against")] if context.get("return_against") else []
+        else:
+            note_names = returns_by_source.get(row.get("invoice_name"), [])
+        row["adjustment_note_links"] = [
+            {"doctype": doctype, "name": name} for name in note_names
+        ]
+        row["adjustment_notes"] = ", ".join(note_names)
     return filter_rows(rows, filters)

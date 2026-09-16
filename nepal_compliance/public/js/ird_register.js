@@ -215,6 +215,16 @@ nepal_compliance.ird_invoice_formatter = function (value, row, column, data, def
 			return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
 		}
 	}
+	if (fieldname === "adjustment_notes" && data) {
+		return (data.adjustment_note_links || [])
+			.map((note) => {
+				const href = frappe.utils.get_form_link(note.doctype, note.name);
+				return `<a class="underline" href="${href}" target="_blank" rel="noopener noreferrer">${frappe.utils.escape_html(
+					note.name
+				)}</a>`;
+			})
+			.join(", ");
+	}
 	if (fieldname === "bill_date" && data && cint(data.bill_month_mismatch)) {
 		const formatted = default_formatter(value, row, column, data);
 		const days = data.bill_posting_day_diff;
