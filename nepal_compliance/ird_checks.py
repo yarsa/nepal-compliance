@@ -300,6 +300,11 @@ def decorate_rows(rows, doctype, filters=None):
         )
         for name, context in contexts.items()
     }
+    if settings.get("enable_return_match_check"):
+        from nepal_compliance.ird_return_checks import return_match_errors
+
+        for name, errors in return_match_errors(doctype, names).items():
+            errors_by_invoice.setdefault(name, []).extend(errors)
 
     for row in rows:
         context = contexts.get(row.get("invoice_name"))
