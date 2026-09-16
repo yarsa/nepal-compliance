@@ -86,6 +86,15 @@
     font-weight: 600;
 }
 
+.ird-register-page .dt-row:has(.ird-error-row-marker) .dt-cell,
+.ird-purchase-register-page .dt-row:has(.ird-error-row-marker) .dt-cell {
+    background-color: rgba(220, 38, 38, 0.035);
+}
+
+.ird-error-row-marker {
+    display: none;
+}
+
 .ird-prior-fy-section {
     border-top: 1px solid var(--border-color, #d1d8dd);
     padding-top: 1rem;

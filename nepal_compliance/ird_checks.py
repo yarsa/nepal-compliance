@@ -11,6 +11,14 @@ from frappe.utils import flt
 
 MONEY_TOLERANCE = 0.01
 NEPAL_PAN = re.compile(r"^[0-9]{9}$")
+IRD_CHECK_FIELDS = (
+    "enable_party_tax_id_check",
+    "enable_vat_amount_check",
+    "enable_total_amount_check",
+    "enable_sales_invoice_number_check",
+    "enable_purchase_attachment_check",
+    "enable_return_match_check",
+)
 
 def error_labels():
     return {
@@ -65,7 +73,9 @@ def check_party_tax_id(context, party, settings):
                 _("Tax ID is required for the configured party type or group."),
             )
         ]
-    country = str(context.get("ird_party_country") or "").strip()
+    country = str(
+        context.get("ird_party_country") or party.get("country") or "Nepal"
+    ).strip()
     if country.casefold() == "nepal" and not NEPAL_PAN.fullmatch(tax_id):
         return [
             issue(
@@ -173,21 +183,39 @@ def filter_rows(rows, filters):
     ]
 
 
-def check_columns():
-    return [
-        {
-            "label": _("Credit / Debit Note"),
-            "fieldname": "adjustment_notes",
-            "fieldtype": "Data",
-            "width": 180,
-        },
+def checks_enabled(settings=None):
+    if settings is None:
+        settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    return any(settings.get(fieldname) for fieldname in IRD_CHECK_FIELDS)
+
+
+def check_columns(columns, settings=None):
+    """Insert enabled compliance columns without disturbing the register layout."""
+    if settings is None:
+        settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    columns = list(columns)
+    if not checks_enabled(settings):
+        return columns
+
+    columns.insert(
+        1,
         {
             "label": _("Checks"),
             "fieldname": "compliance_checks",
             "fieldtype": "Data",
             "width": 220,
-        }
-    ]
+        },
+    )
+    if settings.get("enable_return_match_check"):
+        columns.append(
+            {
+                "label": _("Credit / Debit Note"),
+                "fieldname": "adjustment_notes",
+                "fieldtype": "Data",
+                "width": 180,
+            }
+        )
+    return columns
 
 
 def check_summary(rows):
@@ -228,6 +256,9 @@ def _invoice_contexts(doctype, names):
     if not names:
         return {}
     party_field = "customer" if doctype == "Sales Invoice" else "supplier"
+    address_field = (
+        "customer_address" if doctype == "Sales Invoice" else "supplier_address"
+    )
     fields = [
         "name",
         "company",
@@ -242,6 +273,7 @@ def _invoice_contexts(doctype, names):
         "vat_amount",
         "summary_grand_total",
         party_field,
+        address_field,
     ]
     if doctype == "Purchase Invoice":
         fields.extend(["attach_purchase_invoice", "is_pan_or_abbreviated_bill"])
@@ -253,6 +285,24 @@ def _invoice_contexts(doctype, names):
     )
     for row in rows:
         row.doctype = doctype
+    address_names = {row.get(address_field) for row in rows if row.get(address_field)}
+    countries = (
+        dict(
+            frappe.get_all(
+                "Address",
+                filters={"name": ["in", list(address_names)]},
+                fields=["name", "country"],
+                as_list=True,
+                limit_page_length=0,
+            )
+        )
+        if address_names
+        else {}
+    )
+    for row in rows:
+        row.ird_party_country = (
+            row.get("ird_party_country") or countries.get(row.get(address_field)) or ""
+        )
     return {row.name: row for row in rows}
 
 

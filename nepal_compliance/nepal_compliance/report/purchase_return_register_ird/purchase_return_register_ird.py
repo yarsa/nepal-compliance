@@ -28,7 +28,7 @@ ITEM_QUERY_BATCH_SIZE = 500
 
 def execute(filters=None):
     """Run the IRD Purchase Return Register and return columns plus rows."""
-    columns = get_columns() + check_columns()
+    columns = check_columns(get_columns())
     data = decorate_rows(get_data(filters), "Purchase Invoice", filters)
     return columns, data, None, None, [check_summary(data)]
 

@@ -35,6 +35,14 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(errors[0]["code"], "invalid_nepal_tax_id")
 
+    def test_missing_country_uses_nepal_pan_rule(self):
+        context = frappe._dict(doctype="Sales Invoice", tax_id="123")
+        party = frappe._dict(customer_type="Company", customer_group="Commercial")
+
+        errors = ird_checks.check_party_tax_id(context, party, self.settings)
+
+        self.assertEqual(errors[0]["code"], "invalid_nepal_tax_id")
+
     def test_unselected_party_rule_does_not_require_tax_id(self):
         context = frappe._dict(
             doctype="Purchase Invoice", tax_id="", ird_party_country="Nepal"
@@ -93,6 +101,29 @@ class TestIrdChecks(unittest.TestCase):
         )
 
         self.assertEqual([row.invoice for row in filtered], ["A"])
+
+    def test_checks_column_is_second_only_when_enabled(self):
+        base = [
+            {"fieldname": "invoice_date"},
+            {"fieldname": "invoice"},
+        ]
+
+        self.assertEqual(ird_checks.check_columns(base, frappe._dict()), base)
+
+        columns = ird_checks.check_columns(
+            base, frappe._dict(enable_vat_amount_check=1)
+        )
+        self.assertEqual(columns[1]["fieldname"], "compliance_checks")
+        self.assertNotIn("adjustment_notes", [column["fieldname"] for column in columns])
+
+    def test_return_check_adds_adjustment_note_column(self):
+        columns = ird_checks.check_columns(
+            [{"fieldname": "invoice_date"}],
+            frappe._dict(enable_return_match_check=1),
+        )
+
+        self.assertEqual(columns[1]["fieldname"], "compliance_checks")
+        self.assertEqual(columns[-1]["fieldname"], "adjustment_notes")
 
     @patch("nepal_compliance.ird_checks._submitted_returns", return_value={})
     @patch("nepal_compliance.ird_checks.frappe.get_cached_doc")
