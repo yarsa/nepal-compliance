@@ -5,7 +5,12 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, getdate
 
-from nepal_compliance.ird_checks import check_columns, check_summary, decorate_rows
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+)
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
@@ -65,42 +70,49 @@ def get_purchase_register_summary(rows, prior_fy_count=0):
             "label": _("Total Purchases"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "all",
         },
         {
             "value": same_bs_month,
             "label": _("Same BS Month (Entry vs Bill)"),
             "datatype": "Int",
             "indicator": "Green",
+            "ird_view": "same_bs_month",
         },
         {
             "value": diff_bs_month,
             "label": _("Different BS Month (Entry vs Bill)"),
             "datatype": "Int",
             "indicator": "Orange",
+            "ird_view": "different_bs_month",
         },
         {
             "value": tax_exempt,
             "label": _("कर छुट हुने खरिद"),
             "datatype": "Int",
             "indicator": "Grey",
+            "ird_view": "tax_exempt",
         },
         {
             "value": taxable,
             "label": _("करयोग्य खरिद"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "taxable",
         },
         {
             "value": taxable_import,
             "label": _("करयोग्य पैठारी"),
             "datatype": "Int",
             "indicator": "Blue",
+            "ird_view": "import",
         },
         {
             "value": capital,
             "label": _("पूंजीगत खरिद"),
             "datatype": "Int",
             "indicator": "Grey",
+            "ird_view": "capital",
         },
     ]
     if prior_fy_count:
@@ -110,6 +122,7 @@ def get_purchase_register_summary(rows, prior_fy_count=0):
                 "label": _("Prior Fiscal Year Purchases"),
                 "datatype": "Int",
                 "indicator": "Red",
+                "ird_view": "prior_fy",
             }
         )
     return summary
@@ -122,7 +135,7 @@ def execute(filters=None):
     prior_fy_count = sum(1 for r in data if r.get("is_prior_fy"))
     summary = get_purchase_register_summary(data, prior_fy_count=prior_fy_count)
     summary.append(check_summary(data))
-    return columns, data, None, None, summary
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 
 def get_columns():

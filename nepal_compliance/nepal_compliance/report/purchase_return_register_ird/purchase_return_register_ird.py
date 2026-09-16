@@ -5,7 +5,12 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from nepal_compliance.ird_checks import check_columns, check_summary, decorate_rows
+from nepal_compliance.ird_checks import (
+    check_columns,
+    check_summary,
+    decorate_rows,
+    filter_summary_rows,
+)
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
@@ -30,7 +35,8 @@ def execute(filters=None):
     """Run the IRD Purchase Return Register and return columns plus rows."""
     columns = check_columns(get_columns())
     data = decorate_rows(get_data(filters), "Purchase Invoice", filters)
-    return columns, data, None, None, [check_summary(data)]
+    summary = [check_summary(data)]
+    return columns, filter_summary_rows(data, filters), None, None, summary
 
 def get_columns():
     """Column definitions for the IRD Purchase Return Register."""

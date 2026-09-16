@@ -202,6 +202,43 @@ def filter_rows(rows, filters):
     ]
 
 
+def filter_summary_rows(rows, filters):
+    """Filter report rows when a summary card is selected."""
+    view = (filters or {}).get("ird_summary_view")
+    if not view or view == "all":
+        return rows
+
+    def matches(row):
+        if view == "errors":
+            return bool(row.get("compliance_error_codes"))
+        if view == "tax_exempt":
+            return flt(row.get("tax_exempt")) > 0
+        if view == "taxable":
+            return any(
+                flt(row.get(fieldname)) > 0
+                for fieldname in (
+                    "taxable_amount",
+                    "taxable_import_non_capital_amount",
+                    "capital_taxable_amount",
+                )
+            )
+        if view == "export":
+            return flt(row.get("Value of Exported Goods or Services")) > 0
+        if view == "import":
+            return flt(row.get("taxable_import_non_capital_amount")) > 0
+        if view == "capital":
+            return flt(row.get("capital_taxable_amount")) > 0
+        if view == "prior_fy":
+            return bool(row.get("is_prior_fy"))
+        if view == "same_bs_month":
+            return bool(row.get("bill_date")) and not row.get("bill_month_mismatch")
+        if view == "different_bs_month":
+            return bool(row.get("bill_date")) and bool(row.get("bill_month_mismatch"))
+        return True
+
+    return [row for row in rows if matches(row)]
+
+
 def checks_enabled(settings=None):
     if settings is None:
         settings = frappe.get_cached_doc("Nepal Compliance Settings")
@@ -249,6 +286,7 @@ def check_summary(rows):
         "label": _("Invoices With Errors"),
         "datatype": "Int",
         "indicator": "Red" if invoices else "Green",
+        "ird_view": "errors",
     }
 
 
@@ -348,6 +386,58 @@ def _parties(doctype, contexts):
     }
 
 
+def _invoice_hover_items(doctype, contexts):
+    if not contexts:
+        return {}
+    item_doctype = f"{doctype} Item"
+    rows = frappe.get_all(
+        item_doctype,
+        filters={"parent": ["in", list(contexts)]},
+        fields=[
+            "parent",
+            "item_code",
+            "item_name",
+            "qty",
+            "uom",
+            "net_rate",
+            "net_amount",
+            "is_nontaxable_item",
+            "item_tax_template",
+        ],
+        order_by="parent, idx",
+        limit_page_length=0,
+    )
+    item_codes = list({row.item_code for row in rows if row.item_code})
+    fixed_assets = (
+        set(
+            frappe.get_all(
+                "Item",
+                filters={"name": ["in", item_codes], "is_fixed_asset": 1},
+                pluck="name",
+            )
+        )
+        if item_codes
+        else set()
+    )
+    grouped = {}
+    for row in rows:
+        context = contexts[row.parent]
+        has_invoice_vat = abs(flt(context.get("check_vat_amount"))) > 0
+        grouped.setdefault(row.parent, []).append(
+            {
+                "item_name": row.item_name or row.item_code,
+                "qty": abs(flt(row.qty)),
+                "uom": row.uom,
+                "rate": abs(flt(row.net_rate)),
+                "amount": abs(flt(row.net_amount)),
+                "is_taxable": not row.is_nontaxable_item
+                and bool(row.item_tax_template or has_invoice_vat),
+                "is_fixed_asset": row.item_code in fixed_assets,
+            }
+        )
+    return grouped
+
+
 def _report_check_amounts(rows, contexts):
     """Collect the precise taxable and VAT values displayed by the register."""
     amount_fields = (
@@ -411,6 +501,7 @@ def decorate_rows(rows, doctype, filters=None):
     )
     contexts = _invoice_contexts(doctype, names)
     _report_check_amounts(rows, contexts)
+    hover_items = _invoice_hover_items(doctype, contexts)
     parties = _parties(doctype, contexts)
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
     returns_by_source = _submitted_returns(doctype, names)
@@ -431,6 +522,7 @@ def decorate_rows(rows, doctype, filters=None):
 
     for row in rows:
         context = contexts.get(row.get("invoice_name"))
+        party = parties.get(context.get(party_field)) if context else None
         errors = list(errors_by_invoice.get(row.get("invoice_name"), []))
         if (
             doctype == "Sales Invoice"
@@ -455,4 +547,11 @@ def decorate_rows(rows, doctype, filters=None):
             {"doctype": doctype, "name": name} for name in note_names
         ]
         row["adjustment_notes"] = ", ".join(note_names)
+        row["invoice_hover_items"] = hover_items.get(row.get("invoice_name"), [])
+        row["party_type"] = (
+            party.get("customer_type") or party.get("supplier_type") if party else ""
+        )
+        row["party_group"] = (
+            party.get("customer_group") or party.get("supplier_group") if party else ""
+        )
     return filter_rows(rows, filters)
