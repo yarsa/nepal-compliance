@@ -124,19 +124,30 @@ def get_data(filters):
         for item in batch_items:
             items_by_invoice.setdefault(item.parent, []).append(item)
 
-    item_codes = {
-        item.get("item_code")
-        for items in items_by_invoice.values()
-        for item in items
-        if item.get("item_code")
-    }
-    asset_items = set(
-        frappe.get_all(
-            "Item",
-            filters={"item_code": ["in", list(item_codes)], "is_fixed_asset": 1},
-            pluck="item_code",
-        )
-    ) if legacy and item_codes else set()
+    item_codes = list(
+        {
+            item.get("item_code")
+            for items in items_by_invoice.values()
+            for item in items
+            if item.get("item_code")
+        }
+    )
+    asset_items = set()
+    if legacy:
+        for start in range(0, len(item_codes), ITEM_QUERY_BATCH_SIZE):
+            asset_items.update(
+                frappe.get_all(
+                    "Item",
+                    filters={
+                        "item_code": [
+                            "in",
+                            item_codes[start : start + ITEM_QUERY_BATCH_SIZE],
+                        ],
+                        "is_fixed_asset": 1,
+                    },
+                    pluck="item_code",
+                )
+            )
 
     grand_qty = grand_total = grand_tax_exempt = grand_taxable = grand_tax = 0.0
 
