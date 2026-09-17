@@ -141,6 +141,12 @@ class TestIrdReturnChecks(unittest.TestCase):
         self.assertFalse(configured["CN-1"])
         self.assertIn(("SINV-1", "SOURCE-ROW"), item_vat)
 
+    @patch("nepal_compliance.ird_return_checks.frappe.get_all", return_value=[])
+    def test_manual_items_load_item_name_for_vat_allocation(self, get_all):
+        ird_return_checks._items("Sales Invoice", ["SINV-1"])
+
+        self.assertIn("item_name", get_all.call_args.kwargs["fields"])
+
 
 if __name__ == "__main__":
     unittest.main()
