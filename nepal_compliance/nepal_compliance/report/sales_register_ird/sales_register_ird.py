@@ -10,6 +10,7 @@ from nepal_compliance.ird_checks import (
     check_summary,
     decorate_rows,
     filter_summary_rows,
+    report_permission_condition,
 )
 from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_sequence import append_sequence_gaps
@@ -135,7 +136,9 @@ def get_data(filters):
 
     apply_ird_posting_date_filters(filters, conditions, values, "si.posting_date")
 
-    conditions_sql = " AND ".join(conditions)
+    conditions_sql = " AND ".join(conditions) + report_permission_condition(
+        "Sales Invoice", "si"
+    )
 
     query = """
         SELECT

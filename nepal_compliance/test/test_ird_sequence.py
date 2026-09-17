@@ -4,6 +4,9 @@ from unittest.mock import patch
 import frappe
 
 from nepal_compliance import ird_sequence
+from nepal_compliance.nepal_compliance.report.sales_register_ird import (
+    sales_register_ird,
+)
 
 
 class TestIrdSequence(unittest.TestCase):
@@ -13,9 +16,9 @@ class TestIrdSequence(unittest.TestCase):
             [(3, 4), (6, 8)],
         )
 
-    @patch("nepal_compliance.ird_sequence.frappe.get_all")
-    def test_gap_rows_are_grouped_by_company_and_prefix(self, get_all):
-        get_all.return_value = [
+    @patch("nepal_compliance.ird_sequence.frappe.get_list")
+    def test_gap_rows_are_grouped_by_company_and_prefix(self, get_list):
+        get_list.return_value = [
             frappe._dict(name="SINV-0001", company="ACME"),
             frappe._dict(name="SINV-0003", company="ACME"),
             frappe._dict(name="RET-0001", company="ACME"),
@@ -39,6 +42,16 @@ class TestIrdSequence(unittest.TestCase):
         rows = [frappe._dict(invoice="SINV-0001")]
         self.assertIs(ird_sequence.append_sequence_gaps(rows, {}), rows)
         gap_rows.assert_not_called()
+
+    def test_gap_rows_are_excluded_from_sales_summary(self):
+        rows = [
+            frappe._dict(invoice_name="SINV-0001", total=100),
+            frappe._dict(is_compliance_issue=1, invoice="Missing: SINV-0002"),
+        ]
+
+        summary = sales_register_ird.get_sales_register_summary(rows)
+
+        self.assertEqual(summary[0]["value"], 1)
 
 
 if __name__ == "__main__":
