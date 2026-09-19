@@ -204,17 +204,22 @@ doc_events = {
     },
     "Sales Invoice" : {
         "autoname": "nepal_compliance.utils.custom_autoname",
-        "before_insert": "nepal_compliance.utils.set_vat_numbers",
+        "before_insert": [
+            "nepal_compliance.utils.set_manual_sales_invoice_name",
+            "nepal_compliance.utils.set_vat_numbers",
+        ],
         "before_validate": [
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
+        "before_submit": "nepal_compliance.utils.require_manual_sales_invoice_attachment",
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
         "validate": [
             "nepal_compliance.ird_country.set_invoice_party_country",
             "nepal_compliance.qr_code.create_qr_code",
             "nepal_compliance.utils.load_nepali_date",
             "nepal_compliance.utils.set_taxable_amounts",
+            "nepal_compliance.utils.validate_manual_sales_invoice_name",
         ]
     },
     "Sales Order" : {

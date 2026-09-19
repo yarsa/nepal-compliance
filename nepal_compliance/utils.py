@@ -3,7 +3,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, get_link_to_form
 from frappe.utils.safe_exec import safe_eval
-from frappe.model.naming import make_autoname
+from frappe.model.naming import make_autoname, validate_name
 from typing import Union
 
 REPORT_QUERY_BATCH_SIZE = 500
@@ -39,6 +39,131 @@ def custom_autoname(doc, method):
     except Exception as e:
         frappe.log_error(f"Custom autoname error: {str(e)}")
         raise
+
+def _manual_sales_invoice_settings(company):
+    """Return (allowed, attachment_required) for one company's manual invoice numbering.
+
+    Hand bills are a per-company arrangement: one company may issue them while
+    another on the same site stays on the naming series, so the switches live on
+    the company row rather than on the Single.
+    """
+    settings = frappe.get_cached_doc("Nepal Compliance Settings")
+    for row in settings.get("vat_accounts") or []:
+        if row.company == company:
+            return (
+                bool(row.get("allow_manual_sales_invoice_number")),
+                bool(row.get("require_manual_sales_invoice_attachment")),
+            )
+    return (False, False)
+
+
+def get_manual_sales_invoice_name(doc):
+    """Return the hand bill number to use as the Sales Invoice name, if one was entered.
+
+    Amendments are skipped: Frappe copies no_copy fields on amend and names the new
+    document <original>-1, which is the number the bill book already accounts for.
+    """
+    if doc.doctype != "Sales Invoice" or doc.get("amended_from"):
+        return None
+
+    manual_no = (doc.get("manual_invoice_no") or "").strip()
+    if not manual_no:
+        return None
+
+    allowed, _required = _manual_sales_invoice_settings(doc.company)
+    if not allowed:
+        frappe.throw(
+            _("Manual Sales Invoice numbering is not enabled for Company {0}. Enable <b>Allow Manual Sales Invoice Number</b> on that company's row in Nepal Compliance Settings, or clear the <b>Manual Invoice No</b> field.").format(
+                frappe.bold(doc.company)
+            ),
+            title=_("Manual Numbering Disabled"),
+        )
+
+    if frappe.db.exists(doc.doctype, manual_no):
+        frappe.throw(
+            _("Sales Invoice {0} already exists. Enter the next unused number from the bill book.").format(frappe.bold(manual_no)),
+            title=_("Duplicate Manual Invoice No"),
+        )
+
+    return manual_no
+
+
+def set_manual_sales_invoice_name(doc, method):
+    """Name a Sales Invoice after the hand bill number entered on it.
+
+    Runs on before_insert, which Frappe calls ahead of set_new_name, so the number
+    also takes precedence over any Document Naming Rule set up for Sales Invoice.
+    """
+    manual_no = get_manual_sales_invoice_name(doc)
+    if not manual_no:
+        return
+
+    doc.name = validate_name(doc.doctype, manual_no)
+    doc.flags.name_set = True
+
+
+def validate_manual_sales_invoice_name(doc, method):
+    """Keep Manual Invoice No in step with the name it produced.
+
+    read_only_depends_on only guards the form. frappe.client.set_value saves the
+    document without running before_insert, so without this a changed value could
+    be stored while doc.name stayed as it was, leaving the field disagreeing with
+    the invoice number that the IRD registers and CBMS actually use.
+    """
+    if doc.doctype != "Sales Invoice" or doc.is_new() or doc.get("amended_from"):
+        return
+
+    previous = doc.get_doc_before_save()
+    stored = (
+        previous.get("manual_invoice_no")
+        if previous is not None
+        else frappe.db.get_value(doc.doctype, doc.name, "manual_invoice_no")
+    )
+    stored = (stored or "").strip()
+    manual_no = (doc.get("manual_invoice_no") or "").strip()
+
+    if stored:
+        # Clearing it is rejected as firmly as changing it: an empty value would
+        # make require_manual_sales_invoice_attachment skip the hand bill while
+        # the invoice keeps its manual name.
+        if manual_no != stored:
+            frappe.throw(
+                _("<b>Manual Invoice No</b> is the invoice number and cannot be changed or cleared after the invoice is created. It must stay {0}.").format(
+                    frappe.bold(stored)
+                ),
+                title=_("Manual Invoice No Locked"),
+            )
+        return
+
+    if manual_no and manual_no != doc.name:
+        frappe.throw(
+            _("<b>Manual Invoice No</b> cannot be added to an existing invoice, because it is the invoice number. Create a new invoice with the hand bill number instead."),
+            title=_("Manual Invoice No Locked"),
+        )
+
+
+def require_manual_sales_invoice_attachment(doc, method):
+    """Require the hand bill scan when a Sales Invoice carries a manual invoice number."""
+    if doc.doctype != "Sales Invoice" or not (doc.get("manual_invoice_no") or "").strip():
+        return
+
+    allowed, required = _manual_sales_invoice_settings(doc.company)
+    if not (allowed and required):
+        return
+
+    if not doc.get("attach_sales_invoice"):
+        frappe.throw(_("<b>Attach Sales Invoice</b> is mandatory before submitting a Sales Invoice with a manual invoice number. Please attach the hand bill document."))
+
+
+@frappe.whitelist()
+def get_sales_invoice_requirements(company: str | None = None) -> dict:
+    """Return one company's manual numbering requirements, for the Sales Invoice form."""
+    allowed, required = _manual_sales_invoice_settings(company)
+    return {
+        "manual_number": int(allowed),
+        "attachment": int(allowed and required),
+    }
+
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> float:

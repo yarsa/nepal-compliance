@@ -134,6 +134,8 @@ def create_custom_fields(quiet=False):
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1}
         ],
         "Sales Invoice": [
+            {"fieldname": "manual_invoice_no", "label": "Manual Invoice No", "fieldtype": "Data", "insert_after": "naming_series", "read_only_depends_on": "eval:!doc.__islocal", "no_copy": 1, "description": "Number printed on the hand bill. When set, it becomes the Sales Invoice number instead of the naming series. Requires 'Allow Manual Sales Invoice Number' in Nepal Compliance Settings."},
+            {"fieldname": "attach_sales_invoice", "label": "Attach Sales Invoice", "fieldtype": "Attach", "insert_after": "manual_invoice_no", "allow_on_submit": 1},
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
             {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "customer_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},

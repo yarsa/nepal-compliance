@@ -18,3 +18,4 @@ nepal_compliance.patches.enable_tds_on_taxable_amount
 nepal_compliance.patches.split_vat_taxable_templates
 nepal_compliance.patches.add_pan_bill_and_default_purchase_tax
 nepal_compliance.patches.add_non_vat_supplier_fields
+nepal_compliance.patches.add_manual_sales_invoice_fields
