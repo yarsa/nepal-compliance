@@ -8,10 +8,14 @@ from frappe.model.document import Document
 
 class NepalComplianceVATAccount(Document):
 	def validate(self):
-		"""Require the selected VAT accounts to belong to the row's company and be Tax ledgers."""
+		"""Require the selected accounts and tax templates to belong to the row's company.
+
+		Accounts must also be Tax ledgers rather than groups.
+		"""
 		for fieldname, label in (
 			("sales_vat_account", _("Sales VAT Account")),
 			("purchase_vat_account", _("Purchase VAT Account")),
+			("excise_account", _("Excise Duty Account")),
 		):
 			account = self.get(fieldname)
 			if not account:
@@ -39,4 +43,19 @@ class NepalComplianceVATAccount(Document):
 						"Row {0}: {1} {2} has Account Type '{3}'. Please select an account with Account Type 'Tax'."
 					).format(self.idx, label, frappe.bold(account), account_type or _("None")),
 					title=_("Invalid Account"),
+				)
+
+		for fieldname, doctype, label in (
+			("default_sales_tax_template", "Sales Taxes and Charges Template", _("Default Sales Tax Template")),
+			("default_purchase_tax_template", "Purchase Taxes and Charges Template", _("Default Purchase Tax Template")),
+		):
+			template = self.get(fieldname)
+			if not template:
+				continue
+			if frappe.get_cached_value(doctype, template, "company") != self.company:
+				frappe.throw(
+					_("Row {0}: {1} {2} does not belong to Company {3}").format(
+						self.idx, label, frappe.bold(template), frappe.bold(self.company)
+					),
+					title=_("Invalid Tax Template"),
 				)

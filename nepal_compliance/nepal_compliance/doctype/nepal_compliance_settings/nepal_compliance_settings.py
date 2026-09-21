@@ -8,6 +8,11 @@ from frappe.model.document import Document
 from frappe.utils import flt
 import redis
 
+from nepal_compliance.tax_templates import (
+    is_managed_template,
+    set_default_tax_template,
+    sync_nepal_tax_templates,
+)
 from nepal_compliance.utils import (
     get_or_create_vat_exempt_template,
     sync_managed_vat_taxable_templates,
@@ -80,7 +85,11 @@ class NepalComplianceSettings(Document):
         self.sync_vat_accounts_to_templates()
 
     def sync_vat_accounts_to_templates(self):
-        """Repoint VAT rows in each company's tax templates to the configured accounts."""
+        """Sync each company's tax templates with the configured accounts.
+
+        Repoints VAT rows in existing templates, creates the managed Nepal
+        templates, and applies the chosen default for each side.
+        """
         updated = []
         skipped = []
         for row in self.get("vat_accounts") or []:
@@ -95,6 +104,11 @@ class NepalComplianceSettings(Document):
                 for template_name in frappe.get_list(
                     doctype, filters={"company": row.company}, pluck="name"
                 ):
+                    if is_managed_template(doctype, template_name):
+                        # sync_nepal_tax_templates owns these; the generic
+                        # reconciler below would repoint an edited rate or drop a
+                        # deliberate second row.
+                        continue
                     result = self._repoint_template_vat_rows(
                         doctype, template_name, account, row.company
                     )
@@ -105,6 +119,17 @@ class NepalComplianceSettings(Document):
                 side = "sales" if doctype.startswith("Sales") else "purchase"
                 sync_managed_vat_taxable_templates(row.company, account, side)
                 get_or_create_vat_exempt_template(row.company, account, side)
+            sync_nepal_tax_templates(
+                row.company,
+                row.sales_vat_account,
+                row.purchase_vat_account,
+                row.get("excise_account"),
+            )
+            for template_side, template in (
+                ("sales", row.get("default_sales_tax_template")),
+                ("purchase", row.get("default_purchase_tax_template")),
+            ):
+                set_default_tax_template(row.company, template_side, template)
         if updated:
             frappe.msgprint(
                 _("VAT rows in the following tax templates were updated to the configured accounts: {0}").format(
