@@ -33,6 +33,14 @@ class MockScheduleRow:
         return getattr(self, k, default)
 
 
+class MockDocument(SimpleNamespace):
+    """Mock ERPNext Document supporting attribute and dict-like get access."""
+
+    def get(self, k, default=None):
+        """Get attribute value by key with optional fallback default."""
+        return getattr(self, k, default)
+
+
 class TestBSPeriods(unittest.TestCase):
     """Unit tests for BS period manipulation functions."""
 
@@ -90,7 +98,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         """Verify fix for Issue #285: Monthly schedules stay on consecutive BS month ends without drift."""
         ads = self._make_ads(num_rows=12, frequency=1)
         start_date = bs_to_ad(2083, 4, 1)
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=120000,
             available_for_use_date=start_date,
             flags=SimpleNamespace(),
@@ -108,14 +116,18 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         ads.snap_schedule_dates_to_bs_month_end(asset)
         ads.recalculate_amounts_after_bs_snap(asset, row)
 
-        expected_months = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3]
-        for idx, exp_m in enumerate(expected_months):
+        expected_periods = [
+            (2083, 4), (2083, 5), (2083, 6), (2083, 7),
+            (2083, 8), (2083, 9), (2083, 10), (2083, 11),
+            (2083, 12), (2084, 1), (2084, 2), (2084, 3),
+        ]
+        for idx, expected_period in enumerate(expected_periods):
             schedule_row = ads.depreciation_schedule[idx]
             bs_date = ad_to_bs(schedule_row.schedule_date)
             self.assertEqual(
-                bs_date["month"],
-                exp_m,
-                f"Row {idx+1} month drifted from expected BS month",
+                (bs_date["year"], bs_date["month"]),
+                expected_period,
+                f"Row {idx+1} period drifted from expected BS period",
             )
             self.assertEqual(
                 bs_date["day"],
@@ -132,7 +144,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         """Verify quarterly depreciation advances every 3 months on fiscal quarter ends."""
         ads = self._make_ads(num_rows=4, frequency=3)
         available_date = bs_to_ad(2083, 4, 1)
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=40000,
             available_for_use_date=available_date,
             flags=SimpleNamespace(),
@@ -161,7 +173,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         """Verify yearly depreciation books exact annual amount settled at Ashadh month end."""
         ads = self._make_ads(num_rows=5, frequency=12)
         available_date = bs_to_ad(2083, 4, 1)  # Shrawan 1 (full FY)
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=100000,
             available_for_use_date=available_date,
             flags=SimpleNamespace(),
@@ -191,7 +203,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         """Verify yearly depreciation with mid-year purchase pro-rates the first period."""
         ads = self._make_ads(num_rows=5, frequency=12)
         available_date = bs_to_ad(2083, 7, 15)  # Kartik 15 (mid-year purchase)
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=100000,
             available_for_use_date=available_date,
             flags=SimpleNamespace(),
@@ -227,10 +239,10 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         )
         pending_rows = [MockScheduleRow() for _ in range(3)]
         ads = CustomAssetDepreciationSchedule({"doctype": "Asset Depreciation Schedule"})
-        ads.depreciation_schedule = [posted_row] + pending_rows
+        ads.depreciation_schedule = [posted_row, *pending_rows]
         ads.frequency_of_depreciation = 1
 
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=40000,
             available_for_use_date=posted_date,
             flags=SimpleNamespace(),
@@ -271,7 +283,7 @@ class TestCustomAssetDepreciationSchedule(unittest.TestCase):
         ads.frequency_of_depreciation = 1
 
         start_date = bs_to_ad(2083, 4, 1)
-        asset = SimpleNamespace(
+        asset = MockDocument(
             gross_purchase_amount=30000,
             available_for_use_date=start_date,
             flags=SimpleNamespace(),
