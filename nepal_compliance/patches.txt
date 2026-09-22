@@ -20,3 +20,4 @@ nepal_compliance.patches.add_pan_bill_and_default_purchase_tax
 nepal_compliance.patches.add_non_vat_supplier_fields
 nepal_compliance.patches.add_manual_sales_invoice_fields
 nepal_compliance.patches.add_nepal_tax_templates
+nepal_compliance.patches.add_excise_fields

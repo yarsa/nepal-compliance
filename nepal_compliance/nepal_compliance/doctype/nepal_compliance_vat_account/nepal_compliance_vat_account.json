@@ -10,6 +10,7 @@
   "sales_vat_account",
   "purchase_vat_account",
   "excise_account",
+  "record_excise_separately",
   "default_sales_tax_template",
   "default_purchase_tax_template",
   "sales_invoice_numbering_section",
@@ -46,6 +47,14 @@
    "fieldtype": "Link",
    "label": "Excise Duty Account",
    "options": "Account"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.excise_account",
+   "description": "Leave enabled when the company holds an excise licence, so excise posts to the Excise Duty Account. Disable it when there is no licence: the excise is then added to each item's rate and removed from Taxes and Charges, so it lands in the item's own income or expense account. The amount stays visible in Excise Duty on the invoice and on each item row.",
+   "fieldname": "record_excise_separately",
+   "fieldtype": "Check",
+   "label": "Record Excise in a Separate Account"
   },
   {
    "description": "Applied to new Sales Invoices. Making a template the default clears the default flag on every other Sales tax template for this company.",

@@ -191,6 +191,7 @@ doc_events = {
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
         "before_validate": [
             "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
+            "nepal_compliance.excise.fold_excise_into_item_rate",
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
@@ -209,6 +210,7 @@ doc_events = {
             "nepal_compliance.utils.set_vat_numbers",
         ],
         "before_validate": [
+            "nepal_compliance.excise.fold_excise_into_item_rate",
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
