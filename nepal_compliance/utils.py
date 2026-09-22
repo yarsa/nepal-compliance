@@ -612,6 +612,13 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     doc.taxable_amount = taxable_amount
     doc.non_taxable_amount = non_taxable_amount
     doc.vat_amount = vat_amount
+    if vat_account:
+        # Freeze the item-wise VAT alongside the summary. The IRD registers prefer
+        # this stored map over a live recompute, so writing it here keeps the
+        # per-item figures and the summary on the invoice from drifting apart.
+        # Left untouched when no VAT account is configured, so the registers keep
+        # falling back to the live breakup rather than reading an empty map.
+        doc.item_vat_detail = json.dumps(item_vat)
     # Bill Total is grand_total plus TDS: ERPNext deducts TDS from grand_total,
     # IRD wants the billed value (net + VAT) before withholding.
     set_bill_total(doc, vat_account)

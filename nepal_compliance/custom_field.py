@@ -115,7 +115,7 @@ def create_custom_fields(quiet=False):
             {"fieldname": "customer_vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "customer_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
-            {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no"},
+            {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no", "no_copy": 1},
             {
                 "fieldname": "is_pan_or_abbreviated_bill",
                 "label": "Is PAN/Abbreviated Bill",
@@ -123,7 +123,7 @@ def create_custom_fields(quiet=False):
                 "insert_after": "bill_date",
                 "description": "Enable this when the supplier issued a PAN or abbreviated bill on which input VAT must not be claimed. Example: an item of Rs 1,000 normally adds Rs 130 VAT; when checked, VAT is Rs 0. If TDS is enabled, it is calculated on the Bill Total.",
             },
-            {"fieldname": "attach_purchase_invoice", "label": "Attach Purchase Invoice", "fieldtype": "Attach", "insert_after": "is_pan_or_abbreviated_bill", "allow_on_submit": 1},
+            {"fieldname": "attach_purchase_invoice", "label": "Attach Purchase Invoice", "fieldtype": "Attach", "insert_after": "is_pan_or_abbreviated_bill", "allow_on_submit": 1, "no_copy": 1},
             {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
             {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "excise_amount", "label": "Excise Duty", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1, "description": "Excise folded into the item rates because the company has no excise licence. Shown for reconciliation against the supplier's bill."},
@@ -131,25 +131,25 @@ def create_custom_fields(quiet=False):
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1}
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
         ],
         "Sales Order":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1}
         ],
         "Sales Invoice": [
             {"fieldname": "manual_invoice_no", "label": "Manual Invoice No", "fieldtype": "Data", "insert_after": "naming_series", "read_only_depends_on": "eval:!doc.__islocal", "no_copy": 1, "description": "Number printed on the hand bill. When set, it becomes the Sales Invoice number instead of the naming series. Requires 'Allow Manual Sales Invoice Number' in Nepal Compliance Settings."},
-            {"fieldname": "attach_sales_invoice", "label": "Attach Sales Invoice", "fieldtype": "Attach", "insert_after": "manual_invoice_no", "allow_on_submit": 1},
+            {"fieldname": "attach_sales_invoice", "label": "Attach Sales Invoice", "fieldtype": "Attach", "insert_after": "manual_invoice_no", "allow_on_submit": 1, "no_copy": 1},
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
             {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "customer_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "supplier_vat_number", "label": "Supplier VAT/PAN", "fieldtype": "Data", "insert_after": "vat_number", "in_list_view": 1, "allow_on_submit": 1},
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "supplier_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "supplier_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
-            {"fieldname": "cbms_status", "label": "CBMS Status", "fieldtype": "Select", "options": "\nSuccess\nPending\nFailed", "default": "", "insert_after": "supplier_vat_number", "in_list_view": 1, "allow_on_submit": 1},
-            {"fieldname": "cbms_response", "label": "CBMS Response", "fieldtype": "Small Text", "insert_after": "cbms_status", "in_list_view": 1, "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "cost_center", "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "project", "allow_on_submit": 1},
-            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1},
+            {"fieldname": "cbms_status", "label": "CBMS Status", "fieldtype": "Select", "options": "\nSuccess\nPending\nFailed", "default": "", "insert_after": "supplier_vat_number", "in_list_view": 1, "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "cbms_response", "label": "CBMS Response", "fieldtype": "Small Text", "insert_after": "cbms_status", "in_list_view": 1, "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "customs_declaration_number", "label": "Customs Export Declaration Number", "fieldtype": "Data", "insert_after": "cost_center", "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "customs_declaration_date", "label": "Customs Export Declaration Date", "fieldtype": "Date", "insert_after": "project", "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "customs_declaration_date_bs", "label": "Customs Export Declaration Date BS", "fieldtype": "Data", "insert_after": "customs_declaration_date", "allow_on_submit": 1, "no_copy": 1},
             {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
             {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "excise_amount", "label": "Excise Duty", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1, "description": "Excise folded into the item rates because the company has no excise licence. Shown for reconciliation against the supplier's bill."},
@@ -157,7 +157,7 @@ def create_custom_fields(quiet=False):
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1}
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}
