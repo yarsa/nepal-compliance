@@ -279,6 +279,35 @@ def apply_pan_bill_vat_override(doc):
         item.item_tax_rate = json.dumps(detail)
 
 
+def apply_nontaxable_item_vat_override(doc):
+    """Zero the configured VAT on items flagged non-taxable.
+
+    apply_vat_exemption_for_nontaxable_items assigns the VAT Exempt template on
+    before_validate, but ERPNext's validate_item_tax_template then re-derives
+    item_tax_template from the Item's own Item Tax rows and discards it, so VAT
+    was still charged on exempt items. Re-apply the zero rate after ERPNext has
+    rebuilt the item tax map, the same way PAN bills are handled.
+    """
+    if doc.doctype not in ("Sales Invoice", "Purchase Invoice"):
+        return
+
+    flagged = [item for item in doc.get("items") or [] if item.get("is_nontaxable_item")]
+    if not flagged:
+        return
+
+    side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
+    vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
+    if not vat_account:
+        return
+
+    for item in flagged:
+        detail = _parse_item_tax_rate(item.get("item_tax_rate"))
+        if not flt(detail.get(vat_account)):
+            continue
+        detail[vat_account] = 0
+        item.item_tax_rate = json.dumps(detail)
+
+
 @frappe.whitelist()
 
 def get_purchase_invoice_requirements() -> dict:
