@@ -557,6 +557,14 @@ def validate_duplicate_bill_no(doc, method):
                 )
             )
 
+SALES_DOCTYPES = ("Sales Invoice", "Sales Order")
+
+
+def vat_side(doctype):
+    """Return the VAT side a doctype belongs to."""
+    return "sales" if doctype in SALES_DOCTYPES else "purchase"
+
+
 def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     """Set IRD taxable summary fields and return an optional VAT calculation check.
 
@@ -564,7 +572,7 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     classification. The settings recompute can instead classify items solely
     from the item's Is Non-Taxable Item flag.
     """
-    side = "sales" if doc.doctype == "Sales Invoice" else "purchase"
+    side = vat_side(doc.doctype)
     vat_account = get_configured_vat_accounts().get(doc.company, {}).get(side)
 
     item_vat = {}
