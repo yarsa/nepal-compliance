@@ -31,8 +31,79 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 		frm.add_custom_button(__("Audit TDS Bases"), () => {
 			open_tds_base_prompt();
 		});
+		frm.add_custom_button(__("Create Tax Templates"), () => {
+			open_tax_template_prompt(frm);
+		});
 	},
 });
+
+const TAX_TEMPLATE_VARIANTS = [
+	["exclusive", __("VAT 13%")],
+	["inclusive", __("VAT 13%, price includes VAT")],
+	["excise", __("Excise + VAT 13%")],
+	["excise_inclusive", __("Excise + VAT 13%, price includes tax")],
+];
+
+function open_tax_template_prompt(frm) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Save the settings before creating tax templates."));
+		return;
+	}
+	const companies = (frm.doc.vat_accounts || [])
+		.filter((row) => row.company && (row.sales_vat_account || row.purchase_vat_account))
+		.map((row) => row.company);
+	if (!companies.length) {
+		frappe.msgprint(__("Set the VAT accounts for a company in the VAT Accounts table first."));
+		return;
+	}
+	const dialog = new frappe.ui.Dialog({
+		title: __("Create Tax Templates"),
+		fields: [
+			{
+				fieldname: "company",
+				fieldtype: "Select",
+				label: __("Company"),
+				options: companies,
+				default: companies[0],
+				reqd: 1,
+			},
+			...TAX_TEMPLATE_VARIANTS.map(([fieldname, label]) => ({
+				fieldname,
+				fieldtype: "Check",
+				label,
+				default: 1,
+			})),
+			{
+				fieldtype: "HTML",
+				options: `<p class="text-muted small">${__(
+					"Templates are made for each side (sales, purchase) with a VAT account. Excise templates need the company's Excise Account; set the excise rate on the template afterwards. Existing templates are kept."
+				)}</p>`,
+			},
+		],
+		primary_action_label: __("Create"),
+		primary_action(values) {
+			const variants = TAX_TEMPLATE_VARIANTS.map(([v]) => v).filter((v) => values[v]);
+			if (!variants.length) {
+				frappe.msgprint(__("Select at least one template."));
+				return;
+			}
+			frappe.call({
+				method: "nepal_compliance.nepal_compliance.doctype.nepal_compliance_settings.nepal_compliance_settings.create_nepal_tax_templates",
+				args: { company: values.company, variants },
+				freeze: true,
+				callback(r) {
+					dialog.hide();
+					frappe.msgprint({
+						title: __("Tax Templates Ready"),
+						indicator: "green",
+						message: (r.message || []).map((name) => frappe.utils.escape_html(name)).join("<br>"),
+					});
+				},
+			});
+		},
+	});
+	dialog.show();
+}
 
 function open_date_prompt() {
 	let dialog;

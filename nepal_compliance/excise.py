@@ -95,6 +95,14 @@ def fold_excise_into_item_rate(doc, method):
     ]
     if not excise_rows:
         return
+    if any(tax.get("included_in_print_rate") for tax in excise_rows):
+        # The folding maths assumes the item price excludes excise.
+        frappe.throw(
+            _("Excise that is included in the item price cannot be added to the item rates. Turn on Record Excise Separately for Company {0}, or use a tax template whose price excludes tax.").format(
+                frappe.bold(doc.company)
+            ),
+            title=_("Inclusive Excise Not Supported"),
+        )
 
     items = list(doc.get("items") or [])
     base = sum(_line_base(item) for item in items)
