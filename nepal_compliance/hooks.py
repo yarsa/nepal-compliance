@@ -225,7 +225,10 @@ doc_events = {
         ]
     },
     "Sales Order" : {
-        "validate": "nepal_compliance.utils.load_nepali_date"
+        "validate": [
+            "nepal_compliance.utils.load_nepali_date",
+            "nepal_compliance.utils.set_taxable_amounts",
+        ]
     },
     "Purchase Order": {
         "before_validate": "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",

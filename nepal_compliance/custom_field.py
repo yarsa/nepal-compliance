@@ -134,7 +134,18 @@ def create_custom_fields(quiet=False):
             {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
         ],
         "Sales Order":[
-            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1}
+            {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_section", "label": "Taxable Summary", "fieldtype": "Section Break", "insert_after": "taxes"},
+            {"fieldname": "taxable_amount", "label": "Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_section", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "non_taxable_amount", "label": "Non-Taxable Amount", "fieldtype": "Currency", "insert_after": "taxable_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
+            {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "summary_grand_total", "label": "Order Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
+        ],
+        "Sales Order Item": [
+            {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
+            {"fieldname": "hs_code", "label": "H.S. Code", "fieldtype": "Data", "insert_after": "uom", "fetch_from": "item_code.hs_code"}
         ],
         "Sales Invoice": [
             {"fieldname": "manual_invoice_no", "label": "Manual Invoice No", "fieldtype": "Data", "insert_after": "naming_series", "read_only_depends_on": "eval:!doc.__islocal", "no_copy": 1, "description": "Number printed on the hand bill. When set, it becomes the Sales Invoice number instead of the naming series. Requires 'Allow Manual Sales Invoice Number' in Nepal Compliance Settings."},
