@@ -9,6 +9,17 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 				fieldtype: ["in", ["Attach", "Attach Image"]],
 			},
 		}));
+		// Only offer the row's own company's accounts and templates.
+		for (const field of ["sales_vat_account", "purchase_vat_account", "excise_account"]) {
+			frm.set_query(field, "vat_accounts", (doc, cdt, cdn) => ({
+				filters: { company: locals[cdt][cdn].company, is_group: 0 },
+			}));
+		}
+		for (const field of ["default_sales_tax_template", "default_purchase_tax_template"]) {
+			frm.set_query(field, "vat_accounts", (doc, cdt, cdn) => ({
+				filters: { company: locals[cdt][cdn].company },
+			}));
+		}
 	},
 	refresh(frm) {
 		if (!frm.has_perm("write")) {
