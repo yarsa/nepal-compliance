@@ -4,6 +4,7 @@ from erpnext.controllers.taxes_and_totals import (
 )
 
 from nepal_compliance.utils import (
+    apply_nontaxable_item_vat_override,
     apply_pan_bill_vat_override,
     apply_taxable_amount_as_tds_base,
 )
@@ -13,6 +14,7 @@ class NepalPurchaseTaxesAndTotals(ERPNextTaxesAndTotals):
     def update_item_tax_map(self):
         """Load normal item taxes, then suppress only configured VAT for PAN bills."""
         super().update_item_tax_map()
+        apply_nontaxable_item_vat_override(self.doc)
         apply_pan_bill_vat_override(self.doc)
 
 
