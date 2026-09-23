@@ -8,7 +8,10 @@
  "field_order": [
   "company",
   "sales_vat_account",
-  "purchase_vat_account"
+  "purchase_vat_account",
+  "sales_invoice_numbering_section",
+  "allow_manual_sales_invoice_number",
+  "require_manual_sales_invoice_attachment"
  ],
  "fields": [
   {
@@ -33,6 +36,28 @@
    "in_list_view": 1,
    "label": "Purchase VAT Account (VAT Receivable)",
    "options": "Account"
+  },
+  {
+   "fieldname": "sales_invoice_numbering_section",
+   "fieldtype": "Section Break",
+   "label": "Sales Invoice Numbering"
+  },
+  {
+   "default": "0",
+   "description": "Enable this if the company issues hand bills from a pre-printed bill book instead of an e-billing system. A 'Manual Invoice No' field appears on the Sales Invoice, and the number entered there becomes the invoice number used in the IRD registers and CBMS.",
+   "columns": 1,
+   "fieldname": "allow_manual_sales_invoice_number",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Allow Manual Sales Invoice Number"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.allow_manual_sales_invoice_number === 1",
+   "description": "If enabled, a Sales Invoice that uses a manual invoice number cannot be submitted unless the hand bill is attached in the 'Attach Sales Invoice' field.",
+   "fieldname": "require_manual_sales_invoice_attachment",
+   "fieldtype": "Check",
+   "label": "Make Manual Bill Attachment Mandatory"
   }
  ],
  "index_web_pages_for_search": 1,

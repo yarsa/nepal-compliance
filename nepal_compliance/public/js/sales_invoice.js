@@ -5,12 +5,17 @@ frappe.require([
 ], function () {
 
     frappe.ui.form.on("Sales Invoice", {
-        refresh(frm) {
+        async refresh(frm) {
             if (typeof handle_send_email === "function") {
                 handle_send_email(frm, "Sales Invoice");
             }
             sync_nepali_date(frm, "posting_date");
             attach_bs_picker(frm, "posting_date");
+            await apply_manual_invoice_settings(frm);
+        },
+        async company(frm) {
+            // the switches are per company, so re-read them when it changes
+            await apply_manual_invoice_settings(frm);
         },
         posting_date(frm) {
             sync_nepali_date(frm, "posting_date");
@@ -155,4 +160,29 @@ function open_bs_popover(frm, field, ad_field) {
             close();
         }
     });
+}
+
+// Hand bill support: the Manual Invoice No field is only shown when the invoice's
+// company allows it, and the attachment is flagged visually while being enforced
+// server-side at submit, so drafts stay saveable without it.
+async function apply_manual_invoice_settings(frm) {
+    if (!frm.doc.company) {
+        frm.toggle_display("manual_invoice_no", false);
+        return;
+    }
+    const response = await frappe.call({
+        method: "nepal_compliance.utils.get_sales_invoice_requirements",
+        args: { company: frm.doc.company },
+    });
+    const requirements = response.message || {};
+    const allowed = !!cint(requirements.manual_number);
+    if (!allowed && frm.is_new() && frm.doc.manual_invoice_no) {
+        // otherwise the value survives a company change with no visible field
+        // to clear it, and the server rejects the draft on save
+        frm.set_value("manual_invoice_no", null);
+    }
+    frm.toggle_display("manual_invoice_no", allowed);
+    frm.get_field("attach_sales_invoice")
+        ?.$wrapper.find(".control-label")
+        .toggleClass("reqd", !!cint(requirements.attachment));
 }
