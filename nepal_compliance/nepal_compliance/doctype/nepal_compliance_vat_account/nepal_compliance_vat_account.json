@@ -9,6 +9,9 @@
   "company",
   "sales_vat_account",
   "purchase_vat_account",
+  "excise_account",
+  "default_sales_tax_template",
+  "default_purchase_tax_template",
   "sales_invoice_numbering_section",
   "allow_manual_sales_invoice_number",
   "require_manual_sales_invoice_attachment"
@@ -36,6 +39,27 @@
    "in_list_view": 1,
    "label": "Purchase VAT Account (VAT Receivable)",
    "options": "Account"
+  },
+  {
+   "description": "Ledger used by the managed Excise + VAT templates. Leave blank if the company does not deal in excisable goods.",
+   "fieldname": "excise_account",
+   "fieldtype": "Link",
+   "label": "Excise Duty Account",
+   "options": "Account"
+  },
+  {
+   "description": "Applied to new Sales Invoices. Making a template the default clears the default flag on every other Sales tax template for this company.",
+   "fieldname": "default_sales_tax_template",
+   "fieldtype": "Link",
+   "label": "Default Sales Tax Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "description": "Applied to new Purchase Invoices. Making a template the default clears the default flag on every other Purchase tax template for this company.",
+   "fieldname": "default_purchase_tax_template",
+   "fieldtype": "Link",
+   "label": "Default Purchase Tax Template",
+   "options": "Purchase Taxes and Charges Template"
   },
   {
    "fieldname": "sales_invoice_numbering_section",
