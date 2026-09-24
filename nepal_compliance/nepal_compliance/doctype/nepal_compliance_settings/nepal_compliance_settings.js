@@ -49,14 +49,17 @@ function open_tax_template_prompt(frm) {
 		frappe.msgprint(__("Save the settings before creating tax templates."));
 		return;
 	}
-	const companies = (frm.doc.vat_accounts || [])
-		.filter((row) => row.company && (row.sales_vat_account || row.purchase_vat_account))
-		.map((row) => row.company);
+	const rows = (frm.doc.vat_accounts || []).filter(
+		(row) => row.company && (row.sales_vat_account || row.purchase_vat_account)
+	);
+	const companies = rows.map((row) => row.company);
 	if (!companies.length) {
 		frappe.msgprint(__("Set the VAT accounts for a company in the VAT Accounts table first."));
 		return;
 	}
-	const dialog = new frappe.ui.Dialog({
+	// Declared first: the company onchange can fire while the dialog is built.
+	let dialog;
+	dialog = new frappe.ui.Dialog({
 		title: __("Create Tax Templates"),
 		fields: [
 			{
@@ -66,6 +69,7 @@ function open_tax_template_prompt(frm) {
 				options: companies,
 				default: companies[0],
 				reqd: 1,
+				onchange: () => dialog && toggle_excise_variants(dialog, rows),
 			},
 			...TAX_TEMPLATE_VARIANTS.map(([fieldname, label]) => ({
 				fieldname,
@@ -76,7 +80,7 @@ function open_tax_template_prompt(frm) {
 			{
 				fieldtype: "HTML",
 				options: `<p class="text-muted small">${__(
-					"Templates are made for each side (sales, purchase) with a VAT account. Excise templates need the company's Excise Account; set the excise rate on the template afterwards. Existing templates are kept."
+					"Templates are made for each side (sales, purchase) with a VAT account. Set the excise rate on the excise templates afterwards. Existing templates are kept."
 				)}</p>`,
 			},
 		],
@@ -103,9 +107,27 @@ function open_tax_template_prompt(frm) {
 		},
 	});
 	dialog.show();
+	toggle_excise_variants(dialog, rows);
 	$(`<button type="button" class="btn btn-xs btn-default ml-2" title="${__("Why is my company missing?")}">?</button>`)
 		.appendTo(dialog.fields_dict.company.$wrapper.find(".control-label"))
 		.on("click", show_tax_template_company_help);
+}
+
+// Excise templates need the company's Excise Duty Account. A blank account means
+// the company does not deal in excisable goods, so those options are switched off.
+function toggle_excise_variants(dialog, rows) {
+	const company = dialog.get_value("company");
+	const row = rows.find((r) => r.company === company);
+	const has_excise = Boolean(row && row.excise_account);
+	for (const fieldname of ["excise", "excise_inclusive"]) {
+		dialog.set_value(fieldname, has_excise ? 1 : 0);
+		dialog.set_df_property(fieldname, "read_only", has_excise ? 0 : 1);
+		dialog.set_df_property(
+			fieldname,
+			"description",
+			has_excise ? "" : __("Not available: {0} has no Excise Duty Account.", [company])
+		);
+	}
 }
 
 function show_tax_template_company_help() {
@@ -119,7 +141,7 @@ function show_tax_template_company_help() {
 			<ol>
 				<li>${__("Close this window and go to the VAT Accounts table.")}</li>
 				<li>${__("Add a row for the company, or open its row, and set the Sales VAT Account, the Purchase VAT Account, or both.")}</li>
-				<li>${__("To make the Excise + VAT templates, also set the Excise Account.")}</li>
+				<li>${__("To make the Excise + VAT templates, also set the Excise Duty Account. Leave it blank if the company does not deal in excisable goods. Without an excise licence, set it and turn off Record Excise in a Separate Account.")}</li>
 				<li>${__("Save the settings, then click Create Tax Templates again.")}</li>
 			</ol>
 			<p>${__(

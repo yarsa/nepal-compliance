@@ -252,7 +252,7 @@ def create_nepal_tax_templates(company: str, variants: str | list | None = None)
         )
     if not row.get("excise_account") and set(variants) & set(EXCISE_VARIANTS):
         frappe.throw(
-            _("Set the Excise Account for Company {0} and save before creating the excise templates.").format(
+            _("Company {0} has no Excise Duty Account, so the Excise + VAT templates cannot be made. Set one and save first, or leave the excise templates unticked.").format(
                 frappe.bold(company)
             ),
             title=_("Excise Account Missing"),
