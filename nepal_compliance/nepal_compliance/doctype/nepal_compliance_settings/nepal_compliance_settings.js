@@ -103,6 +103,31 @@ function open_tax_template_prompt(frm) {
 		},
 	});
 	dialog.show();
+	$(`<button type="button" class="btn btn-xs btn-default ml-2" title="${__("Why is my company missing?")}">?</button>`)
+		.appendTo(dialog.fields_dict.company.$wrapper.find(".control-label"))
+		.on("click", show_tax_template_company_help);
+}
+
+function show_tax_template_company_help() {
+	frappe.msgprint({
+		title: __("Which companies are listed?"),
+		message: `
+			<p>${__(
+				"Only companies that have a VAT account set in the VAT Accounts table of these settings are listed here. Templates cannot be made without one, because every template posts VAT to that account."
+			)}</p>
+			<p><b>${__("To add a company")}</b></p>
+			<ol>
+				<li>${__("Close this window and go to the VAT Accounts table.")}</li>
+				<li>${__("Add a row for the company, or open its row, and set the Sales VAT Account, the Purchase VAT Account, or both.")}</li>
+				<li>${__("To make the Excise + VAT templates, also set the Excise Account.")}</li>
+				<li>${__("Save the settings, then click Create Tax Templates again.")}</li>
+			</ol>
+			<p>${__(
+				"Sales templates are made only when a Sales VAT Account is set, and purchase templates only when a Purchase VAT Account is set."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
 }
 
 function open_date_prompt() {
