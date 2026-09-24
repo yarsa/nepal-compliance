@@ -113,21 +113,26 @@ function open_tax_template_prompt(frm) {
 		.on("click", show_tax_template_company_help);
 }
 
-// Excise templates need the company's Excise Duty Account. A blank account means
-// the company does not deal in excisable goods, so those options are switched off.
+// Excise is optional. Without an excise licence (blank Excise Duty Account, or
+// Record Excise in a Separate Account off) excise is added to the item rates,
+// which only works on prices that exclude tax, so the inclusive option is off.
 function toggle_excise_variants(dialog, rows) {
 	const company = dialog.get_value("company");
-	const row = rows.find((r) => r.company === company);
-	const has_excise = Boolean(row && row.excise_account);
-	for (const fieldname of ["excise", "excise_inclusive"]) {
-		dialog.set_value(fieldname, has_excise ? 1 : 0);
-		dialog.set_df_property(fieldname, "read_only", has_excise ? 0 : 1);
-		dialog.set_df_property(
-			fieldname,
-			"description",
-			has_excise ? "" : __("Not available: {0} has no Excise Duty Account.", [company])
-		);
-	}
+	const row = rows.find((r) => r.company === company) || {};
+	const licensed = Boolean(row.excise_account && row.record_excise_separately);
+	dialog.set_value("excise", row.excise_account ? 1 : 0);
+	dialog.set_df_property(
+		"excise",
+		"description",
+		licensed ? "" : __("Without an excise licence the excise is added to each item's rate.")
+	);
+	dialog.set_value("excise_inclusive", licensed ? 1 : 0);
+	dialog.set_df_property("excise_inclusive", "read_only", licensed ? 0 : 1);
+	dialog.set_df_property(
+		"excise_inclusive",
+		"description",
+		licensed ? "" : __("Needs an excise licence: {0} adds excise to the item rates.", [company])
+	);
 }
 
 function show_tax_template_company_help() {
@@ -141,7 +146,7 @@ function show_tax_template_company_help() {
 			<ol>
 				<li>${__("Close this window and go to the VAT Accounts table.")}</li>
 				<li>${__("Add a row for the company, or open its row, and set the Sales VAT Account, the Purchase VAT Account, or both.")}</li>
-				<li>${__("To make the Excise + VAT templates, also set the Excise Duty Account. Leave it blank if the company does not deal in excisable goods. Without an excise licence, set it and turn off Record Excise in a Separate Account.")}</li>
+				<li>${__("For excise, set the Excise Duty Account only if the company holds an excise licence. Leave it blank otherwise: excise on a bill is then added to each item's rate.")}</li>
 				<li>${__("Save the settings, then click Create Tax Templates again.")}</li>
 			</ol>
 			<p>${__(
