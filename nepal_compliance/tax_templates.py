@@ -19,6 +19,41 @@ TEMPLATE_DOCTYPES = {
 VARIANTS = ("exclusive", "inclusive", "excise", "excise_inclusive")
 EXCISE_VARIANTS = ("excise", "excise_inclusive")
 
+# Placeholder ledger for a company without an excise licence (Excise Duty Account
+# left blank). It only marks the excise row on the templates: the row is folded
+# into the item rates and removed before the invoice is saved, so nothing posts
+# to it. A distinct name keeps existing "Excise Duty" ledgers out of the folding.
+ITEM_RATE_EXCISE_ACCOUNT = "Excise Duty (In Item Rate)"
+
+
+def get_item_rate_excise_account(company, create_beside=None):
+    """Return the company's placeholder excise ledger.
+
+    With create_beside (an account name), a missing ledger is created as a
+    sibling of that account, typically the VAT account under Duties and Taxes.
+    """
+    name = frappe.db.get_value(
+        "Account",
+        {"company": company, "account_name": ITEM_RATE_EXCISE_ACCOUNT, "is_group": 0},
+        "name",
+    )
+    if name or not create_beside:
+        return name
+    parent = frappe.db.get_value("Account", create_beside, "parent_account")
+    # A ledger the app owns and posts nothing to, created from the settings
+    # button that already requires write access to Nepal Compliance Settings.
+    account = frappe.get_doc(
+        {
+            "doctype": "Account",
+            "account_name": ITEM_RATE_EXCISE_ACCOUNT,
+            "parent_account": parent,
+            "company": company,
+            "account_type": "Tax",
+            "is_group": 0,
+        }
+    ).insert(ignore_permissions=True)
+    return account.name
+
 
 def template_title(side, variant):
     """Return the stable title that marks a tax template as managed by this app."""

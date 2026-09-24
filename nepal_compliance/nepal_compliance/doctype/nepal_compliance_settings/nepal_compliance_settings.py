@@ -11,6 +11,7 @@ import redis
 from nepal_compliance.tax_templates import (
     EXCISE_VARIANTS,
     VARIANTS,
+    get_item_rate_excise_account,
     is_managed_template,
     set_default_tax_template,
     sync_nepal_tax_templates,
@@ -250,19 +251,25 @@ def create_nepal_tax_templates(company: str, variants: str | list | None = None)
             ),
             title=_("VAT Accounts Missing"),
         )
-    if not row.get("excise_account") and set(variants) & set(EXCISE_VARIANTS):
+    excise_account = row.get("excise_account")
+    folds_excise = not excise_account or not row.get("record_excise_separately")
+    if folds_excise and "excise_inclusive" in variants:
         frappe.throw(
-            _("Company {0} has no Excise Duty Account, so the Excise + VAT templates cannot be made. Set one and save first, or leave the excise templates unticked.").format(
+            _("Company {0} adds excise to the item rates (no excise licence), which needs prices that exclude tax. Untick Excise + VAT 13%, price includes tax.").format(
                 frappe.bold(company)
             ),
-            title=_("Excise Account Missing"),
+            title=_("Inclusive Excise Not Supported"),
+        )
+    if not excise_account and set(variants) & set(EXCISE_VARIANTS):
+        excise_account = get_item_rate_excise_account(
+            company, create_beside=row.purchase_vat_account or row.sales_vat_account
         )
 
     return sync_nepal_tax_templates(
         company,
         row.sales_vat_account,
         row.purchase_vat_account,
-        row.get("excise_account"),
+        excise_account,
         variants=variants,
         create=True,
     )

@@ -42,7 +42,7 @@
    "options": "Account"
   },
   {
-   "description": "Ledger used by the managed Excise + VAT templates. Leave blank if the company does not deal in excisable goods.",
+   "description": "Set only when the company holds an excise licence. Leave blank otherwise: excise on a bill is added to each item's rate, and the Excise + VAT templates use a placeholder ledger, Excise Duty (In Item Rate), that nothing posts to.",
    "fieldname": "excise_account",
    "fieldtype": "Link",
    "label": "Excise Duty Account",

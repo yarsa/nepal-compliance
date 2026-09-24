@@ -5,16 +5,24 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from nepal_compliance.tax_templates import get_item_rate_excise_account
+
 INVOICE_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
 SUPPORTED_CHARGE_TYPES = ("Actual", "On Net Total", "On Item Quantity")
 PREVIOUS_ROW_CHARGE_TYPES = ("On Previous Row Total", "On Previous Row Amount")
 
 
 def _company_excise_config(company):
-    """Return (excise_account, record_separately) for a company."""
+    """Return (excise_account, record_separately) for a company.
+
+    A blank Excise Duty Account means no excise licence: excise on the managed
+    templates' placeholder ledger is folded into the item rates.
+    """
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
     for row in settings.get("vat_accounts") or []:
         if row.company == company:
+            if not row.get("excise_account"):
+                return get_item_rate_excise_account(company), False
             return row.get("excise_account"), bool(row.get("record_excise_separately"))
     return None, True
 
