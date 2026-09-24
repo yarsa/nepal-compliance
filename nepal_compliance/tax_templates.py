@@ -14,6 +14,11 @@ TEMPLATE_DOCTYPES = {
     "purchase": "Purchase Taxes and Charges Template",
 }
 
+# Every managed template variant. "Inclusive" means the item price already
+# contains the tax.
+VARIANTS = ("exclusive", "inclusive", "excise", "excise_inclusive")
+EXCISE_VARIANTS = ("excise", "excise_inclusive")
+
 
 def template_title(side, variant):
     """Return the stable title that marks a tax template as managed by this app."""
@@ -23,6 +28,8 @@ def template_title(side, variant):
         return f"Nepal VAT {rate}% Inclusive ({label})"
     if variant == "excise":
         return f"Nepal Excise + VAT {rate}% ({label})"
+    if variant == "excise_inclusive":
+        return f"Nepal Excise + VAT {rate}% Inclusive ({label})"
     return f"Nepal VAT {rate}% ({label})"
 
 
@@ -40,19 +47,25 @@ def _vat_row(vat_account, inclusive=False, charge_type="On Net Total", row_id=No
 
 
 def _template_rows(variant, vat_account, excise_account):
-    if variant != "excise":
+    if variant not in EXCISE_VARIANTS:
         return [_vat_row(vat_account, inclusive=variant == "inclusive")]
 
     # Excise first, then VAT on the excise-inclusive base. The excise rate is left
     # at zero because it varies by product; the user sets it on the template.
+    # ERPNext requires every row above an inclusive On Previous Row Total row to
+    # be inclusive too, so both rows share the flag.
+    inclusive = variant == "excise_inclusive"
     return [
         {
             "charge_type": "On Net Total",
             "account_head": excise_account,
             "description": _("Excise Duty"),
             "rate": 0,
+            "included_in_print_rate": 1 if inclusive else 0,
         },
-        _vat_row(vat_account, charge_type="On Previous Row Total", row_id=1),
+        _vat_row(
+            vat_account, inclusive=inclusive, charge_type="On Previous Row Total", row_id=1
+        ),
     ]
 
 
@@ -62,7 +75,7 @@ def is_managed_template(doctype, name):
     managed = {
         template_title(side, variant)
         for side in ("sales", "purchase")
-        for variant in ("exclusive", "inclusive", "excise")
+        for variant in VARIANTS
     }
     return title in managed
 
@@ -75,7 +88,8 @@ def _repoint_managed_rows(template, variant, vat_account, excise_account):
     mistaken for ours.
     """
     changed = False
-    vat_charge_type = "On Previous Row Total" if variant == "excise" else "On Net Total"
+    is_excise = variant in EXCISE_VARIANTS
+    vat_charge_type = "On Previous Row Total" if is_excise else "On Net Total"
     vat_rows = [
         row
         for row in template.taxes
@@ -85,7 +99,7 @@ def _repoint_managed_rows(template, variant, vat_account, excise_account):
         vat_rows[0].account_head = vat_account
         changed = True
 
-    if variant == "excise" and excise_account:
+    if is_excise and excise_account:
         excise_rows = [row for row in template.taxes if row.charge_type == "On Net Total"]
         if len(excise_rows) == 1 and excise_rows[0].account_head != excise_account:
             excise_rows[0].account_head = excise_account
@@ -94,8 +108,12 @@ def _repoint_managed_rows(template, variant, vat_account, excise_account):
     return changed
 
 
-def get_or_create_nepal_tax_template(company, side, variant, vat_account, excise_account=None):
+def get_or_create_nepal_tax_template(
+    company, side, variant, vat_account, excise_account=None, create=True
+):
     """Return the managed template for a company, side and variant, creating it if absent.
+
+    With create=False a missing template is left missing and None is returned.
 
     An existing template is repaired conservatively: only the VAT row's account is
     repointed. Rates, extra rows and every other field stay as the user left them,
@@ -114,6 +132,8 @@ def get_or_create_nepal_tax_template(company, side, variant, vat_account, excise
         if _repoint_managed_rows(template, variant, vat_account, excise_account):
             template.save(ignore_permissions=True)
         return template.name
+    if not create:
+        return None
 
     template = frappe.get_doc(
         {
@@ -126,11 +146,20 @@ def get_or_create_nepal_tax_template(company, side, variant, vat_account, excise
     return template.name
 
 
-def sync_nepal_tax_templates(company, sales_vat_account, purchase_vat_account, excise_account=None):
-    """Create the managed Nepal tax templates for one company. Idempotent.
+def sync_nepal_tax_templates(
+    company,
+    sales_vat_account,
+    purchase_vat_account,
+    excise_account=None,
+    variants=VARIANTS,
+    create=False,
+):
+    """Repair the managed Nepal tax templates of one company. Idempotent.
 
-    A side with no configured VAT account is skipped, and the excise variant is
-    created only once an excise account is configured.
+    Only templates that already exist are touched unless create is set, which the
+    Create Tax Templates button in Nepal Compliance Settings does. A side with no
+    configured VAT account is skipped, as are the excise variants until an excise
+    account is configured.
     """
     names = []
     for side, vat_account in (
@@ -139,15 +168,14 @@ def sync_nepal_tax_templates(company, sales_vat_account, purchase_vat_account, e
     ):
         if not vat_account:
             continue
-        variants = ["exclusive", "inclusive"]
-        if excise_account:
-            variants.append("excise")
         for variant in variants:
-            names.append(
-                get_or_create_nepal_tax_template(
-                    company, side, variant, vat_account, excise_account
-                )
+            if variant in EXCISE_VARIANTS and not excise_account:
+                continue
+            name = get_or_create_nepal_tax_template(
+                company, side, variant, vat_account, excise_account, create=create
             )
+            if name:
+                names.append(name)
     return names
 
 

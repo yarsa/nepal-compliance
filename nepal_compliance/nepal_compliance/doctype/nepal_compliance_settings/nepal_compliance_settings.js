@@ -31,8 +31,126 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 		frm.add_custom_button(__("Audit TDS Bases"), () => {
 			open_tds_base_prompt();
 		});
+		frm.add_custom_button(__("Create Tax Templates"), () => {
+			open_tax_template_prompt(frm);
+		});
 	},
 });
+
+const TAX_TEMPLATE_VARIANTS = [
+	["exclusive", __("VAT 13%")],
+	["inclusive", __("VAT 13%, price includes VAT")],
+	["excise", __("Excise + VAT 13%")],
+	["excise_inclusive", __("Excise + VAT 13%, price includes tax")],
+];
+
+function open_tax_template_prompt(frm) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Save the settings before creating tax templates."));
+		return;
+	}
+	const rows = (frm.doc.vat_accounts || []).filter(
+		(row) => row.company && (row.sales_vat_account || row.purchase_vat_account)
+	);
+	const companies = rows.map((row) => row.company);
+	if (!companies.length) {
+		frappe.msgprint(__("Set the VAT accounts for a company in the VAT Accounts table first."));
+		return;
+	}
+	// Declared first: the company onchange can fire while the dialog is built.
+	let dialog;
+	dialog = new frappe.ui.Dialog({
+		title: __("Create Tax Templates"),
+		fields: [
+			{
+				fieldname: "company",
+				fieldtype: "Select",
+				label: __("Company"),
+				options: companies,
+				default: companies[0],
+				reqd: 1,
+				onchange: () => dialog && toggle_excise_variants(dialog, rows),
+			},
+			...TAX_TEMPLATE_VARIANTS.map(([fieldname, label]) => ({
+				fieldname,
+				fieldtype: "Check",
+				label,
+				default: 1,
+			})),
+			{
+				fieldtype: "HTML",
+				options: `<p class="text-muted small">${__(
+					"Templates are made for each side (sales, purchase) with a VAT account. Set the excise rate on the excise templates afterwards. Existing templates are kept."
+				)}</p>`,
+			},
+		],
+		primary_action_label: __("Create"),
+		primary_action(values) {
+			const variants = TAX_TEMPLATE_VARIANTS.map(([v]) => v).filter((v) => values[v]);
+			if (!variants.length) {
+				frappe.msgprint(__("Select at least one template."));
+				return;
+			}
+			frappe.call({
+				method: "nepal_compliance.nepal_compliance.doctype.nepal_compliance_settings.nepal_compliance_settings.create_nepal_tax_templates",
+				args: { company: values.company, variants },
+				freeze: true,
+				callback(r) {
+					dialog.hide();
+					frappe.msgprint({
+						title: __("Tax Templates Ready"),
+						indicator: "green",
+						message: (r.message || []).map((name) => frappe.utils.escape_html(name)).join("<br>"),
+					});
+				},
+			});
+		},
+	});
+	dialog.show();
+	toggle_excise_variants(dialog, rows);
+	$(`<button type="button" class="btn btn-xs btn-default ml-2" title="${__("Why is my company missing?")}">?</button>`)
+		.appendTo(dialog.fields_dict.company.$wrapper.find(".control-label"))
+		.on("click", show_tax_template_company_help);
+}
+
+// Excise templates need the company's Excise Duty Account. A blank account means
+// the company does not deal in excisable goods, so those options are switched off.
+function toggle_excise_variants(dialog, rows) {
+	const company = dialog.get_value("company");
+	const row = rows.find((r) => r.company === company);
+	const has_excise = Boolean(row && row.excise_account);
+	for (const fieldname of ["excise", "excise_inclusive"]) {
+		dialog.set_value(fieldname, has_excise ? 1 : 0);
+		dialog.set_df_property(fieldname, "read_only", has_excise ? 0 : 1);
+		dialog.set_df_property(
+			fieldname,
+			"description",
+			has_excise ? "" : __("Not available: {0} has no Excise Duty Account.", [company])
+		);
+	}
+}
+
+function show_tax_template_company_help() {
+	frappe.msgprint({
+		title: __("Which companies are listed?"),
+		message: `
+			<p>${__(
+				"Only companies that have a VAT account set in the VAT Accounts table of these settings are listed here. Templates cannot be made without one, because every template posts VAT to that account."
+			)}</p>
+			<p><b>${__("To add a company")}</b></p>
+			<ol>
+				<li>${__("Close this window and go to the VAT Accounts table.")}</li>
+				<li>${__("Add a row for the company, or open its row, and set the Sales VAT Account, the Purchase VAT Account, or both.")}</li>
+				<li>${__("To make the Excise + VAT templates, also set the Excise Duty Account. Leave it blank if the company does not deal in excisable goods. Without an excise licence, set it and turn off Record Excise in a Separate Account.")}</li>
+				<li>${__("Save the settings, then click Create Tax Templates again.")}</li>
+			</ol>
+			<p>${__(
+				"Sales templates are made only when a Sales VAT Account is set, and purchase templates only when a Purchase VAT Account is set."
+			)}</p>
+		`,
+		indicator: "blue",
+	});
+}
 
 function open_date_prompt() {
 	let dialog;

@@ -9,6 +9,8 @@ from frappe.utils import flt
 import redis
 
 from nepal_compliance.tax_templates import (
+    EXCISE_VARIANTS,
+    VARIANTS,
     is_managed_template,
     set_default_tax_template,
     sync_nepal_tax_templates,
@@ -87,8 +89,9 @@ class NepalComplianceSettings(Document):
     def sync_vat_accounts_to_templates(self):
         """Sync each company's tax templates with the configured accounts.
 
-        Repoints VAT rows in existing templates, creates the managed Nepal
-        templates, and applies the chosen default for each side.
+        Repoints VAT rows in existing templates, repairs the managed Nepal
+        templates that exist (they are created only from the Create Tax
+        Templates button), and applies the chosen default for each side.
         """
         updated = []
         skipped = []
@@ -226,3 +229,40 @@ class NepalComplianceSettings(Document):
         if not cls._save_company_template(template, company):
             return "skipped"
         return "updated"
+
+
+@frappe.whitelist()
+def create_nepal_tax_templates(company: str, variants: str | list | None = None):
+    """Create the chosen managed Nepal tax templates for one configured company."""
+    frappe.has_permission("Nepal Compliance Settings", "write", throw=True)
+    frappe.has_permission("Company", "read", doc=company, throw=True)
+    variants = frappe.parse_json(variants) if variants else list(VARIANTS)
+    unknown = set(variants) - set(VARIANTS)
+    if unknown:
+        frappe.throw(_("Unknown tax template variant: {0}").format(", ".join(sorted(unknown))))
+
+    settings = frappe.get_single("Nepal Compliance Settings")
+    row = next((r for r in settings.get("vat_accounts") or [] if r.company == company), None)
+    if not row or not (row.sales_vat_account or row.purchase_vat_account):
+        frappe.throw(
+            _("Set the VAT accounts for Company {0} in the VAT Accounts table and save first.").format(
+                frappe.bold(company)
+            ),
+            title=_("VAT Accounts Missing"),
+        )
+    if not row.get("excise_account") and set(variants) & set(EXCISE_VARIANTS):
+        frappe.throw(
+            _("Company {0} has no Excise Duty Account, so the Excise + VAT templates cannot be made. Set one and save first, or leave the excise templates unticked.").format(
+                frappe.bold(company)
+            ),
+            title=_("Excise Account Missing"),
+        )
+
+    return sync_nepal_tax_templates(
+        company,
+        row.sales_vat_account,
+        row.purchase_vat_account,
+        row.get("excise_account"),
+        variants=variants,
+        create=True,
+    )
