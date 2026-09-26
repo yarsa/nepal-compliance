@@ -233,6 +233,9 @@ doc_events = {
     "Purchase Order": {
         "before_validate": "nepal_compliance.pan_supplier.set_pan_bill_from_supplier",
     },
+    "Payment Entry": {
+        "before_validate": "nepal_compliance.customer_tds.apply_customer_tds",
+    },
     "Supplier": {
         "validate": "nepal_compliance.pan_supplier.validate_non_vat_supplier",
     },
