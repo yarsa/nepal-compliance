@@ -26,7 +26,7 @@ def ref(name, outstanding, allocated=0):
     )
 
 
-def payment(paid, references, deductions=None, apply=1):
+def payment(paid, references, deductions=None, apply=1, write_off=0):
     return FakePaymentEntry(
         name="PE-1",
         company="ACME",
@@ -35,6 +35,7 @@ def payment(paid, references, deductions=None, apply=1):
         party_type="Customer",
         paid_amount=paid,
         apply_customer_tds=apply,
+        write_off_short_payment=write_off,
         tds_receivable_account="TDS Receivable - A",
         references=references,
         deductions=deductions or [],
@@ -120,6 +121,86 @@ class TestApplyCustomerTds(unittest.TestCase):
         tds_by_invoice.assert_not_called()
         self.assertEqual(doc.references[0].allocated_amount, 50000)
 
+
+COMPANY_DEFAULTS = frappe._dict(
+    write_off_account="Write Off - A", write_off_cost_center=None, cost_center="Main - A", default_currency="NPR"
+)
+
+
+@patch("nepal_compliance.customer_tds.frappe.get_cached_doc", return_value=frappe._dict(max_short_payment_write_off=0))
+@patch("nepal_compliance.customer_tds.frappe.get_cached_value", return_value=COMPANY_DEFAULTS)
+@patch("nepal_compliance.customer_tds._tds_by_invoice")
+class TestWriteOffShortPayment(unittest.TestCase):
+    def test_short_cash_is_written_off_and_invoice_settled(self, tds_by_invoice, _company, settings):
+        tds_by_invoice.return_value = {"SINV-1": (1500, 1)}
+        doc = payment(111000, [ref("SINV-1", 113000, 111000)], write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual(doc.references[0].allocated_amount, 113000)
+        self.assertEqual(
+            [(d.account, d.amount) for d in doc.deductions], [("TDS Receivable - A", 1500), ("Write Off - A", 500)]
+        )
+        self.assertEqual(doc.deductions[1].is_short_payment_write_off, 1)
+
+    def test_works_without_customer_tds(self, tds_by_invoice, _company, settings):
+        doc = payment(27200, [ref("SINV-1", 27545, 27200)], apply=0, write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        tds_by_invoice.assert_not_called()
+        self.assertEqual(doc.references[0].allocated_amount, 27545)
+        self.assertEqual([(d.account, d.amount) for d in doc.deductions], [("Write Off - A", 345)])
+
+    def test_changing_paid_amount_replaces_the_write_off_row(self, tds_by_invoice, _company, settings):
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        doc.paid_amount = 27500
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual([(d.account, d.amount) for d in doc.deductions], [("Write Off - A", 45)])
+        self.assertEqual(doc.references[0].allocated_amount, 27545)
+
+    def test_nothing_written_off_when_paid_in_full(self, tds_by_invoice, _company, settings):
+        tds_by_invoice.return_value = {"SINV-1": (1500, 1)}
+        doc = payment(111500, [ref("SINV-1", 113000)], write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual([d.account for d in doc.deductions], ["TDS Receivable - A"])
+
+    def test_unticking_removes_the_write_off(self, tds_by_invoice, _company, settings):
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        doc.write_off_short_payment = 0
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual(doc.deductions, [])
+        self.assertEqual(doc.references[0].allocated_amount, 27200)
+
+
+    def test_uses_the_selected_account(self, tds_by_invoice, _company, settings):
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        doc.short_payment_write_off_account = "Discount Allowed - A"
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual([(d.account, d.amount) for d in doc.deductions], [("Discount Allowed - A", 345)])
+
+    def test_defaults_to_the_company_write_off_account(self, tds_by_invoice, _company, settings):
+        doc = payment(27545, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual(doc.short_payment_write_off_account, "Write Off - A")
+        self.assertEqual(doc.deductions, [])
+
+    @patch("nepal_compliance.customer_tds.fmt_money", side_effect=lambda amount, currency=None: str(amount))
+    def test_write_off_above_the_maximum_is_refused(self, _fmt, tds_by_invoice, _company, settings):
+        settings.return_value = frappe._dict(max_short_payment_write_off=100)
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        with self.assertRaises(frappe.ValidationError):
+            customer_tds.apply_customer_tds(doc)
+
+    def test_write_off_up_to_the_maximum_is_allowed(self, tds_by_invoice, _company, settings):
+        settings.return_value = frappe._dict(max_short_payment_write_off=345)
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        customer_tds.apply_customer_tds(doc)
+        self.assertEqual([d.amount for d in doc.deductions], [345])
+
+    def test_short_payment_without_any_account_is_refused(self, tds_by_invoice, _company, settings):
+        _company.return_value = frappe._dict(COMPANY_DEFAULTS, write_off_account=None)
+        doc = payment(27200, [ref("SINV-1", 27545)], apply=0, write_off=1)
+        with self.assertRaises(frappe.ValidationError):
+            customer_tds.apply_customer_tds(doc)
 
 if __name__ == "__main__":
     unittest.main()

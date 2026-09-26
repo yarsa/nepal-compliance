@@ -1,8 +1,10 @@
 frappe.ui.form.on("Payment Entry", {
     setup(frm) {
-        frm.set_query("tds_receivable_account", () => ({
-            filters: { company: frm.doc.company, is_group: 0 },
-        }));
+        for (const fieldname of ["tds_receivable_account", "short_payment_write_off_account"]) {
+            frm.set_query(fieldname, () => ({
+                filters: { company: frm.doc.company, is_group: 0 },
+            }));
+        }
     },
     refresh(frm) {
         // Create > Payment on an invoice opens a filled draft without firing the party trigger
@@ -18,6 +20,21 @@ frappe.ui.form.on("Payment Entry", {
     },
     tds_receivable_account(frm) {
         if (frm.doc.apply_customer_tds) {
+            calculate_customer_tds(frm);
+        }
+    },
+    write_off_short_payment(frm) {
+        calculate_customer_tds(frm);
+    },
+    short_payment_write_off_account(frm) {
+        if (frm.doc.write_off_short_payment) {
+            calculate_customer_tds(frm);
+        }
+    },
+    async paid_amount(frm) {
+        if (frm.doc.apply_customer_tds || frm.doc.write_off_short_payment) {
+            // ERPNext reallocates the invoices from Paid Amount on its own call; redo ours after it
+            await frappe.after_ajax();
             calculate_customer_tds(frm);
         }
     },

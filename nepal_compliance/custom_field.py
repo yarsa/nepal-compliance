@@ -183,6 +183,8 @@ def create_custom_fields(quiet=False):
         ],
         "Payment Entry":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "write_off_short_payment", "label": "Write Off Short Payment", "fieldtype": "Check", "insert_after": "paid_amount", "depends_on": "eval:doc.payment_type == 'Receive' && doc.party_type == 'Customer'", "no_copy": 1, "description": "Allocates each Sales Invoice in full so it is marked Paid, and books the amount not received to the Short Payment Write Off Account, up to the maximum in Nepal Compliance Settings."},
+            {"fieldname": "short_payment_write_off_account", "label": "Short Payment Write Off Account", "fieldtype": "Link", "options": "Account", "insert_after": "write_off_short_payment", "depends_on": "eval:doc.write_off_short_payment", "mandatory_depends_on": "eval:doc.write_off_short_payment"},
             {"fieldname": "customer_tds_section", "label": "Customer TDS", "fieldtype": "Section Break", "insert_after": "total_taxes_and_charges", "depends_on": "eval:doc.payment_type == 'Receive' && doc.party_type == 'Customer'"},
             {"fieldname": "apply_customer_tds", "label": "Apply Customer TDS", "fieldtype": "Check", "insert_after": "customer_tds_section", "description": "Books the TDS the customer withheld on the first receipt against each Sales Invoice. Enter the cash actually received as Paid Amount; the TDS is added to Deductions on save."},
             {"fieldname": "tds_receivable_account", "label": "TDS Receivable Account", "fieldtype": "Link", "options": "Account", "insert_after": "apply_customer_tds", "depends_on": "eval:doc.apply_customer_tds", "mandatory_depends_on": "eval:doc.apply_customer_tds"},
@@ -190,6 +192,9 @@ def create_custom_fields(quiet=False):
         ],
         "Payment Entry Reference":[
             {"fieldname": "customer_tds_amount", "label": "Customer TDS Amount", "fieldtype": "Currency", "options": "Company:company:default_currency", "insert_after": "allocated_amount", "read_only": 1, "no_copy": 1}
+        ],
+        "Payment Entry Deduction":[
+            {"fieldname": "is_short_payment_write_off", "label": "Short Payment Write Off", "fieldtype": "Check", "insert_after": "is_exchange_gain_loss", "read_only": 1, "hidden": 1}
         ],
         "GL Entry":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}

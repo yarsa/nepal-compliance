@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, fmt_money
 
 DEFAULT_CUSTOMER_TDS_RATE = 1.5
 
@@ -85,6 +85,8 @@ def apply_customer_tds(doc, method=None):
 
     Runs before ERPNext's validate so its own totals and difference amount include the
     deduction. Only the first submitted receipt against an invoice books that invoice's TDS.
+    With Write Off Short Payment ticked, every invoice is allocated in full and the cash not
+    received is booked to the Company's Write Off Account, so the invoices end up Paid.
     """
     if doc.get("payment_type") != "Receive" or doc.get("party_type") != "Customer":
         return
@@ -92,7 +94,7 @@ def apply_customer_tds(doc, method=None):
     before = doc.get_doc_before_save()
     tds_accounts = {doc.get("tds_receivable_account"), before and before.get("tds_receivable_account")} - {None, ""}
     deductions = doc.get("deductions") or []
-    kept = [d for d in deductions if d.account not in tds_accounts]
+    kept = [d for d in deductions if d.account not in tds_accounts and not d.get("is_short_payment_write_off")]
     removed = len(kept) != len(deductions)
     doc.set("deductions", kept)
     for idx, row in enumerate(kept, 1):
@@ -104,7 +106,8 @@ def apply_customer_tds(doc, method=None):
     doc.customer_tds_amount = 0
     rows = [r for r in references if r.reference_doctype == "Sales Invoice" and flt(r.outstanding_amount) > 0]
     apply = cint(doc.get("apply_customer_tds")) and doc.get("tds_receivable_account")
-    if not rows or not (apply or removed):
+    write_off = cint(doc.get("write_off_short_payment"))
+    if not rows or not (apply or write_off or removed):
         return
 
     precision = cint(doc.precision("allocated_amount", "references")) or 2
@@ -116,9 +119,13 @@ def apply_customer_tds(doc, method=None):
     pool -= sum(flt(r.allocated_amount) for r in references if id(r) not in row_ids)
 
     amounts = {name: tds for name, (tds, _rate) in tds_by_invoice.items()}
-    total, invoices = 0.0, []
-    for row, (allocated, tds) in zip(rows, allocate_with_tds(rows, flt(pool, precision), amounts, precision)):
+    pool = flt(pool, precision)
+    # enough to settle every invoice in full; what the cash does not cover is written off
+    cash = max(pool, sum(flt(r.outstanding_amount, precision) for r in rows)) if write_off else pool
+    total, invoices, settled = 0.0, [], 0.0
+    for row, (allocated, tds) in zip(rows, allocate_with_tds(rows, cash, amounts, precision)):
         row.allocated_amount = allocated
+        settled += allocated - tds
         if tds:
             row.customer_tds_amount = flt(tds * tds_by_invoice[row.reference_name][1], precision)
             total += row.customer_tds_amount
@@ -135,6 +142,41 @@ def apply_customer_tds(doc, method=None):
                 "description": _("TDS withheld by customer on {0}").format(", ".join(invoices)),
             },
         )
+
+    if not write_off:
+        return
+    company = frappe.get_cached_value(
+        "Company",
+        doc.company,
+        ["write_off_account", "write_off_cost_center", "cost_center", "default_currency"],
+        as_dict=True,
+    )
+    # defaults to the Company's Write Off Account; the form shows it once the box is ticked
+    account = doc.get("short_payment_write_off_account") or company.write_off_account
+    doc.short_payment_write_off_account = account
+    short = flt(settled - pool, precision)
+    if short <= 0:
+        return
+    if not account:
+        frappe.throw(_("Select a Short Payment Write Off Account to write off the short payment"))
+    amount = flt(short * exchange_rate, precision)
+    limit = flt(frappe.get_cached_doc("Nepal Compliance Settings").get("max_short_payment_write_off"))
+    if limit and amount > limit:
+        frappe.throw(
+            _("Short payment of {0} is more than the Maximum Short Payment Write Off of {1} in Nepal Compliance Settings").format(
+                fmt_money(amount, currency=company.default_currency), fmt_money(limit, currency=company.default_currency)
+            )
+        )
+    doc.append(
+        "deductions",
+        {
+            "account": account,
+            "cost_center": company.write_off_cost_center or doc.get("cost_center") or company.cost_center,
+            "amount": amount,
+            "description": _("Short payment written off on {0}").format(", ".join(dict.fromkeys(r.reference_name for r in rows))),
+            "is_short_payment_write_off": 1,
+        },
+    )
 
 
 @frappe.whitelist()

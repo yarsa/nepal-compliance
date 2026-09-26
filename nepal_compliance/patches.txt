@@ -24,3 +24,4 @@ nepal_compliance.patches.set_invoice_no_copy_fields
 nepal_compliance.patches.add_sales_order_taxable_summary
 nepal_compliance.patches.add_customer_tds_fields
 nepal_compliance.patches.set_default_customer_tds_rate
+nepal_compliance.patches.add_short_payment_write_off_fields
