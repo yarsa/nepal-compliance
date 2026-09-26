@@ -22,3 +22,4 @@ nepal_compliance.patches.add_manual_sales_invoice_fields
 nepal_compliance.patches.add_excise_fields
 nepal_compliance.patches.set_invoice_no_copy_fields
 nepal_compliance.patches.add_sales_order_taxable_summary
+nepal_compliance.patches.add_customer_tds_fields

@@ -10,7 +10,7 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 			},
 		}));
 		// Only offer the row's own company's accounts and templates.
-		for (const field of ["sales_vat_account", "purchase_vat_account", "excise_account"]) {
+		for (const field of ["sales_vat_account", "purchase_vat_account", "excise_account", "tds_receivable_account"]) {
 			frm.set_query(field, "vat_accounts", (doc, cdt, cdn) => ({
 				filters: { company: locals[cdt][cdn].company, is_group: 0 },
 			}));

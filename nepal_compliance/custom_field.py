@@ -58,7 +58,8 @@ def create_custom_fields(quiet=False):
         ],
         "Customer": [
             {"fieldname": "customer_vat_number", "label": "Customer Vat/Pan Number", "fieldtype": "Data", "insert_after": "customer_group", "allow_on_submit": 1},
-            {"fieldname": "customer_email_address", "label": "Customer Email Address", "fieldtype": "Data", "insert_after": "customer_vat_number"}
+            {"fieldname": "customer_email_address", "label": "Customer Email Address", "fieldtype": "Data", "insert_after": "customer_vat_number"},
+            {"fieldname": "deduct_tds_on_receipt", "label": "Deduct TDS on Receipt", "fieldtype": "Check", "insert_after": "customer_email_address", "description": "Customer withholds TDS when paying a Sales Invoice. Payment Entry books it to the TDS Receivable Account set in Nepal Compliance Settings, at the Customer TDS Rate on the invoice's Taxable Amount."}
         ],
         "Salary Component":[
             {"fieldname": "include_in_taxable_salary", "label": "Include In Taxable Salary", "fieldtype": "Check", "insert_after": "is_income_tax_component", "allow_on_submit": 1, "description": "Check this if this component is to be included in taxable salary calculation of Nepal Compliance."},
@@ -168,7 +169,8 @@ def create_custom_fields(quiet=False):
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "receive_without_tds", "label": "Receive Without TDS", "fieldtype": "Check", "insert_after": "item_vat_detail", "allow_on_submit": 1, "no_copy": 1, "description": "Tick when the customer pays this bill in full although 'Deduct TDS on Receipt' is enabled on the Customer."}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}
@@ -181,6 +183,13 @@ def create_custom_fields(quiet=False):
         ],
         "Payment Entry":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
+            {"fieldname": "customer_tds_section", "label": "Customer TDS", "fieldtype": "Section Break", "insert_after": "total_taxes_and_charges", "depends_on": "eval:doc.payment_type == 'Receive' && doc.party_type == 'Customer'"},
+            {"fieldname": "apply_customer_tds", "label": "Apply Customer TDS", "fieldtype": "Check", "insert_after": "customer_tds_section", "description": "Books the TDS the customer withheld on the first receipt against each Sales Invoice. Enter the cash actually received as Paid Amount; the TDS is added to Deductions on save."},
+            {"fieldname": "tds_receivable_account", "label": "TDS Receivable Account", "fieldtype": "Link", "options": "Account", "insert_after": "apply_customer_tds", "depends_on": "eval:doc.apply_customer_tds", "mandatory_depends_on": "eval:doc.apply_customer_tds"},
+            {"fieldname": "customer_tds_amount", "label": "Customer TDS Amount", "fieldtype": "Currency", "options": "Company:company:default_currency", "insert_after": "tds_receivable_account", "depends_on": "eval:doc.apply_customer_tds", "read_only": 1, "no_copy": 1}
+        ],
+        "Payment Entry Reference":[
+            {"fieldname": "customer_tds_amount", "label": "Customer TDS Amount", "fieldtype": "Currency", "options": "Company:company:default_currency", "insert_after": "allocated_amount", "read_only": 1, "no_copy": 1}
         ],
         "GL Entry":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}

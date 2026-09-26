@@ -11,6 +11,7 @@
   "purchase_vat_account",
   "excise_account",
   "record_excise_separately",
+  "tds_receivable_account",
   "default_sales_tax_template",
   "default_purchase_tax_template",
   "sales_invoice_numbering_section",
@@ -57,6 +58,13 @@
    "label": "Record Excise in a Separate Account"
   },
   {
+   "description": "Debited with the TDS a customer withholds when paying a Sales Invoice. Pre-filled on Payment Entry and can be changed there.",
+   "fieldname": "tds_receivable_account",
+   "fieldtype": "Link",
+   "label": "TDS Receivable Account",
+   "options": "Account"
+  },
+  {
    "description": "Applied to new Sales Invoices. Making a template the default clears the default flag on every other Sales tax template for this company.",
    "fieldname": "default_sales_tax_template",
    "fieldtype": "Link",
@@ -96,7 +104,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-27 06:30:00.000000",
+ "modified": "2026-09-26 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance VAT Account",
