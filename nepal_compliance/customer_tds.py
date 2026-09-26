@@ -152,6 +152,10 @@ def calculate_customer_tds(doc: str | dict) -> dict:
     doc.paid_amount = flt(flt(doc.paid_amount) + flt(doc.customer_tds_amount) / exchange_rate, precision)
     apply_customer_tds(doc)
     doc.paid_amount = flt(flt(doc.paid_amount) - flt(doc.customer_tds_amount) / exchange_rate, precision)
+    # the form copies Received Amount back into Paid Amount whenever an exchange rate arrives
+    # for same-currency accounts, so a stale Received Amount would undo the netting
+    if doc.get("paid_to_account_currency") in (None, "", doc.get("paid_from_account_currency")):
+        doc.received_amount = doc.paid_amount
     # a draft made from an invoice has no exchange rates until Paid To is set, and ERPNext's
     # set_amounts divides by them; the form recalculates the totals once the rates arrive
     if flt(doc.get("source_exchange_rate")) and flt(doc.get("target_exchange_rate")):
