@@ -61,6 +61,14 @@ class TestAllocateWithTds(unittest.TestCase):
         self.assertEqual(result, [(11300, 150), (0.0, 0.0)])
 
 
+class TestCustomerTdsSettings(unittest.TestCase):
+    @patch("nepal_compliance.customer_tds.frappe.get_cached_doc")
+    def test_empty_rate_falls_back_to_default(self, get_cached_doc):
+        row = frappe._dict(company="ACME", tds_receivable_account="TDS Receivable - A")
+        get_cached_doc.return_value = frappe._dict(customer_tds_rate=0.0, vat_accounts=[row])
+        self.assertEqual(customer_tds._customer_tds_settings("ACME"), (1.5, "TDS Receivable - A"))
+
+
 @patch("nepal_compliance.customer_tds._tds_by_invoice")
 class TestApplyCustomerTds(unittest.TestCase):
     def test_adds_deduction_and_raises_allocation(self, tds_by_invoice):

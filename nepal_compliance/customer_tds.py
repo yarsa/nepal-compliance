@@ -8,12 +8,13 @@ DEFAULT_CUSTOMER_TDS_RATE = 1.5
 def _customer_tds_settings(company):
     """Return (rate, TDS Receivable Account) for one company."""
     settings = frappe.get_cached_doc("Nepal Compliance Settings")
-    rate = settings.get("customer_tds_rate")
+    # a Single saved before this field existed stores it empty, which reads back as 0
+    rate = flt(settings.get("customer_tds_rate")) or DEFAULT_CUSTOMER_TDS_RATE
     account = next(
         (row.get("tds_receivable_account") for row in settings.get("vat_accounts") or [] if row.company == company),
         None,
     )
-    return (DEFAULT_CUSTOMER_TDS_RATE if rate is None else flt(rate)), account
+    return rate, account
 
 
 @frappe.whitelist()
