@@ -69,7 +69,8 @@ doctype_js = {
     "Supplier": "public/js/validate.js",
     "Customer": "public/js/validate.js",
     "Salary Slip": "public/js/salary_slip.js",
-    "Payroll Entry": "public/js/payroll_entry.js"
+    "Payroll Entry": "public/js/payroll_entry.js",
+    "Payment Entry": "public/js/payment_entry.js"
 }
 
 doctype_list_js = {

@@ -135,3 +135,29 @@ def apply_customer_tds(doc, method=None):
                 "description": _("TDS withheld by customer on {0}").format(", ".join(invoices)),
             },
         )
+
+
+@frappe.whitelist()
+def calculate_customer_tds(doc: str | dict) -> dict:
+    """Net the customer's withheld TDS off a draft Payment Entry's paid amount, for the form.
+
+    Paid amount plus the TDS already netted off is what the receipt settles, so the TDS is
+    handed back first and the new TDS taken off after: ticking Apply Customer TDS lowers the
+    paid amount by the TDS, unticking restores it, and calling it again changes nothing.
+    """
+    doc = frappe.get_doc(frappe.parse_json(doc))
+    doc.check_permission("create" if doc.is_new() else "write")
+    exchange_rate = flt(doc.get("source_exchange_rate")) or 1
+    precision = doc.precision("paid_amount")
+    doc.paid_amount = flt(flt(doc.paid_amount) + flt(doc.customer_tds_amount) / exchange_rate, precision)
+    apply_customer_tds(doc)
+    doc.paid_amount = flt(flt(doc.paid_amount) - flt(doc.customer_tds_amount) / exchange_rate, precision)
+    # the form copies Received Amount back into Paid Amount whenever an exchange rate arrives
+    # for same-currency accounts, so a stale Received Amount would undo the netting
+    if doc.get("paid_to_account_currency") in (None, "", doc.get("paid_from_account_currency")):
+        doc.received_amount = doc.paid_amount
+    # a draft made from an invoice has no exchange rates until Paid To is set, and ERPNext's
+    # set_amounts divides by them; the form recalculates the totals once the rates arrive
+    if flt(doc.get("source_exchange_rate")) and flt(doc.get("target_exchange_rate")):
+        doc.set_amounts()
+    return doc.as_dict()
