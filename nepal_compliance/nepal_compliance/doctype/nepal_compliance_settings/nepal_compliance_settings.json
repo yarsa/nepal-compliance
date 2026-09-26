@@ -21,6 +21,8 @@
   "vat_accounts_section",
   "use_legacy_ird_report_calculation",
   "vat_accounts",
+  "customer_tds_section",
+  "customer_tds_rate",
   "purchase_tab",
   "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
@@ -138,6 +140,18 @@
    "fieldtype": "Table",
    "label": "VAT Accounts",
    "options": "Nepal Compliance VAT Account"
+  },
+  {
+   "fieldname": "customer_tds_section",
+   "fieldtype": "Section Break",
+   "label": "Customer TDS"
+  },
+  {
+   "default": "1.5",
+   "description": "TDS that customers withhold when they pay a Sales Invoice, as a percentage of the invoice's Taxable Amount. Applied on Payment Entry for customers with 'Deduct TDS on Receipt' enabled. Set the TDS Receivable Account per company in the VAT Accounts table.",
+   "fieldname": "customer_tds_rate",
+   "fieldtype": "Percent",
+   "label": "Customer TDS Rate"
   },
   {
    "fieldname": "purchase_tab",
@@ -273,7 +287,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-06 09:53:40.956568",
+ "modified": "2026-09-26 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",

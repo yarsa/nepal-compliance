@@ -10,12 +10,13 @@ class NepalComplianceVATAccount(Document):
 	def validate(self):
 		"""Require the selected accounts and tax templates to belong to the row's company.
 
-		Accounts must also be Tax ledgers rather than groups.
+		Accounts must be ledgers rather than groups, and all but the TDS Receivable Account must be Tax ledgers.
 		"""
 		for fieldname, label in (
 			("sales_vat_account", _("Sales VAT Account")),
 			("purchase_vat_account", _("Purchase VAT Account")),
 			("excise_account", _("Excise Duty Account")),
+			("tds_receivable_account", _("TDS Receivable Account")),
 		):
 			account = self.get(fieldname)
 			if not account:
@@ -37,7 +38,7 @@ class NepalComplianceVATAccount(Document):
 					),
 					title=_("Invalid Account"),
 				)
-			if account_type != "Tax":
+			if account_type != "Tax" and fieldname != "tds_receivable_account":
 				frappe.throw(
 					_(
 						"Row {0}: {1} {2} has Account Type '{3}'. Please select an account with Account Type 'Tax'."
