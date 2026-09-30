@@ -13,21 +13,18 @@ from frappe.custom.doctype.property_setter.property_setter import delete_propert
 from frappe.utils import cint
 
 ESSENTIALS_TAB = "nc_essentials_tab"
+BILL_SUMMARY = "bill_summary"
 MORE_DETAILS_TAB = "nc_more_details_tab"
 BREAK_TYPES = ("Tab Break", "Section Break", "Column Break")
 NOT_ADDABLE = BREAK_TYPES + ("HTML", "Fold", "Heading")
 
 # (key, label, depends_on, columns). A column is a list of fieldnames; fields missing from
 # a site's doctype are skipped. Payment Entry sections copy the depends_on of ERPNext's own.
-_DISCOUNT = ("discount", "Discount", None, [["additional_discount_percentage"], ["discount_amount"]])
-_TOTALS = ("totals", "Totals", None, [["grand_total", "in_words"], ["rounded_total", "disable_rounded_total"]])
 _ITEMS = ("items", None, None, [["items"]])
-_SUMMARY = (
-    "summary",
-    "Taxable Summary",
-    None,
-    [["taxable_amount", "excise_amount", "non_taxable_amount"], ["vat_amount", "summary_grand_total"]],
-)
+# laid out like a Nepal bill: the figures in the order they are printed, the inputs beside them
+_BILL_INPUTS = ["additional_discount_percentage", "in_words", "disable_rounded_total"]
+_BILL_TOTALS = ["summary_grand_total", "grand_total", "rounded_total"]
+_BILL = (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "excise_amount", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS])
 
 ESSENTIALS = {
     "Sales Invoice": [
@@ -41,9 +38,7 @@ ESSENTIALS = {
             ],
         ),
         _ITEMS,
-        _DISCOUNT,
-        _SUMMARY,
-        _TOTALS,
+        _BILL,
     ],
     "Purchase Invoice": [
         (
@@ -57,9 +52,7 @@ ESSENTIALS = {
         ),
         ("bill", "Supplier Invoice", None, [["bill_no", "attach_purchase_invoice"], ["bill_date", "apply_tds"]]),
         _ITEMS,
-        _DISCOUNT,
-        _SUMMARY,
-        _TOTALS,
+        _BILL,
     ],
     "Sales Order": [
         (
@@ -69,9 +62,7 @@ ESSENTIALS = {
             [["customer", "customer_name", "company"], ["transaction_date", "delivery_date"]],
         ),
         _ITEMS,
-        _DISCOUNT,
-        ("summary", "Taxable Summary", None, [["taxable_amount", "non_taxable_amount"], ["vat_amount", "summary_grand_total"]]),
-        _TOTALS,
+        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS]),
     ],
     "Purchase Order": [
         (
@@ -81,8 +72,7 @@ ESSENTIALS = {
             [["supplier", "supplier_name", "company"], ["transaction_date", "schedule_date", "is_pan_or_abbreviated_bill"]],
         ),
         _ITEMS,
-        _DISCOUNT,
-        _TOTALS,
+        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "discount_amount", "total_taxes_and_charges", "grand_total", "rounded_total"]]),
     ],
     "Payment Entry": [
         ("payment", "Payment", None, [["payment_type", "mode_of_payment"], ["posting_date", "company"]]),
@@ -122,20 +112,30 @@ ESSENTIALS = {
     ],
 }
 
-# read-only amounts hidden while they are 0
-HIDE_WHEN_ZERO = {
-    "Sales Invoice": ["taxable_amount", "excise_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
-    "Purchase Invoice": ["taxable_amount", "excise_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
-    "Sales Order": ["taxable_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
-    "Purchase Order": ["rounded_total"],
-    "Payment Entry": ["customer_tds_amount", "unallocated_amount", "difference_amount"],
+# read-only figures shown only when the condition holds, by default while they are not 0
+_SHOWN_WHEN_SET = dict.fromkeys(["non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"])
+# ERPNext's Grand Total differs from the Bill Total by TDS withheld on a purchase
+_GRAND_TOTAL = {"grand_total": "flt(doc.grand_total) != flt(doc.summary_grand_total)"}
+# folded excise sits on the item rows and inside Subtotal, so only licensed excise gets a line
+_EXCISE = {"excise_amount": "flt(doc.excise_amount) && !(doc.items || []).some((d) => flt(d.excise_amount))"}
+SHOW_WHEN = {
+    "Sales Invoice": {**_EXCISE, **_SHOWN_WHEN_SET, **_GRAND_TOTAL},
+    "Purchase Invoice": {**_EXCISE, **_SHOWN_WHEN_SET, **_GRAND_TOTAL},
+    "Sales Order": {**_SHOWN_WHEN_SET, **_GRAND_TOTAL},
+    "Purchase Order": dict.fromkeys(["total_taxes_and_charges", "rounded_total"]),
+    "Payment Entry": dict.fromkeys(["customer_tds_amount", "unallocated_amount", "difference_amount"]),
 }
 
 # a Nepal bill shows the discount before VAT, so VAT is worked out on the discounted amount
-DEFAULTS = {
-    doctype: {"apply_discount_on": "Net Total"}
-    for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order")
+_BILL_DOCTYPES = ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order")
+DEFAULTS = {doctype: {"apply_discount_on": "Net Total"} for doctype in _BILL_DOCTYPES}
+# the wording of a Nepal bill; the VAT line is labelled with its rate by bill_summary.js
+LABELS = {
+    doctype: {"total": "Subtotal", "discount_amount": "Discount", "additional_discount_percentage": "Discount %"}
+    for doctype in _BILL_DOCTYPES
 }
+# raised whenever ESSENTIALS changes, so a site built from an older layout is rebuilt at migrate
+LAYOUT_VERSION = 2
 
 
 def section_fieldname(key, column=0):
@@ -194,12 +194,16 @@ def build_field_order(natural, sections, extras=()):
     present = set(natural)
     layout = [[[f for f in column if f in present] for column in columns] for _key, _l, _d, columns in sections]
     placed = {f for columns in layout for column in columns for f in column}
+    bill = next((i for i, section in enumerate(sections) if section[0] == BILL_SUMMARY), None)
 
     for extra in sorted({f for f in extras if f in present and f not in placed}, key=natural.index):
         before = next((f for f in reversed(natural[: natural.index(extra)]) if f in placed), None)
         column = next((c for columns in layout for c in columns if before in c), None)
         if column is None:
             layout[0][0].insert(0, extra)
+        elif bill and column is layout[bill][-1]:
+            # the bill's figures stay as printed; anything else goes under the section above
+            layout[bill - 1][-1].append(extra)
         else:
             column.insert(column.index(before) + 1, extra)
         placed.add(extra)
@@ -229,12 +233,23 @@ def update_field_order(saved, natural, layout_names, extras=(), removed=()):
     def in_tab(fieldname):
         return order.index(fieldname) < order.index(MORE_DETAILS_TAB)
 
+    def in_bill_figures(fieldname):
+        """Whether ``fieldname`` is in the Bill Summary's last column, which keeps its printed order."""
+        breaks = [i for i, f in enumerate(order) if f in layout_names]
+        starts = [i for i in breaks if order[i].startswith(f"nc_ess_{BILL_SUMMARY}_col")]
+        if not starts:
+            return False
+        end = next((i for i in breaks if i > starts[-1]), len(order))
+        return starts[-1] < order.index(fieldname) < end
+
     def place(fieldname, inside):
         earlier = natural[: natural.index(fieldname)] if fieldname in natural else []
         before = next(
             (f for f in reversed(earlier) if f in order and in_tab(f) == inside and f not in layout_names), None
         )
-        if before:
+        if before and inside and in_bill_figures(before):
+            order.insert(order.index(section_fieldname(BILL_SUMMARY)), fieldname)
+        elif before:
             order.insert(order.index(before) + 1, fieldname)
         elif inside:
             first = order[1] if len(order) > 1 and order[1] in layout_names and order[1].endswith("_section") else ESSENTIALS_TAB
@@ -256,9 +271,17 @@ def update_field_order(saved, natural, layout_names, extras=(), removed=()):
     return order
 
 
-def hide_when_zero(depends_on, fieldname):
-    """Add 'and the amount is not 0' to a field's own depends_on."""
-    condition = f"flt(doc.{fieldname})"
+def rebuild_field_order(saved, natural, sections, extras=(), removed=()):
+    """Build from a newer ESSENTIALS, keeping the fields a user had moved into the tab."""
+    built_in = {f for _key, _label, _depends_on, columns in sections for column in columns for f in column}
+    tab = saved[saved.index(ESSENTIALS_TAB) : saved.index(MORE_DETAILS_TAB)]
+    kept = [f for f in tab if f in natural and f not in built_in and f not in removed]
+    return build_field_order(natural, sections, list(extras) + kept)
+
+
+def show_when(depends_on, fieldname, condition=None):
+    """Add ``condition``, by default 'and the amount is not 0', to a field's own depends_on."""
+    condition = condition or f"flt(doc.{fieldname})"
     if not depends_on:
         return f"eval:{condition}"
     expression = depends_on[5:].strip() if depends_on.startswith("eval:") else f"doc.{depends_on.strip()}"
@@ -365,16 +388,20 @@ def apply_form_layout(settings=None, removed=None):
     for row in settings.get("essentials_extra_fields") or []:
         extras.setdefault(row.document_type, []).append(row.fieldname)
 
+    # a site built from an older ESSENTIALS is rebuilt from the current one, once
+    upgrade = cint(settings.get("essentials_layout_version")) < LAYOUT_VERSION
     for doctype in ESSENTIALS:
         if enabled:
-            _apply(doctype, extras.get(doctype, []), (removed or {}).get(doctype, []))
+            _apply(doctype, extras.get(doctype, []), (removed or {}).get(doctype, []), upgrade)
         elif frappe.db.exists("Custom Field", f"{doctype}-{ESSENTIALS_TAB}"):
             # only undo a layout this app built; never touch a site's own Customize Form order
             _remove(doctype)
         frappe.clear_cache(doctype=doctype)
+    if enabled and upgrade:
+        frappe.db.set_single_value("Nepal Compliance Settings", "essentials_layout_version", LAYOUT_VERSION)
 
 
-def _apply(doctype, extras, removed=()):
+def _apply(doctype, extras, removed=(), upgrade=False):
     ours = layout_fields(doctype)
     names = {f["fieldname"] for f in ours}
     standard = frappe.get_all(
@@ -396,32 +423,38 @@ def _apply(doctype, extras, removed=()):
     fresh = not (saved and {ESSENTIALS_TAB, MORE_DETAILS_TAB} <= set(saved) & existing)
     if fresh:
         order = build_field_order(natural, ESSENTIALS[doctype], extras)
+    elif upgrade:
+        order = rebuild_field_order(saved, natural, ESSENTIALS[doctype], extras, removed)
     else:
         order = update_field_order(saved, natural, names, extras, removed)
+    rebuilt = fresh or upgrade
 
-    # after the first build only missing breaks are created, so a renamed tab or section keeps its name;
+    # after a build only missing breaks are created, so a renamed tab or section keeps its name;
     # insert_after keeps them in place even before the field_order property setter lands
-    to_save = [f for f in ours if fresh or (f["fieldname"] in order and f["fieldname"] not in existing)]
+    to_save = [f for f in ours if rebuilt or (f["fieldname"] in order and f["fieldname"] not in existing)]
     for field in to_save:
         field["insert_after"] = order[order.index(field["fieldname"]) - 1] if order[0] != field["fieldname"] else None
     _save_layout_fields(doctype, to_save)
 
     _set_property(doctype, None, "field_order", frappe.as_json(order, indent=None))
-    # likewise a depends_on or default changed with Customize Form is left as the user set it
-    for fieldname in HIDE_WHEN_ZERO[doctype]:
-        if fieldname in order and (fresh or not _has_property(doctype, fieldname, "depends_on")):
-            _set_property(doctype, fieldname, "depends_on", hide_when_zero(_original(doctype, fieldname, "depends_on"), fieldname))
-    for fieldname, value in DEFAULTS.get(doctype, {}).items():
-        if fieldname in order and (fresh or not _has_property(doctype, fieldname, "default")):
-            _set_property(doctype, fieldname, "default", value)
+    # likewise a depends_on, default or label changed with Customize Form is left as the user set it
+    for fieldname, condition in SHOW_WHEN[doctype].items():
+        if fieldname in order and (rebuilt or not _has_property(doctype, fieldname, "depends_on")):
+            depends_on = show_when(_original(doctype, fieldname, "depends_on"), fieldname, condition)
+            _set_property(doctype, fieldname, "depends_on", depends_on)
+    for prop, values in (("default", DEFAULTS), ("label", LABELS)):
+        for fieldname, value in values.get(doctype, {}).items():
+            if fieldname in order and (rebuilt or not _has_property(doctype, fieldname, prop)):
+                _set_property(doctype, fieldname, prop, value)
 
 
 def _remove(doctype):
     delete_property_setter(doctype, "field_order")
-    for fieldname in HIDE_WHEN_ZERO[doctype]:
+    for fieldname in SHOW_WHEN[doctype]:
         delete_property_setter(doctype, "depends_on", fieldname)
-    for fieldname in DEFAULTS.get(doctype, {}):
-        delete_property_setter(doctype, "default", fieldname)
+    for prop, values in (("default", DEFAULTS), ("label", LABELS)):
+        for fieldname in values.get(doctype, {}):
+            delete_property_setter(doctype, prop, fieldname)
     # deleted directly: Custom Field's on_trash lets only Administrator delete fields it owns,
     # and a Settings writer turns the tab off. The breaks have no database column.
     names = [f["fieldname"] for f in layout_fields(doctype)]
