@@ -671,6 +671,33 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
         "vat_on_added_taxes": include_added_taxes,
     }
 
+
+BILL_SUMMARY_FIELDS = (
+    "bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount",
+    "summary_grand_total",
+)
+
+
+@frappe.whitelist()
+def get_bill_summary(doc: str | dict) -> dict | None:
+    """Bill Summary figures for a form that is still being edited, so they follow the items before a save.
+
+    Runs ERPNext's own totals on the unsaved document, which also spreads the invoice discount
+    over the items, then the same summary the save writes. Nothing is stored.
+    """
+    doc = frappe.get_doc(frappe.parse_json(doc))
+    if doc.doctype not in ("Sales Invoice", "Purchase Invoice", "Sales Order"):
+        frappe.throw(_("A Bill Summary is not available for {0}.").format(_(doc.doctype)))
+    frappe.has_permission(doc.doctype, "write", throw=True)
+    try:
+        doc.calculate_taxes_and_totals()
+        set_taxable_amounts(doc, None)
+    except frappe.ValidationError:
+        # a half-filled form cannot be totalled yet; the save shows the reason
+        frappe.clear_messages()
+        return None
+    return {fieldname: doc.get(fieldname) for fieldname in BILL_SUMMARY_FIELDS}
+
 def get_vat_breakup(invoice_doctype, invoice_company_map):
     """
     Return per-invoice VAT amounts from the invoice's taxes table, considering only
