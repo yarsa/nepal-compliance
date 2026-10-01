@@ -26,3 +26,4 @@ nepal_compliance.patches.add_customer_tds_fields
 nepal_compliance.patches.set_default_customer_tds_rate
 nepal_compliance.patches.add_short_payment_write_off_fields
 nepal_compliance.patches.add_invoice_stamp_signature_fields
+nepal_compliance.patches.add_bill_discount_fields
