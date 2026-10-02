@@ -23,7 +23,8 @@ NOT_ADDABLE = BREAK_TYPES + ("HTML", "Fold", "Heading")
 _ITEMS = ("items", None, None, [["items"]])
 # laid out like a Nepal bill: the figures in the order they are printed, the inputs beside them
 _BILL_INPUTS = ["additional_discount_percentage", "discount_amount", "in_words", "disable_rounded_total"]
-_BILL_TOTALS = ["summary_grand_total", "grand_total", "rounded_total"]
+# Rounded Total is left out: the Bill Total is the figure the printed bill carries
+_BILL_TOTALS = ["summary_grand_total", "grand_total"]
 # Subtotal and Discount are the printed bill's: only a taxable item's discount is shown as Discount
 _BILL = (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS])
 
@@ -34,8 +35,18 @@ ESSENTIALS = {
             "Customer and Date",
             None,
             [
-                ["customer", "customer_name", "vat_number", "company", "manual_invoice_no", "reason"],
-                ["posting_date", "due_date", "attach_sales_invoice"],
+                ["customer", "customer_name", "vat_number"],
+                ["company", "manual_invoice_no", "attach_sales_invoice"],
+                ["posting_date", "posting_time", "set_posting_time", "due_date"],
+            ],
+        ),
+        (
+            "return",
+            "Credit or Debit Note",
+            "eval:doc.is_return || doc.is_debit_note",
+            [
+                ["return_against", "reason"],
+                ["update_outstanding_for_self", "update_billed_amount_in_sales_order", "update_billed_amount_in_delivery_note"],
             ],
         ),
         _ITEMS,
@@ -47,11 +58,21 @@ ESSENTIALS = {
             "Supplier and Date",
             None,
             [
-                ["supplier", "supplier_name", "vat_number", "company"],
-                ["posting_date", "due_date", "is_pan_or_abbreviated_bill", "reason"],
+                ["supplier", "supplier_name", "vat_number"],
+                ["company", "is_pan_or_abbreviated_bill"],
+                ["posting_date", "posting_time", "set_posting_time", "due_date"],
             ],
         ),
         ("bill", "Supplier Invoice", None, [["bill_no", "attach_purchase_invoice"], ["bill_date", "apply_tds"]]),
+        (
+            "return",
+            "Debit Note",
+            "eval:doc.is_return",
+            [
+                ["return_against", "reason"],
+                ["update_outstanding_for_self", "update_billed_amount_in_purchase_order", "update_billed_amount_in_purchase_receipt"],
+            ],
+        ),
         _ITEMS,
         _BILL,
     ],
@@ -60,7 +81,7 @@ ESSENTIALS = {
             "party",
             "Customer and Dates",
             None,
-            [["customer", "customer_name", "company"], ["transaction_date", "delivery_date"]],
+            [["customer", "customer_name"], ["company"], ["transaction_date", "delivery_date"]],
         ),
         _ITEMS,
         (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["bill_subtotal", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS]),
@@ -70,7 +91,7 @@ ESSENTIALS = {
             "party",
             "Supplier and Dates",
             None,
-            [["supplier", "supplier_name", "company"], ["transaction_date", "schedule_date", "is_pan_or_abbreviated_bill"]],
+            [["supplier", "supplier_name"], ["company", "is_pan_or_abbreviated_bill"], ["transaction_date", "schedule_date"]],
         ),
         _ITEMS,
         (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "total_taxes_and_charges", "grand_total", "rounded_total"]]),
@@ -114,7 +135,7 @@ ESSENTIALS = {
 }
 
 # read-only figures shown only when the condition holds, by default while they are not 0
-_SHOWN_WHEN_SET = dict.fromkeys(["taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"])
+_SHOWN_WHEN_SET = dict.fromkeys(["taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total"])
 # ERPNext's Grand Total differs from the Bill Total by TDS withheld on a purchase
 _GRAND_TOTAL = {"grand_total": "flt(doc.grand_total) != flt(doc.summary_grand_total)"}
 # folded excise sits on the item rows and inside Subtotal, so only licensed excise gets a line
@@ -135,8 +156,12 @@ LABELS = {
     doctype: {"discount_amount": "Discount Amount", "additional_discount_percentage": "Discount %"}
     for doctype in _BILL_DOCTYPES
 }
+# what an earlier layout set on fields it no longer shows (None: its show_when depends_on). A
+# rebuild moves them back to More Details and undoes these unless a user has changed them since
+_RETIRED = {"total": {"label": "Subtotal"}, "rounded_total": {"depends_on": None}}
+RETIRED = {doctype: _RETIRED for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order")}
 # raised whenever ESSENTIALS changes, so a site built from an older layout is rebuilt at migrate
-LAYOUT_VERSION = 3
+LAYOUT_VERSION = 4
 
 
 def section_fieldname(key, column=0):
@@ -425,7 +450,9 @@ def _apply(doctype, extras, removed=(), upgrade=False):
     if fresh:
         order = build_field_order(natural, ESSENTIALS[doctype], extras)
     elif upgrade:
-        order = rebuild_field_order(saved, natural, ESSENTIALS[doctype], extras, removed)
+        retired = [f for f in RETIRED.get(doctype, {}) if f not in extras]
+        order = rebuild_field_order(saved, natural, ESSENTIALS[doctype], extras, list(removed) + retired)
+        _undo_retired(doctype, retired)
     else:
         order = update_field_order(saved, natural, names, extras, removed)
     rebuilt = fresh or upgrade
@@ -461,6 +488,15 @@ def _remove(doctype):
     names = [f["fieldname"] for f in layout_fields(doctype)]
     frappe.db.delete("Property Setter", {"doc_type": doctype, "field_name": ["in", names]})
     frappe.db.delete("Custom Field", {"dt": doctype, "fieldname": ["in", names]})
+
+
+def _undo_retired(doctype, fieldnames):
+    for fieldname in fieldnames:
+        for prop, value in RETIRED[doctype][fieldname].items():
+            value = value or show_when(_original(doctype, fieldname, prop), fieldname)
+            filters = {"doc_type": doctype, "field_name": fieldname, "property": prop}
+            if frappe.db.get_value("Property Setter", filters, "value") == value:
+                delete_property_setter(doctype, prop, fieldname)
 
 
 def _save_layout_fields(doctype, fields):

@@ -146,6 +146,14 @@ class TestRebuildFieldOrder(unittest.TestCase):
              "taxes", "nc_ess_bill_summary_section", "total", "grand_total"],
         )
 
+    def test_a_retired_field_goes_back_to_more_details(self):
+        saved = build_field_order(self.NATURAL, self.V2)
+        v3 = [self.V2[0], ("bill_summary", "Bill", None, [["grand_total"]])]
+        # without being named as retired it looks like a field a user moved into the tab
+        self.assertIn("total", tab_of(rebuild_field_order(saved, self.NATURAL, v3)))
+        self.assertNotIn("total", tab_of(rebuild_field_order(saved, self.NATURAL, v3, removed=["total"])))
+        self.assertIn("total", tab_of(rebuild_field_order(saved, self.NATURAL, v3, extras=["total"], removed=["total"])))
+
     def test_extra_next_to_a_bill_figure_goes_under_the_section_above(self):
         natural = ["customer", "posting_date", "items", "total", "taxes", "grand_total"]
         sections = [
@@ -195,6 +203,38 @@ def bill_lines(doctype):
     return next(columns[1] for key, _label, _dep, columns in form_layout.ESSENTIALS[doctype] if key == "bill_summary")
 
 
+def section(doctype, key):
+    return next(s for s in form_layout.ESSENTIALS[doctype] if s[0] == key)
+
+
+class TestHeaderSections(unittest.TestCase):
+    def test_party_and_dates_take_three_columns(self):
+        for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order"):
+            with self.subTest(doctype=doctype):
+                self.assertEqual(len(section(doctype, "party")[3]), 3)
+        for doctype in ("Sales Invoice", "Purchase Invoice"):
+            with self.subTest(doctype=doctype):
+                self.assertEqual(section(doctype, "party")[3][2][:3], ["posting_date", "posting_time", "set_posting_time"])
+
+    def test_return_fields_show_only_on_a_credit_or_debit_note(self):
+        for doctype, depends_on in (
+            ("Sales Invoice", "eval:doc.is_return || doc.is_debit_note"),
+            ("Purchase Invoice", "eval:doc.is_return"),
+        ):
+            _key, _label, shown_when, columns = section(doctype, "return")
+            fields = [f for column in columns for f in column]
+            with self.subTest(doctype=doctype):
+                self.assertEqual(shown_when, depends_on)
+                self.assertEqual(fields[:2], ["return_against", "reason"])
+                self.assertNotIn("reason", [f for column in section(doctype, "party")[3] for f in column])
+
+    def test_retired_fields_are_not_in_the_layout(self):
+        for doctype, fields in form_layout.RETIRED.items():
+            spec = {f for _k, _l, _d, columns in form_layout.ESSENTIALS[doctype] for column in columns for f in column}
+            with self.subTest(doctype=doctype):
+                self.assertFalse(set(fields) & spec)
+
+
 class TestBillSummary(unittest.TestCase):
     def test_bill_summary_follows_the_items_table(self):
         for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order"):
@@ -207,7 +247,7 @@ class TestBillSummary(unittest.TestCase):
         self.assertEqual(
             bill_lines("Sales Invoice"),
             ["bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount",
-             "summary_grand_total", "grand_total", "rounded_total"],
+             "summary_grand_total", "grand_total"],
         )
         self.assertEqual(bill_lines("Purchase Invoice"), bill_lines("Sales Invoice"))
         self.assertNotIn("excise_amount", bill_lines("Sales Order"))
