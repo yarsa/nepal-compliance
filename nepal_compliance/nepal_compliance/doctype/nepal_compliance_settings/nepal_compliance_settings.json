@@ -44,7 +44,10 @@
   "party_tax_rules_section",
   "customer_tax_id_rules",
   "party_tax_rules_column",
-  "supplier_tax_id_rules"
+  "supplier_tax_id_rules",
+  "printing_tab",
+  "default_print_format_section",
+  "sales_invoice_print_format"
  ],
  "fields": [
   {
@@ -289,12 +292,29 @@
    "fieldtype": "Table",
    "label": "Supplier Types or Groups",
    "options": "Nepal Compliance Supplier Tax Rule"
+  },
+  {
+   "fieldname": "printing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Printing"
+  },
+  {
+   "fieldname": "default_print_format_section",
+   "fieldtype": "Section Break",
+   "label": "Default Print Format"
+  },
+  {
+   "description": "The print format that opens first when printing a Sales Invoice, and the one attached to emailed invoices. It is the same setting as Customize Form > Sales Invoice > Default Print Format, so a change in either place shows in both. Leave empty to use Frappe's Standard format.",
+   "fieldname": "sales_invoice_print_format",
+   "fieldtype": "Link",
+   "label": "Sales Invoice Print Format",
+   "options": "Print Format"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-26 14:00:00.000000",
+ "modified": "2026-10-04 08:40:00.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
