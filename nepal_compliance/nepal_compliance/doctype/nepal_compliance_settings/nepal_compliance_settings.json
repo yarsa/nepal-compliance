@@ -306,7 +306,7 @@
    "label": "Default Print Format"
   },
   {
-   "description": "The print format that opens first when printing a Sales Invoice, and the one attached to emailed invoices. It is the same setting as Customize Form > Sales Invoice > Default Print Format, so a change in either place shows in both. Leave empty to use Frappe's Standard format.",
+   "description": "The print format that opens first when printing a Sales Invoice, and the one attached to emailed invoices. It is the same setting as Customize Form > Sales Invoice > Default Print Format, so a change in either place shows in both. Leave empty to print with Frappe's Standard format; emailed invoices then attach Sales Invoice Nepal Compliance.",
    "fieldname": "sales_invoice_print_format",
    "fieldtype": "Link",
    "label": "Sales Invoice Print Format",
@@ -328,7 +328,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 08:43:34.000000",
+ "modified": "2026-10-04 09:26:29.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
