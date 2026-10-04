@@ -7,6 +7,10 @@ moved in or out with Customize Form stay where they are, and a field that an ERP
 adds lands in More Details, never in Nepal Essentials.
 """
 
+import frappe
+from frappe.custom.doctype.property_setter.property_setter import delete_property_setter, make_property_setter
+from frappe.utils import cint
+
 ESSENTIALS_TAB = "nc_essentials_tab"
 MORE_DETAILS_TAB = "nc_more_details_tab"
 
@@ -256,3 +260,136 @@ def hide_when_zero(depends_on, fieldname):
         return f"eval:{condition}"
     expression = depends_on[5:].strip() if depends_on.startswith("eval:") else f"doc.{depends_on.strip()}"
     return f"eval:({expression}) && {condition}"
+
+
+def apply_form_layout(settings=None, removed=None):
+    """Build, update or remove the Nepal Essentials tab on every supported doctype (after_migrate).
+
+    ``removed`` maps a doctype to the extra fields just taken off the settings list.
+    """
+    settings = settings or frappe.get_single("Nepal Compliance Settings")
+    enabled = cint(settings.get("use_nepal_essentials_tab"))
+    extras = {}
+    for row in settings.get("essentials_extra_fields") or []:
+        extras.setdefault(row.document_type, []).append(row.fieldname)
+
+    for doctype in ESSENTIALS:
+        if enabled:
+            _apply(doctype, extras.get(doctype, []), (removed or {}).get(doctype, []))
+        elif frappe.db.exists("Custom Field", f"{doctype}-{ESSENTIALS_TAB}"):
+            # only undo a layout this app built; never touch a site's own Customize Form order
+            _remove(doctype)
+        frappe.clear_cache(doctype=doctype)
+
+
+def _apply(doctype, extras, removed=()):
+    ours = layout_fields(doctype)
+    names = {f["fieldname"] for f in ours}
+    standard = frappe.get_all(
+        "DocField",
+        filters={"parent": doctype, "parenttype": "DocType", "parentfield": "fields"},
+        order_by="idx asc",
+        pluck="fieldname",
+    )
+    rows = frappe.get_all("Custom Field", filters={"dt": doctype}, fields=["fieldname", "insert_after"], order_by="idx asc")
+    # breaks of a section a later version of this layout dropped would otherwise land anywhere
+    stale = [row.fieldname for row in rows if row.fieldname.startswith("nc_ess_") and row.fieldname not in names]
+    if stale:
+        frappe.db.delete("Custom Field", {"dt": doctype, "fieldname": ["in", stale]})
+    custom = [(row.fieldname, row.insert_after) for row in rows if row.fieldname not in names and row.fieldname not in stale]
+    natural = natural_order(standard, custom)
+    existing = {row.fieldname for row in rows if row.fieldname in names}
+    saved = _saved_order(doctype)
+    # built from ESSENTIALS the first time, or again when the saved order or a tab is gone
+    fresh = not (saved and {ESSENTIALS_TAB, MORE_DETAILS_TAB} <= set(saved) & existing)
+    if fresh:
+        order = build_field_order(natural, ESSENTIALS[doctype], extras)
+    else:
+        order = update_field_order(saved, natural, names, extras, removed)
+
+    # after the first build only missing breaks are created, so a renamed tab or section keeps its name;
+    # insert_after keeps them in place even before the field_order property setter lands
+    to_save = [f for f in ours if fresh or (f["fieldname"] in order and f["fieldname"] not in existing)]
+    for field in to_save:
+        field["insert_after"] = order[order.index(field["fieldname"]) - 1] if order[0] != field["fieldname"] else None
+    _save_layout_fields(doctype, to_save)
+
+    _set_property(doctype, None, "field_order", frappe.as_json(order, indent=None))
+    # likewise a depends_on or default changed with Customize Form is left as the user set it
+    for fieldname in HIDE_WHEN_ZERO[doctype]:
+        if fieldname in order and (fresh or not _has_property(doctype, fieldname, "depends_on")):
+            _set_property(doctype, fieldname, "depends_on", hide_when_zero(_original(doctype, fieldname, "depends_on"), fieldname))
+    for fieldname, value in DEFAULTS.get(doctype, {}).items():
+        if fieldname in order and (fresh or not _has_property(doctype, fieldname, "default")):
+            _set_property(doctype, fieldname, "default", value)
+
+
+def _remove(doctype):
+    delete_property_setter(doctype, "field_order")
+    for fieldname in HIDE_WHEN_ZERO[doctype]:
+        delete_property_setter(doctype, "depends_on", fieldname)
+    for fieldname in DEFAULTS.get(doctype, {}):
+        delete_property_setter(doctype, "default", fieldname)
+    # deleted directly: Custom Field's on_trash lets only Administrator delete fields it owns,
+    # and a Settings writer turns the tab off. The breaks have no database column.
+    names = [f["fieldname"] for f in layout_fields(doctype)]
+    frappe.db.delete("Property Setter", {"doc_type": doctype, "field_name": ["in", names]})
+    frappe.db.delete("Custom Field", {"dt": doctype, "fieldname": ["in", names]})
+
+
+def _save_layout_fields(doctype, fields):
+    """Create or update the layout's break fields without a permission check or schema sync."""
+    frappe.flags.in_create_custom_fields = True
+    try:
+        for field in fields:
+            name = f"{doctype}-{field['fieldname']}"
+            if frappe.db.exists("Custom Field", name):
+                doc = frappe.get_doc("Custom Field", name)
+                if all((doc.get(key) or None) == (value or None) for key, value in field.items()):
+                    continue
+                doc.update(field)
+            else:
+                doc = frappe.get_doc({"doctype": "Custom Field", "dt": doctype, "is_system_generated": 1, **field})
+            doc.flags.ignore_permissions = True
+            doc.flags.ignore_validate = True
+            doc.save()
+    finally:
+        frappe.flags.in_create_custom_fields = False
+
+
+def _saved_order(doctype):
+    """The doctype's saved field_order, whether this app or Customize Form wrote it last."""
+    value = frappe.db.get_value(
+        "Property Setter", {"doc_type": doctype, "property": "field_order", "doctype_or_field": "DocType"}, "value"
+    )
+    order = frappe.parse_json(value) if value else None
+    return order if isinstance(order, list) else None
+
+
+def _has_property(doctype, fieldname, prop):
+    return bool(frappe.db.exists("Property Setter", {"doc_type": doctype, "field_name": fieldname, "property": prop}))
+
+
+def _original(doctype, fieldname, prop):
+    """A field's own value for ``prop``, ignoring property setters (including ours)."""
+    value = frappe.db.get_value("DocField", {"parent": doctype, "parenttype": "DocType", "fieldname": fieldname}, prop)
+    if value is None:
+        value = frappe.db.get_value("Custom Field", {"dt": doctype, "fieldname": fieldname}, prop)
+    return value
+
+
+def _set_property(doctype, fieldname, prop, value):
+    """Create or update one property setter, skipping the write when it already holds ``value``."""
+    filters = {"doc_type": doctype, "property": prop}
+    filters.update({"field_name": fieldname} if fieldname else {"doctype_or_field": "DocType"})
+    if frappe.db.get_value("Property Setter", filters, "value") == value:
+        return
+    make_property_setter(
+        doctype,
+        fieldname,
+        prop,
+        value,
+        "Code" if prop == "depends_on" else "Data" if prop == "field_order" else "Text",
+        for_doctype=not fieldname,
+        validate_fields_for_doctype=False,
+    )

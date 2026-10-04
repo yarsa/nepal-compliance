@@ -6,9 +6,10 @@ from frappe import _
 from frappe.core.doctype.user_permission.user_permission import get_user_permissions
 from frappe.custom.doctype.property_setter.property_setter import delete_property_setter, make_property_setter
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import cint, flt
 import redis
 
+from nepal_compliance.form_layout import apply_form_layout
 from nepal_compliance.tax_templates import (
     EXCISE_VARIANTS,
     VARIANTS,
@@ -82,6 +83,26 @@ class NepalComplianceSettings(Document):
                     )
                 seen.add(key)
 
+    def _form_layout_changed(self):
+        """Whether the Nepal Essentials tab setting or its extra fields changed in this save."""
+
+        def layout(doc):
+            rows = doc.get("essentials_extra_fields") or []
+            return cint(doc.get("use_nepal_essentials_tab")), [(r.document_type, r.fieldname) for r in rows]
+
+        before = self.get_doc_before_save()
+        return before is None or layout(before) != layout(self)
+
+    def _removed_essentials_fields(self):
+        """Extra Nepal Essentials fields taken off the list in this save, by doctype."""
+        before = self.get_doc_before_save()
+        current = {(r.document_type, r.fieldname) for r in self.get("essentials_extra_fields") or []}
+        removed = {}
+        for row in (before and before.get("essentials_extra_fields")) or []:
+            if (row.document_type, row.fieldname) not in current:
+                removed.setdefault(row.document_type, []).append(row.fieldname)
+        return removed
+
     def on_update(self):
         """Clear cached date settings and sync VAT accounts into company tax templates."""
         cache = frappe.cache()
@@ -95,6 +116,8 @@ class NepalComplianceSettings(Document):
                 frappe.log_error(f"Failed to clear cache key: {key}", "Nepal Compliance")
         self.sync_vat_accounts_to_templates()
         self.sync_sales_invoice_print_format()
+        if self._form_layout_changed():
+            apply_form_layout(self, self._removed_essentials_fields())
 
     def sync_sales_invoice_print_format(self):
         """Make the chosen format Sales Invoice's default print format.

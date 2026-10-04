@@ -51,3 +51,32 @@ class TestNepalComplianceSettings(FrappeTestCase):
 			with self.subTest(rule=customer_rule):
 				with self.assertRaises(frappe.ValidationError):
 					NepalComplianceSettings._validate_party_tax_id_rules(settings)
+
+
+def essentials_row(idx, fieldname, document_type="Sales Invoice"):
+	return frappe._dict(idx=idx, document_type=document_type, fieldname=fieldname)
+
+
+class FakeSettings(frappe._dict):
+	def get_doc_before_save(self):
+		return self.get("_before")
+
+
+class TestNepalEssentialsSettings(FrappeTestCase):
+	def test_layout_change_is_detected(self):
+		before = FakeSettings(use_nepal_essentials_tab=1, essentials_extra_fields=[essentials_row(1, "project")])
+		unchanged = FakeSettings(before, _before=before)
+		ticked_off = FakeSettings(before, use_nepal_essentials_tab=0, _before=before)
+		new_field = FakeSettings(before, essentials_extra_fields=[essentials_row(1, "cost_center")], _before=before)
+		self.assertFalse(NepalComplianceSettings._form_layout_changed(unchanged))
+		self.assertTrue(NepalComplianceSettings._form_layout_changed(ticked_off))
+		self.assertTrue(NepalComplianceSettings._form_layout_changed(new_field))
+		self.assertTrue(NepalComplianceSettings._form_layout_changed(FakeSettings(use_nepal_essentials_tab=1)))
+
+	def test_removed_extra_fields_are_listed_by_form(self):
+		before = FakeSettings(
+			essentials_extra_fields=[essentials_row(1, "project"), essentials_row(2, "cost_center", "Sales Order")]
+		)
+		after = FakeSettings(essentials_extra_fields=[essentials_row(1, "project")], _before=before)
+		self.assertEqual(NepalComplianceSettings._removed_essentials_fields(after), {"Sales Order": ["cost_center"]})
+		self.assertEqual(NepalComplianceSettings._removed_essentials_fields(FakeSettings()), {})
