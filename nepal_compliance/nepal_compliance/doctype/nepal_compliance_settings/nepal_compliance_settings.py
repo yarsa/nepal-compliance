@@ -27,6 +27,9 @@ class NepalComplianceSettings(Document):
     def onload(self):
         # Customize Form can change the default too, so show the one in effect.
         self.sales_invoice_print_format = frappe.get_meta("Sales Invoice").default_print_format or None
+        # The form posts __onload back when it saves, which tells a form save
+        # (compared against the value shown here) from a save in code.
+        self.set_onload("shows_sales_invoice_print_format", 1)
 
     def validate(self):
         """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
@@ -96,11 +99,13 @@ class NepalComplianceSettings(Document):
     def sync_sales_invoice_print_format(self):
         """Make the chosen format Sales Invoice's default print format.
 
-        Writes the same Property Setter as Customize Form. Only a change made
-        here is written, so a save from code that never loaded the form cannot
-        undo a default set in Customize Form.
+        Writes the same Property Setter as Customize Form. A form save is
+        compared against the default it showed, so clearing the field removes a
+        default set in Customize Form. A save from code that never loaded the
+        form only writes a changed value, so it cannot undo that default.
         """
-        if not self.has_value_changed("sales_invoice_print_format"):
+        from_form = (self.get("__onload") or {}).get("shows_sales_invoice_print_format")
+        if not from_form and not self.has_value_changed("sales_invoice_print_format"):
             return
         print_format = self.sales_invoice_print_format or None
         if print_format == (frappe.get_meta("Sales Invoice").default_print_format or None):
