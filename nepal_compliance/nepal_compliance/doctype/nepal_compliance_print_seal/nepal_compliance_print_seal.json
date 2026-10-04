@@ -1,0 +1,140 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-10-04 06:11:23.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "print_format",
+  "show_stamp",
+  "show_signature",
+  "stamp_section",
+  "stamp_original_size",
+  "stamp_height",
+  "stamp_column",
+  "stamp_offset_x",
+  "stamp_offset_y",
+  "signature_section",
+  "signature_original_size",
+  "signature_height",
+  "signature_column",
+  "signature_offset_x",
+  "signature_offset_y"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "print_format",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Print Format",
+   "options": "Print Format",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "1",
+   "fieldname": "show_stamp",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Show Stamp"
+  },
+  {
+   "columns": 2,
+   "default": "1",
+   "fieldname": "show_signature",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Show Signature"
+  },
+  {
+   "fieldname": "stamp_section",
+   "fieldtype": "Section Break",
+   "label": "Stamp"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_stamp",
+   "description": "Print the image at its own size (1px = 0.26mm) and ignore the height.",
+   "fieldname": "stamp_original_size",
+   "fieldtype": "Check",
+   "label": "Use Original Size"
+  },
+  {
+   "default": "22",
+   "depends_on": "eval:doc.show_stamp && !doc.stamp_original_size",
+   "fieldname": "stamp_height",
+   "fieldtype": "Float",
+   "label": "Stamp Height (mm)"
+  },
+  {
+   "fieldname": "stamp_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_stamp",
+   "fieldname": "stamp_offset_x",
+   "fieldtype": "Float",
+   "label": "Stamp Offset Right (mm)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_stamp",
+   "fieldname": "stamp_offset_y",
+   "fieldtype": "Float",
+   "label": "Stamp Offset Down (mm)"
+  },
+  {
+   "fieldname": "signature_section",
+   "fieldtype": "Section Break",
+   "label": "Signature"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_signature",
+   "description": "Print the image at its own size (1px = 0.26mm) and ignore the height.",
+   "fieldname": "signature_original_size",
+   "fieldtype": "Check",
+   "label": "Use Original Size"
+  },
+  {
+   "default": "12",
+   "depends_on": "eval:doc.show_signature && !doc.signature_original_size",
+   "fieldname": "signature_height",
+   "fieldtype": "Float",
+   "label": "Signature Height (mm)"
+  },
+  {
+   "fieldname": "signature_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_signature",
+   "fieldname": "signature_offset_x",
+   "fieldtype": "Float",
+   "label": "Signature Offset Right (mm)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.show_signature",
+   "fieldname": "signature_offset_y",
+   "fieldtype": "Float",
+   "label": "Signature Offset Down (mm)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-04 07:51:59.000000",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "Nepal Compliance Print Seal",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

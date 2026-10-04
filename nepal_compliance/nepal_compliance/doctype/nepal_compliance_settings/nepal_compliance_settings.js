@@ -20,6 +20,10 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 				filters: { company: locals[cdt][cdn].company },
 			}));
 		}
+		// Stamp and signature are only drawn by Sales Invoice formats.
+		frm.set_query("print_format", "print_seals", () => ({
+			filters: { doc_type: "Sales Invoice", disabled: 0 },
+		}));
 		frm.set_query("sales_invoice_print_format", () => ({
 			filters: { doc_type: "Sales Invoice", disabled: 0 },
 		}));
