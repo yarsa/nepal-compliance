@@ -26,6 +26,7 @@
   "max_short_payment_write_off",
   "form_layout_tab",
   "use_nepal_essentials_tab",
+  "essentials_extra_fields",
   "purchase_tab",
   "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
@@ -178,6 +179,14 @@
    "fieldname": "use_nepal_essentials_tab",
    "fieldtype": "Check",
    "label": "Use Nepal Essentials Tab"
+  },
+  {
+   "depends_on": "eval:doc.use_nepal_essentials_tab",
+   "description": "Fields this organization also fills in on every document. Each one is placed in its usual ERPNext position within Nepal Essentials.",
+   "fieldname": "essentials_extra_fields",
+   "fieldtype": "Table",
+   "label": "Extra Fields in Nepal Essentials",
+   "options": "Nepal Essentials Field"
   },
   {
    "fieldname": "purchase_tab",
@@ -342,7 +351,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 13:36:17.000000",
+ "modified": "2026-10-04 13:37:17.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",

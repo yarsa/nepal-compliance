@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import patch
+
+import frappe
 
 from nepal_compliance import form_layout
 from nepal_compliance.form_layout import (
@@ -143,6 +146,72 @@ class TestHideWhenZero(unittest.TestCase):
             form_layout.hide_when_zero("apply_customer_tds", "customer_tds_amount"),
             "eval:(doc.apply_customer_tds) && flt(doc.customer_tds_amount)",
         )
+
+
+class TestPickRequiredFields(unittest.TestCase):
+    def test_keeps_only_fields_a_user_must_enter(self):
+        df = lambda **kw: frappe._dict({"read_only": 0, "default": None, **kw})
+        reasons = {
+            "branch": "Mandatory accounting dimension",
+            "sales_person": "Required in Customize Form",
+            "project": "Required custom field",
+            "currency": "Required in Customize Form",
+            "posted_by": "Required custom field",
+            "gone": "Required custom field",
+        }
+        candidates = {"branch": "Branch", "sales_person": "Sales Person", "project": "Project", "currency": "Currency", "posted_by": "Posted By"}
+        meta = {
+            "branch": df(),
+            "sales_person": df(),
+            "project": df(),
+            "currency": df(default="NPR"),
+            "posted_by": df(read_only=1),
+        }
+        picked = form_layout.pick_required_fields(reasons, candidates, {"project"}, meta)
+        self.assertEqual(
+            picked,
+            [
+                {"fieldname": "branch", "label": "Branch", "reason": "Mandatory accounting dimension"},
+                {"fieldname": "sales_person", "label": "Sales Person", "reason": "Required in Customize Form"},
+            ],
+        )
+
+
+class TestExtraFieldOptions(unittest.TestCase):
+    @patch("nepal_compliance.form_layout.frappe.has_permission", create=True)
+    @patch("nepal_compliance.form_layout._mandatory_dimensions", return_value=["branch"])
+    @patch("nepal_compliance.form_layout._required_fields")
+    @patch("nepal_compliance.form_layout.get_extra_field_candidates")
+    def test_required_fields_come_first_with_their_reason(self, candidates, required, _dimensions, _perm):
+        candidates.return_value = {"project": "Project", "branch": "Branch", "amended_from": "Amended From"}
+        required.return_value = [{"fieldname": "branch", "label": "Branch", "reason": "Mandatory accounting dimension"}]
+        options = form_layout.get_extra_field_options("Sales Invoice")
+        self.assertEqual([o["value"] for o in options], ["branch", "amended_from", "project"])
+        self.assertEqual(options[0]["description"], "Required: Mandatory accounting dimension")
+        self.assertIsNone(options[1]["description"])
+        self.assertEqual(options[2]["label"], "Project (project)")
+
+
+class TestExtraFieldCandidates(unittest.TestCase):
+    @patch("nepal_compliance.form_layout.frappe.get_meta")
+    def test_offers_only_fields_outside_the_tab(self, get_meta):
+        field = lambda fieldname, fieldtype="Data", hidden=0: frappe._dict(
+            fieldname=fieldname, fieldtype=fieldtype, label=fieldname.title(), hidden=hidden
+        )
+        get_meta.return_value = frappe._dict(
+            fields=[
+                field("customer"),
+                field("project", "Link"),
+                field("taxes", "Table"),
+                field("items_section", "Section Break"),
+                field("title", hidden=1),
+                field(ESSENTIALS_TAB, "Tab Break"),
+            ]
+        )
+        self.assertEqual(set(form_layout.get_extra_field_candidates("Sales Invoice")), {"project", "taxes"})
+
+    def test_unsupported_doctype_offers_nothing(self):
+        self.assertEqual(form_layout.get_extra_field_candidates("Journal Entry"), {})
 
 
 if __name__ == "__main__":

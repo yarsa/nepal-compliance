@@ -1,6 +1,8 @@
 # Copyright (c) 2025, Yarsa Labs Pvt. Ltd. and Contributors
 # For license information, please see LICENSE at the root of this repository
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -53,6 +55,9 @@ class TestNepalComplianceSettings(FrappeTestCase):
 					NepalComplianceSettings._validate_party_tax_id_rules(settings)
 
 
+CANDIDATES = "nepal_compliance.nepal_compliance.doctype.nepal_compliance_settings.nepal_compliance_settings.get_extra_field_candidates"
+
+
 def essentials_row(idx, fieldname, document_type="Sales Invoice"):
 	return frappe._dict(idx=idx, document_type=document_type, fieldname=fieldname)
 
@@ -63,6 +68,29 @@ class FakeSettings(frappe._dict):
 
 
 class TestNepalEssentialsSettings(FrappeTestCase):
+	@patch(CANDIDATES, return_value={"project": "Project"})
+	def test_extra_field_gets_its_label(self, _candidates):
+		row = essentials_row(1, "project")
+		NepalComplianceSettings._validate_essentials_extra_fields(frappe._dict(essentials_extra_fields=[row]))
+		self.assertEqual(row.field_label, "Project")
+
+	@patch(CANDIDATES, return_value={"project": "Project"})
+	def test_field_the_form_cannot_show_is_rejected(self, _candidates):
+		settings = frappe._dict(essentials_extra_fields=[essentials_row(1, "customer")])
+		with self.assertRaises(frappe.ValidationError):
+			NepalComplianceSettings._validate_essentials_extra_fields(settings)
+
+	@patch(CANDIDATES, return_value={"project": "Project"})
+	def test_duplicate_extra_field_is_rejected(self, _candidates):
+		settings = frappe._dict(essentials_extra_fields=[essentials_row(1, "project"), essentials_row(2, "project")])
+		with self.assertRaises(frappe.ValidationError):
+			NepalComplianceSettings._validate_essentials_extra_fields(settings)
+
+	@patch(CANDIDATES, return_value={"project": "Project"})
+	def test_same_field_on_two_forms_is_allowed(self, _candidates):
+		rows = [essentials_row(1, "project"), essentials_row(2, "project", "Sales Order")]
+		NepalComplianceSettings._validate_essentials_extra_fields(frappe._dict(essentials_extra_fields=rows))
+
 	def test_layout_change_is_detected(self):
 		before = FakeSettings(use_nepal_essentials_tab=1, essentials_extra_fields=[essentials_row(1, "project")])
 		unchanged = FakeSettings(before, _before=before)
