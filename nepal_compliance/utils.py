@@ -155,6 +155,11 @@ def require_manual_sales_invoice_attachment(doc, method):
         frappe.throw(_("<b>Attach Sales Invoice</b> is mandatory before submitting a Sales Invoice with a manual invoice number. Please attach the hand bill document."))
 
 
+def set_signed_by(doc, method=None):
+    """Record the submitting user, whose signature the invoice print formats show."""
+    doc.signed_by = frappe.session.user
+
+
 @frappe.whitelist()
 def get_sales_invoice_requirements(company: str | None = None) -> dict:
     """Return one company's manual numbering requirements, for the Sales Invoice form."""
