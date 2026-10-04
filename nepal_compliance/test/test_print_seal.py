@@ -7,6 +7,60 @@ import frappe
 from nepal_compliance import print_seal
 
 
+def _invoice(**kwargs):
+    values = {"doctype": "Sales Invoice", "docstatus": 1, "company": "Yarsa", "signed_by": "signer@example.com"}
+    values.update(kwargs)
+    return frappe._dict(values)
+
+
+def _db(**values):
+    return SimpleNamespace(get_value=lambda doctype, name, field: values.get(field))
+
+
+class TestGetPrintSeal(unittest.TestCase):
+    def _seal(self, doc, rows, can_print=True):
+        with patch.object(print_seal.frappe, "has_permission", return_value=can_print), \
+             patch.object(print_seal.frappe, "get_all", return_value=rows), \
+             patch.object(print_seal.frappe, "db", _db(company_stamp="/private/files/s.png",
+                                                      signature_image="/private/files/g.png")), \
+             patch.object(print_seal, "_image_data_uri", side_effect=lambda url: f"data:{url}"):
+            return print_seal.get_print_seal(doc, "VAT Invoice - Standard")
+
+    def test_embeds_stamp_and_signature_with_sizes_and_offsets(self):
+        row = frappe._dict(show_stamp=1, stamp_height=25, stamp_offset_x=3, stamp_offset_y=2,
+                           show_signature=1, signature_height=10, signature_offset_x=-4, signature_offset_y=-1)
+        seal = self._seal(_invoice(), [row])
+
+        self.assertEqual(seal.stamp, "data:/private/files/s.png")
+        self.assertEqual(seal.signature, "data:/private/files/g.png")
+        self.assertEqual(seal.stamp_style, "height: 25.0mm; left: 3.0mm; bottom: -10.0mm;")
+        self.assertEqual(seal.signature_style, "height: 10.0mm; margin-left: -4.0mm; bottom: 2.0mm;")
+
+    def test_original_size_drops_the_height(self):
+        row = frappe._dict(show_stamp=1, stamp_original_size=1, stamp_height=25)
+        seal = self._seal(_invoice(), [row])
+
+        self.assertNotIn("height", seal.stamp_style)
+        self.assertIsNone(seal.signature)
+
+    def test_nothing_without_a_settings_row_for_the_format(self):
+        seal = self._seal(_invoice(), [])
+        self.assertIsNone(seal.stamp)
+        self.assertIsNone(seal.signature)
+
+    def test_nothing_on_drafts_or_when_the_user_cannot_print(self):
+        row = frappe._dict(show_stamp=1, show_signature=1)
+        self.assertIsNone(self._seal(_invoice(docstatus=0), [row]).stamp)
+        self.assertIsNone(self._seal(_invoice(), [row], can_print=False).stamp)
+
+    def test_no_signature_when_the_invoice_has_no_signer(self):
+        # Invoices submitted before Signed By existed keep the blank line.
+        row = frappe._dict(show_stamp=1, show_signature=1)
+        seal = self._seal(_invoice(signed_by=None), [row])
+        self.assertIsNotNone(seal.stamp)
+        self.assertIsNone(seal.signature)
+
+
 class TestSecureFiles(unittest.TestCase):
     def test_company_stamp_is_made_private_and_attached_to_settings(self):
         file = MagicMock(is_private=0, file_url="/files/stamp.png")
