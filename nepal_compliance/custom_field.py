@@ -8,6 +8,8 @@ def create_custom_fields(quiet=False):
     custom_fields = {
         "Company": [
             {"fieldname": "logo_for_printing", "label": "Logo For Printing", "fieldtype": "Attach", "insert_after": "parent_company"},
+            {"fieldname": "company_stamp", "label": "Company Stamp", "fieldtype": "Attach Image", "insert_after": "logo_for_printing",
+            "description": "Printed on submitted invoices when enabled for the print format in Nepal Compliance Settings. Kept as a private file that only System Managers can download. A transparent PNG works best."},
             {"fieldname": "company_vat_number", "label": "Vat/Pan Number", "fieldtype": "Data", "insert_after": "default_holiday_list", "allow_on_submit": 1}
         ],
         "Tax Withholding Category": [
@@ -38,6 +40,8 @@ def create_custom_fields(quiet=False):
         "User": [
             {"fieldname": "use_ad_date", "label": "Use Ad Date", "fieldtype": "Check", "insert_after": "username",
             "description": "<b>Disclaimer:</b> Checking this means you prefer using the default date picker (AD format) as your preferred format."},
+            {"fieldname": "signature_image", "label": "Signature", "fieldtype": "Attach Image", "insert_after": "use_ad_date",
+            "description": "Printed on Sales Invoices you submit, when enabled for the print format in Nepal Compliance Settings. Kept as a private file that only you and System Managers can download. A transparent PNG works best."},
         ],
         "Employee": [
             {"fieldname": "revised_salary", "label": "Revised Salary", "fieldtype": "Currency", "insert_after": "payroll_cost_center", "reqd": 0, "allow_on_submit": 1},
@@ -151,6 +155,8 @@ def create_custom_fields(quiet=False):
         "Sales Invoice": [
             {"fieldname": "manual_invoice_no", "label": "Manual Invoice No", "fieldtype": "Data", "insert_after": "naming_series", "read_only_depends_on": "eval:!doc.__islocal", "no_copy": 1, "description": "Number printed on the hand bill. When set, it becomes the Sales Invoice number instead of the naming series. Requires 'Allow Manual Sales Invoice Number' in Nepal Compliance Settings."},
             {"fieldname": "attach_sales_invoice", "label": "Attach Sales Invoice", "fieldtype": "Attach", "insert_after": "manual_invoice_no", "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "signed_by", "label": "Signed By", "fieldtype": "Link", "options": "User", "insert_after": "attach_sales_invoice", "read_only": 1, "no_copy": 1, "print_hide": 1,
+            "description": "The user who submitted this invoice. Their signature is printed on it."},
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
             {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "customer_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},

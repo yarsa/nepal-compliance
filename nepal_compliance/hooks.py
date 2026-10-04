@@ -187,6 +187,13 @@ doc_events = {
     "Item Group": {
         "validate": "nepal_compliance.utils.ensure_side_specific_item_tax_mappings",
     },
+    "Company": {
+        "validate": "nepal_compliance.print_seal.secure_company_stamp",
+        "on_change": "nepal_compliance.print_seal.detach_company_stamp",
+    },
+    "User": {
+        "validate": "nepal_compliance.print_seal.secure_user_signature",
+    },
     "Purchase Invoice" : {
         "on_trash": "nepal_compliance.utils.prevent_invoice_deletion",
         "before_insert": "nepal_compliance.utils.set_vat_numbers",
@@ -215,7 +222,10 @@ doc_events = {
             "nepal_compliance.utils.apply_side_specific_vat_template",
             "nepal_compliance.utils.apply_vat_exemption_for_nontaxable_items",
         ],
-        "before_submit": "nepal_compliance.utils.require_manual_sales_invoice_attachment",
+        "before_submit": [
+            "nepal_compliance.utils.require_manual_sales_invoice_attachment",
+            "nepal_compliance.utils.set_signed_by",
+        ],
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
         "validate": [
             "nepal_compliance.ird_country.set_invoice_party_country",
