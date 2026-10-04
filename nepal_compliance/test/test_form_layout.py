@@ -6,6 +6,7 @@ from nepal_compliance.form_layout import (
     MORE_DETAILS_TAB,
     build_field_order,
     natural_order,
+    update_field_order,
 )
 
 SECTIONS = [
@@ -13,6 +14,7 @@ SECTIONS = [
     ("items", None, None, [["items"]]),
 ]
 NATURAL = ["naming_series", "customer", "vat_number", "posting_date", "project", "items_section", "items", "taxes"]
+LAYOUT_NAMES = {ESSENTIALS_TAB, "nc_ess_party_section", "nc_ess_party_col1", "nc_ess_items_section", MORE_DETAILS_TAB}
 
 
 class TestNaturalOrder(unittest.TestCase):
@@ -68,6 +70,79 @@ class TestBuildFieldOrder(unittest.TestCase):
                 self.assertEqual(sorted(order), sorted(natural + ours))
                 self.assertEqual(order[0], ESSENTIALS_TAB)
                 self.assertLess(order.index(spec[-1]), order.index(MORE_DETAILS_TAB))
+
+
+def moved(order, fieldname, after):
+    """Return ``order`` with ``fieldname`` moved to just after ``after``, as Customize Form would."""
+    order = [f for f in order if f != fieldname]
+    order.insert(order.index(after) + 1, fieldname)
+    return order
+
+
+def tab_of(order):
+    return order[: order.index(MORE_DETAILS_TAB)]
+
+
+class TestUpdateFieldOrder(unittest.TestCase):
+    def setUp(self):
+        self.saved = build_field_order(NATURAL, SECTIONS)
+
+    def test_nothing_changes_when_nothing_is_new(self):
+        self.assertEqual(update_field_order(self.saved, NATURAL, LAYOUT_NAMES), self.saved)
+
+    def test_field_moved_into_the_tab_stays(self):
+        saved = moved(self.saved, "taxes", "items")
+        self.assertIn("taxes", tab_of(update_field_order(saved, NATURAL, LAYOUT_NAMES)))
+
+    def test_field_moved_out_of_the_tab_stays_out(self):
+        saved = moved(self.saved, "vat_number", "naming_series")
+        self.assertNotIn("vat_number", tab_of(update_field_order(saved, NATURAL, LAYOUT_NAMES)))
+
+    def test_new_field_goes_to_more_details_even_beside_an_essential(self):
+        natural = NATURAL[:2] + ["new_field"] + NATURAL[2:]
+        order = update_field_order(self.saved, natural, LAYOUT_NAMES)
+        self.assertNotIn("new_field", tab_of(order))
+        self.assertEqual(order[order.index("naming_series") + 1], "new_field")
+
+    def test_new_field_follows_its_more_details_neighbour(self):
+        order = update_field_order(self.saved, NATURAL + ["new_field"], LAYOUT_NAMES)
+        self.assertEqual(order[-2:], ["taxes", "new_field"])
+
+    def test_field_removed_from_the_doctype_is_dropped(self):
+        order = update_field_order(self.saved, [f for f in NATURAL if f != "project"], LAYOUT_NAMES)
+        self.assertNotIn("project", order)
+
+    def test_extra_from_the_settings_moves_in(self):
+        order = update_field_order(self.saved, NATURAL, LAYOUT_NAMES, extras=["project"])
+        self.assertEqual(order[order.index("posting_date") + 1], "project")
+
+    def test_extra_taken_off_the_settings_moves_out(self):
+        saved = build_field_order(NATURAL, SECTIONS, ["project"])
+        order = update_field_order(saved, NATURAL, LAYOUT_NAMES, removed=["project"])
+        self.assertNotIn("project", tab_of(order))
+        self.assertEqual(order[order.index("naming_series") + 1], "project")
+
+    def test_running_twice_changes_nothing_more(self):
+        natural = NATURAL + ["new_field"]
+        once = update_field_order(moved(self.saved, "taxes", "items"), natural, LAYOUT_NAMES, extras=["project"])
+        self.assertEqual(update_field_order(once, natural, LAYOUT_NAMES, extras=["project"]), once)
+
+
+class TestHideWhenZero(unittest.TestCase):
+    def test_without_a_condition(self):
+        self.assertEqual(form_layout.hide_when_zero(None, "vat_amount"), "eval:flt(doc.vat_amount)")
+
+    def test_keeps_an_eval_condition(self):
+        self.assertEqual(
+            form_layout.hide_when_zero("eval: !doc.disable_rounded_total", "rounded_total"),
+            "eval:(!doc.disable_rounded_total) && flt(doc.rounded_total)",
+        )
+
+    def test_turns_a_fieldname_condition_into_eval(self):
+        self.assertEqual(
+            form_layout.hide_when_zero("apply_customer_tds", "customer_tds_amount"),
+            "eval:(doc.apply_customer_tds) && flt(doc.customer_tds_amount)",
+        )
 
 
 if __name__ == "__main__":
