@@ -20,6 +20,9 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 				filters: { company: locals[cdt][cdn].company },
 			}));
 		}
+		frm.set_query("sales_invoice_print_format", () => ({
+			filters: { doc_type: "Sales Invoice", disabled: 0 },
+		}));
 	},
 	refresh(frm) {
 		if (!frm.has_perm("write")) {

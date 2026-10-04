@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.core.doctype.user_permission.user_permission import get_user_permissions
+from frappe.custom.doctype.property_setter.property_setter import delete_property_setter, make_property_setter
 from frappe.model.document import Document
 from frappe.utils import flt
 import redis
@@ -23,6 +24,13 @@ from nepal_compliance.utils import (
 
 
 class NepalComplianceSettings(Document):
+    def onload(self):
+        # Customize Form can change the default too, so show the one in effect.
+        self.sales_invoice_print_format = frappe.get_meta("Sales Invoice").default_print_format or None
+        # The form posts __onload back when it saves, which tells a form save
+        # (compared against the value shown here) from a save in code.
+        self.set_onload("shows_sales_invoice_print_format", 1)
+
     def validate(self):
         """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
         self._validate_party_tax_id_rules()
@@ -86,6 +94,29 @@ class NepalComplianceSettings(Document):
             except redis.exceptions.RedisError:
                 frappe.log_error(f"Failed to clear cache key: {key}", "Nepal Compliance")
         self.sync_vat_accounts_to_templates()
+        self.sync_sales_invoice_print_format()
+
+    def sync_sales_invoice_print_format(self):
+        """Make the chosen format Sales Invoice's default print format.
+
+        Writes the same Property Setter as Customize Form. A form save is
+        compared against the default it showed, so clearing the field removes a
+        default set in Customize Form. A save from code that never loaded the
+        form only writes a changed value, so it cannot undo that default.
+        """
+        from_form = (self.get("__onload") or {}).get("shows_sales_invoice_print_format")
+        if not from_form and not self.has_value_changed("sales_invoice_print_format"):
+            return
+        print_format = self.sales_invoice_print_format or None
+        if print_format == (frappe.get_meta("Sales Invoice").default_print_format or None):
+            return
+        if print_format:
+            make_property_setter(
+                "Sales Invoice", None, "default_print_format", print_format, "Data", for_doctype=True
+            )
+        else:
+            delete_property_setter("Sales Invoice", "default_print_format")
+        frappe.clear_cache(doctype="Sales Invoice")
 
     def sync_vat_accounts_to_templates(self):
         """Sync each company's tax templates with the configured accounts.
