@@ -1,12 +1,23 @@
 """Company stamp and user signature for invoice print formats.
 
 Both images are private files that only System Managers (and the uploader, or
-the signing user for their own signature) can download.
+the signing user for their own signature) can download. Print formats never
+link to the files: get_print_seal reads them on the server and embeds them in
+the rendered page as data URIs, so anyone allowed to print the invoice sees the
+seal without being able to fetch the image itself.
 """
 
+import base64
+import mimetypes
+
 import frappe
+from frappe.utils import cint, flt
 
 SETTINGS = "Nepal Compliance Settings"
+SEAL_FIELDS = [
+    "show_stamp", "stamp_original_size", "stamp_height", "stamp_offset_x", "stamp_offset_y",
+    "show_signature", "signature_original_size", "signature_height", "signature_offset_x", "signature_offset_y",
+]
 
 
 def secure_company_stamp(doc, method=None):
@@ -85,3 +96,64 @@ def _make_private(file_url, doc, fieldname, attach_to=None):
     file.save(ignore_permissions=True)
     return file.file_url
 
+
+def get_print_seal(doc, print_format):
+    """Jinja: the stamp and signature a print format should draw for doc.
+
+    Reads the per-format row in Nepal Compliance Settings > Printing. Returns
+    empty values for unsubmitted documents, when no row exists for the format,
+    or when the current user may not print the document.
+    """
+    seal = frappe._dict(stamp=None, stamp_style="", signature=None, signature_style="")
+    if cint(doc.get("docstatus")) != 1 or not frappe.has_permission(doc.doctype, "print", doc=doc):
+        return seal
+
+    rows = frappe.get_all(
+        "Nepal Compliance Print Seal",
+        filters={"parent": SETTINGS, "parenttype": SETTINGS, "print_format": print_format},
+        fields=SEAL_FIELDS,
+        limit=1,
+    )
+    if not rows:
+        return seal
+    row = rows[0]
+
+    if row.show_stamp:
+        seal.stamp = _image_data_uri(frappe.db.get_value("Company", doc.get("company"), "company_stamp"))
+        seal.stamp_style = _image_style(row, "stamp", default_height=22, base_bottom=-8)
+    if row.show_signature and doc.get("signed_by"):
+        seal.signature = _image_data_uri(frappe.db.get_value("User", doc.signed_by, "signature_image"))
+        seal.signature_style = _image_style(row, "signature", default_height=12, base_bottom=1)
+    return seal
+
+
+def _image_style(row, prefix, default_height, base_bottom):
+    """Inline CSS for one image: height (unless original size), offsets in mm."""
+    style = []
+    if not cint(row.get(f"{prefix}_original_size")):
+        style.append(f"height: {flt(row.get(f'{prefix}_height')) or default_height}mm;")
+    offset_x = flt(row.get(f"{prefix}_offset_x"))
+    # The stamp is pinned by its left edge; the signature is centred, so it moves by margin.
+    style.append(f"{'left' if prefix == 'stamp' else 'margin-left'}: {offset_x}mm;")
+    style.append(f"bottom: {base_bottom - flt(row.get(f'{prefix}_offset_y'))}mm;")
+    return " ".join(style)
+
+
+def _image_data_uri(file_url):
+    """Read an image File from disk, whatever the current user's file access."""
+    if not file_url:
+        return None
+    mime_type = mimetypes.guess_type(file_url)[0]
+    if not mime_type or not mime_type.startswith("image/"):
+        return None
+    name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+    if not name:
+        return None
+    try:
+        content = frappe.get_doc("File", name).get_content()
+    except Exception:
+        frappe.log_error(title="Print seal image could not be read")
+        return None
+    if isinstance(content, str):
+        content = content.encode()
+    return f"data:{mime_type};base64,{base64.b64encode(content).decode()}"
