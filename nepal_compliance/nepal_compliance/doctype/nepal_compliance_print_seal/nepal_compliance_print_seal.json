@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "print_format",
+  "company",
   "show_stamp",
   "show_signature",
   "stamp_section",
@@ -24,13 +25,22 @@
  ],
  "fields": [
   {
-   "columns": 4,
+   "columns": 3,
    "fieldname": "print_format",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Print Format",
    "options": "Print Format",
    "reqd": 1
+  },
+  {
+   "columns": 3,
+   "description": "Leave empty to apply to every company.",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
   },
   {
    "columns": 2,
@@ -128,7 +138,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-04 07:51:59.000000",
+ "modified": "2026-10-04 18:33:40.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Print Seal",

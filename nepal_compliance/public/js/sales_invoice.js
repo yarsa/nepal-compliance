@@ -11,10 +11,12 @@ frappe.require([
             }
             sync_nepali_date(frm, "posting_date");
             attach_bs_picker(frm, "posting_date");
+            use_company_print_format(frm);
             await apply_manual_invoice_settings(frm);
         },
         async company(frm) {
             // the switches are per company, so re-read them when it changes
+            use_company_print_format(frm);
             await apply_manual_invoice_settings(frm);
         },
         posting_date(frm) {
@@ -188,4 +190,23 @@ async function apply_manual_invoice_settings(frm) {
     frm.get_field("attach_sales_invoice")
         ?.$wrapper.find(".control-label")
         .toggleClass("reqd", !!cint(requirements.attachment));
+}
+
+// A company can have its own Sales Invoice print format (Nepal Compliance Settings >
+// Printing). Print opens on the doctype's default format, unless the print view still
+// holds one picked for an earlier invoice, so that pick is cleared before printing.
+function use_company_print_format(frm) {
+    const formats = frappe.boot.nepal_compliance?.sales_invoice_print_formats || {};
+    if (frm.meta.nc_default_print_format === undefined) {
+        frm.meta.nc_default_print_format = frm.meta.default_print_format || "";
+    }
+    frm.meta.default_print_format = formats[frm.doc.company] || frm.meta.nc_default_print_format;
+    if (!frm.nc_print_doc) {
+        frm.nc_print_doc = frm.print_doc.bind(frm);
+        frm.print_doc = () => {
+            use_company_print_format(frm);
+            $('[data-page-route="print"] input[data-fieldname="print_format"]').val("");
+            frm.nc_print_doc();
+        };
+    }
 }

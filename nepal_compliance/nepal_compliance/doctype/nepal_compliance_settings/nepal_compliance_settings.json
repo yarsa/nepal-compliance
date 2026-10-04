@@ -52,6 +52,7 @@
   "printing_tab",
   "default_print_format_section",
   "sales_invoice_print_format",
+  "company_print_formats",
   "print_seal_section",
   "print_seals"
  ],
@@ -339,14 +340,21 @@
    "label": "Default Print Format"
   },
   {
-   "description": "The print format that opens first when printing a Sales Invoice, and the one attached to emailed invoices. It is the same setting as Customize Form > Sales Invoice > Default Print Format, so a change in either place shows in both. Leave empty to print with Frappe's Standard format; emailed invoices then attach Sales Invoice Nepal Compliance.",
+   "description": "The print format that opens first when printing a Sales Invoice, and the one attached to emailed invoices, for companies not listed below. It is the same setting as Customize Form > Sales Invoice > Default Print Format, so a change in either place shows in both. Leave empty to print with Frappe's Standard format; emailed invoices then attach Sales Invoice Nepal Compliance.",
    "fieldname": "sales_invoice_print_format",
    "fieldtype": "Link",
    "label": "Sales Invoice Print Format",
    "options": "Print Format"
   },
   {
-   "description": "Choose, per print format, whether submitted invoices print the company stamp and the signature of the user who submitted them. The stamp comes from Company > Company Stamp and the signature from the submitting user's profile (User > Signature). A print format without a row prints neither. Sizes and offsets are in mm; positive offsets move right and down from the signature line.",
+   "description": "A Sales Invoice of a listed company opens and is emailed in that company's format instead. Users see a change after reloading the page.",
+   "fieldname": "company_print_formats",
+   "fieldtype": "Table",
+   "label": "Print Format by Company",
+   "options": "Nepal Compliance Company Print Format"
+  },
+  {
+   "description": "Choose, per print format, whether submitted invoices print the company stamp and the signature of the user who submitted them. The stamp comes from Company > Company Stamp and the signature from the submitting user's profile (User > Signature). A print format without a row prints neither. A row with a Company applies only to that company's invoices, ahead of a row for the same format without one. Sizes and offsets are in mm; positive offsets move right and down from the signature line.",
    "fieldname": "print_seal_section",
    "fieldtype": "Section Break",
    "label": "Invoice Stamp & Signature"
@@ -361,7 +369,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 13:46:33.000000",
+ "modified": "2026-10-04 18:33:40.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",

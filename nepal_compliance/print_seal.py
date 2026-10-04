@@ -15,7 +15,7 @@ from frappe.utils import cint, flt
 
 SETTINGS = "Nepal Compliance Settings"
 SEAL_FIELDS = [
-    "show_stamp", "stamp_original_size", "stamp_height", "stamp_offset_x", "stamp_offset_y",
+    "company", "show_stamp", "stamp_original_size", "stamp_height", "stamp_offset_x", "stamp_offset_y",
     "show_signature", "signature_original_size", "signature_height", "signature_offset_x", "signature_offset_y",
 ]
 
@@ -100,9 +100,10 @@ def _make_private(file_url, doc, fieldname, attach_to=None):
 def get_print_seal(doc, print_format):
     """Jinja: the stamp and signature a print format should draw for doc.
 
-    Reads the per-format row in Nepal Compliance Settings > Printing. Returns
-    empty values for unsubmitted documents, when no row exists for the format,
-    or when the current user may not print the document.
+    Reads the format's row for the document's company in Nepal Compliance
+    Settings > Printing, else its row without a company. Returns empty values
+    for unsubmitted documents, when no row applies, or when the current user may
+    not print the document.
     """
     seal = frappe._dict(stamp=None, stamp_style="", signature=None, signature_style="")
     if cint(doc.get("docstatus")) != 1 or not frappe.has_permission(doc.doctype, "print", doc=doc):
@@ -112,11 +113,10 @@ def get_print_seal(doc, print_format):
         "Nepal Compliance Print Seal",
         filters={"parent": SETTINGS, "parenttype": SETTINGS, "print_format": print_format},
         fields=SEAL_FIELDS,
-        limit=1,
     )
-    if not rows:
+    row = pick_seal_row(rows, doc.get("company"))
+    if not row:
         return seal
-    row = rows[0]
 
     if row.show_stamp:
         seal.stamp = _image_data_uri(frappe.db.get_value("Company", doc.get("company"), "company_stamp"))
@@ -125,6 +125,22 @@ def get_print_seal(doc, print_format):
         seal.signature = _image_data_uri(frappe.db.get_value("User", doc.signed_by, "signature_image"))
         seal.signature_style = _image_style(row, "signature", default_height=12, base_bottom=1)
     return seal
+
+
+def pick_seal_row(rows, company):
+    """The row for ``company``, else the one that applies to every company."""
+    return next((r for r in rows if r.company == company), None) or next((r for r in rows if not r.company), None)
+
+
+def get_sales_invoice_print_format(company):
+    """The Sales Invoice print format set for ``company`` in the settings, if any."""
+    if not company:
+        return None
+    return frappe.db.get_value(
+        "Nepal Compliance Company Print Format",
+        {"parent": SETTINGS, "parenttype": SETTINGS, "company": company},
+        "print_format",
+    )
 
 
 def _image_style(row, prefix, default_height, base_bottom):

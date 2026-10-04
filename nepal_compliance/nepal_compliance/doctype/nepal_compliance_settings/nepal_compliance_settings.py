@@ -36,6 +36,7 @@ class NepalComplianceSettings(Document):
         """Validate each configured VAT account row (child validate is not auto-run by Frappe)."""
         self._validate_party_tax_id_rules()
         self._validate_essentials_extra_fields()
+        self._validate_print_rows()
         seen_companies = set()
         for row in self.get("vat_accounts") or []:
             if row.company:
@@ -83,6 +84,32 @@ class NepalComplianceSettings(Document):
                         )
                     )
                 seen.add(key)
+
+    def _validate_print_rows(self):
+        """One print format per company, and one stamp and signature row per format and company."""
+        seen = set()
+        for row in self.get("company_print_formats") or []:
+            if row.company in seen:
+                frappe.throw(
+                    _("Row {0}: Company {1} already has a print format.").format(row.idx, frappe.bold(row.company)),
+                    title=_("Duplicate Company"),
+                )
+            seen.add(row.company)
+            if frappe.db.get_value("Print Format", row.print_format, "doc_type") != "Sales Invoice":
+                frappe.throw(
+                    _("Row {0}: {1} is not a Sales Invoice print format.").format(row.idx, frappe.bold(row.print_format))
+                )
+        seen = set()
+        for row in self.get("print_seals") or []:
+            key = (row.print_format, row.company or "")
+            if key in seen:
+                frappe.throw(
+                    _("Row {0}: {1} already has stamp and signature settings for {2}.").format(
+                        row.idx, frappe.bold(row.print_format), row.company or _("every company")
+                    ),
+                    title=_("Duplicate Row"),
+                )
+            seen.add(key)
 
     def _validate_essentials_extra_fields(self):
         """Allow each extra Nepal Essentials field once, and only a field that form can show."""

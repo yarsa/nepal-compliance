@@ -18,7 +18,10 @@ def get_boot_info(bootinfo):
         settings = frappe.get_cached_doc("Nepal Compliance Settings")
         bootinfo["nepal_compliance_enabled"] = bool(settings.enable_nepali_date)
         bootinfo["nepal_compliance"] = {
-            "date_format": settings.date_format or "YYYY-MM-DD"
+            "date_format": settings.date_format or "YYYY-MM-DD",
+            "sales_invoice_print_formats": {
+                row.company: row.print_format for row in settings.get("company_print_formats") or []
+            },
         }
     except Exception:
         frappe.log_error(
@@ -27,5 +30,6 @@ def get_boot_info(bootinfo):
         )
         bootinfo["nepal_compliance_enabled"] = False
         bootinfo["nepal_compliance"] = {
-            "date_format": "YYYY-MM-DD"
+            "date_format": "YYYY-MM-DD",
+            "sales_invoice_print_formats": {},
         }
