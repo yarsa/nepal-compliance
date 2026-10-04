@@ -72,6 +72,12 @@ def resolve_bs_snap_anchor(posted, pending, available_for_use_date, frequency, o
     return pending[0].schedule_date, 0
 
 
+def bs_has_pro_rata(available_for_use_date, frequency):
+    """True when available_for_use is not the first day of a BS fiscal period."""
+    day_before = add_days(getdate(available_for_use_date), -1)
+    return not is_bs_fiscal_period_end(day_before, frequency)
+
+
 def life_end_date(available_for_use_date, total_number_of_depreciations, frequency):
     """Available-for-use anniversary after useful life, matching ERPNext's last stub."""
     afu = getdate(available_for_use_date)
@@ -134,6 +140,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             update_asset_finance_book_row=update_asset_finance_book_row,
             value_after_depreciation=value_after_depreciation,
         )
+        self.add_missing_bs_pro_rata_stub(asset_doc, row, date_of_disposal=date_of_disposal)
         self.snap_schedule_dates_to_bs_month_end(asset_doc, date_of_disposal=date_of_disposal)
         self.recalculate_amounts_after_bs_snap(
             asset_doc, row, date_of_disposal=date_of_disposal
@@ -171,6 +178,36 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         )
         if getdate(row.depreciation_start_date) != aligned:
             row.depreciation_start_date = aligned
+
+    def add_missing_bs_pro_rata_stub(self, asset_doc, row, date_of_disposal=None):
+        """Append the end-of-life stub row when ERPNext's pro-rata check missed it.
+
+        ERPNext rounds depreciation_start_date to the AD month end before
+        comparing it with available_for_use, so Ashadh end (e.g. 16 July) is
+        read as 31 July. An asset put to use in roughly the first half of a BS
+        period then looks like it has a full first period, and the final row up
+        to the available-for-use anniversary is never created. The amount is
+        filled in later by recalculate_amounts_after_bs_snap.
+        """
+        if date_of_disposal or not asset_doc or not self._recalculates_bs_amounts(row):
+            return
+
+        rows = self.get("depreciation_schedule") or []
+        if not rows or rows[-1].get("journal_entry"):
+            return
+
+        available = asset_doc.available_for_use_date
+        freq = cint(row.get("frequency_of_depreciation")) or 1
+        total = _finance_book_total_depreciations(self, asset_doc)
+        opening = cint(self.get("opening_number_of_booked_depreciations")) or cint(
+            asset_doc.get("opening_number_of_booked_depreciations")
+        )
+        if not total or len(rows) + opening != total:
+            return
+        if not bs_has_pro_rata(available, freq):
+            return
+
+        self.add_depr_schedule_row(life_end_date(available, total, freq), 0, len(rows))
 
     def snap_schedule_dates_to_bs_month_end(self, asset_doc=None, date_of_disposal=None):
         """Move pending rows onto consecutive BS fiscal period ends.
@@ -256,11 +293,7 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
         depreciation hits salvage, except on early disposal where that row is
         pro-rated to date_of_disposal instead of absorbing remaining life.
         """
-        if not asset_doc or not row:
-            return
-        if row.depreciation_method not in ("Straight Line", "Manual"):
-            return
-        if cint(row.get("daily_prorata_based")) or cint(row.get("shift_based")):
+        if not asset_doc or not self._recalculates_bs_amounts(row):
             return
 
         rows = self.get("depreciation_schedule") or []
@@ -344,6 +377,12 @@ class CustomAssetDepreciationSchedule(AssetDepreciationSchedule):
             schedule_row.depreciation_amount = amount
             accum = flt(accum + amount, precision)
             schedule_row.accumulated_depreciation_amount = accum
+
+    def _recalculates_bs_amounts(self, row):
+        """Only Straight Line / Manual without daily or shift pro-rata are rebuilt."""
+        if not row or row.get("depreciation_method") not in ("Straight Line", "Manual"):
+            return False
+        return not (cint(row.get("daily_prorata_based")) or cint(row.get("shift_based")))
 
     def sync_finance_book_start_to_first_pending(self, row, update_asset_finance_book_row=True):
         """Persist the first pending BS period end as depreciation_start_date."""
