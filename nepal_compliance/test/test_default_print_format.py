@@ -2,6 +2,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import frappe
+
 from nepal_compliance.nepal_compliance.doctype.nepal_compliance_settings import (
     nepal_compliance_settings as settings_module,
 )
@@ -9,8 +11,11 @@ from nepal_compliance.nepal_compliance.doctype.nepal_compliance_settings import 
 Settings = settings_module.NepalComplianceSettings
 
 
-def _settings(value, changed=True):
-    return SimpleNamespace(sales_invoice_print_format=value, has_value_changed=lambda field: changed)
+def _settings(value, changed=True, from_form=False):
+    settings = frappe._dict(sales_invoice_print_format=value, has_value_changed=lambda field: changed)
+    if from_form:
+        settings["__onload"] = frappe._dict(shows_sales_invoice_print_format=1)
+    return settings
 
 
 class TestDefaultPrintFormat(unittest.TestCase):
@@ -51,9 +56,28 @@ class TestDefaultPrintFormat(unittest.TestCase):
         delete.assert_not_called()
 
     def test_onload_shows_the_default_in_effect(self):
-        settings = SimpleNamespace(sales_invoice_print_format="Old Choice")
+        settings = frappe._dict(sales_invoice_print_format="Old Choice")
+        settings.set_onload = lambda key, value: settings.setdefault("__onload", frappe._dict()).update({key: value})
         meta = SimpleNamespace(default_print_format="Set In Customize Form")
         with patch.object(settings_module.frappe, "get_meta", return_value=meta):
             Settings.onload(settings)
 
         self.assertEqual(settings.sales_invoice_print_format, "Set In Customize Form")
+        self.assertTrue(settings["__onload"].shows_sales_invoice_print_format)
+
+    def test_clearing_a_customize_form_default_from_the_form(self):
+        # Stored value is empty and Customize Form set the default, so clearing
+        # the field in the form leaves the stored value unchanged. The form save
+        # must still remove the default it showed.
+        settings = _settings(None, changed=False, from_form=True)
+        make, delete = self._sync(settings, current_default="Set In Customize Form")
+
+        delete.assert_called_once_with("Sales Invoice", "default_print_format")
+        make.assert_not_called()
+
+    def test_untouched_form_save_keeps_the_default(self):
+        settings = _settings("Set In Customize Form", changed=True, from_form=True)
+        make, delete = self._sync(settings, current_default="Set In Customize Form")
+
+        make.assert_not_called()
+        delete.assert_not_called()
