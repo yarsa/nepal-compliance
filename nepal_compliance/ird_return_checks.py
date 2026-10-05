@@ -32,6 +32,7 @@ def _headers(doctype, report_names):
         "non_taxable_amount",
         "vat_amount",
         "summary_grand_total",
+        "rounding_adjustment",
     ]
     report_docs = _get_all_in_batches(
         doctype,
@@ -174,7 +175,9 @@ def _compare_pair(doctype, note, source, items, source_field, item_vat, vat_conf
             "summary_grand_total": expected_taxable + expected_non_taxable + expected_vat,
         }
         for field, value in expected.items():
-            if _different(abs(flt(note.get(field))), value):
+            # a rounded Bill Total sits off the exact sum by the note's own rounding adjustment
+            slack = abs(flt(note.get("rounding_adjustment"))) if field == "summary_grand_total" else 0
+            if abs(abs(flt(note.get(field))) - value) >= MONEY_TOLERANCE + slack:
                 differences.append(
                     _("{0} is not proportional").format(frappe.unscrub(field))
                 )

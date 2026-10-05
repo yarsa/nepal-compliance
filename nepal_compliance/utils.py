@@ -1,7 +1,7 @@
 import json
 import frappe
 from frappe import _
-from frappe.utils import flt, get_link_to_form
+from frappe.utils import cint, flt, get_link_to_form, round_based_on_smallest_currency_fraction
 from frappe.utils.safe_exec import safe_eval
 from frappe.model.naming import make_autoname, validate_name
 from typing import Union
@@ -1070,8 +1070,17 @@ def get_tds_amount(doc, vat_account=None):
     return tds_amount
 
 def set_bill_total(doc, vat_account=None):
-    """Bill Total is grand_total, plus TDS on Purchase Invoice (TDS is deducted from grand_total)."""
-    doc.summary_grand_total = flt(doc.grand_total) + get_tds_amount(doc, vat_account)
+    """Bill Total is grand_total, plus TDS on Purchase Invoice (TDS is deducted from grand_total).
+
+    A document that rounds its total (Disable Rounded Total off) has its bill rounded the same
+    way ERPNext rounds the Rounded Total, so the Bill Total, the print and the amount in words
+    agree. With TDS the bill itself is rounded, not the amount left after withholding.
+    """
+    total = flt(doc.grand_total) + get_tds_amount(doc, vat_account)
+    if flt(doc.get("rounded_total")) and not cint(doc.get("disable_rounded_total")):
+        precision = doc.precision("rounded_total") if callable(getattr(doc, "precision", None)) else 2
+        total = round_based_on_smallest_currency_fraction(total, doc.get("currency"), precision)
+    doc.summary_grand_total = total
 
 def invoice_ird_total(inv):
     """IRD register total: Taxable Summary Bill Total, else rounded/grand total."""
