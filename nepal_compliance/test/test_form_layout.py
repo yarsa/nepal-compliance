@@ -9,6 +9,7 @@ from nepal_compliance.form_layout import (
     MORE_DETAILS_TAB,
     build_field_order,
     natural_order,
+    rebuild_field_order,
     update_field_order,
 )
 
@@ -131,21 +132,106 @@ class TestUpdateFieldOrder(unittest.TestCase):
         self.assertEqual(update_field_order(once, natural, LAYOUT_NAMES, extras=["project"]), once)
 
 
-class TestHideWhenZero(unittest.TestCase):
+class TestRebuildFieldOrder(unittest.TestCase):
+    V1 = [("party", "Customer", None, [["customer"], ["posting_date"]]), ("totals", "Totals", None, [["grand_total"]])]
+    V2 = [("party", "Customer", None, [["customer"], ["posting_date"]]), ("bill_summary", "Bill", None, [["total", "grand_total"]])]
+    NATURAL = ["customer", "posting_date", "project", "total", "grand_total", "taxes"]
+
+    def test_new_layout_is_built_and_user_moves_are_kept(self):
+        saved = moved(build_field_order(self.NATURAL, self.V1), "taxes", "grand_total")
+        order = rebuild_field_order(saved, self.NATURAL, self.V2, extras=["project"])
+        self.assertEqual(
+            tab_of(order),
+            [ESSENTIALS_TAB, "nc_ess_party_section", "customer", "nc_ess_party_col1", "posting_date", "project",
+             "taxes", "nc_ess_bill_summary_section", "total", "grand_total"],
+        )
+
+    def test_extra_next_to_a_bill_figure_goes_under_the_section_above(self):
+        natural = ["customer", "posting_date", "items", "total", "taxes", "grand_total"]
+        sections = [
+            ("party", "Customer", None, [["customer"], ["posting_date"]]),
+            ("items", None, None, [["items"]]),
+            ("bill_summary", "Bill", None, [["discount"], ["total", "grand_total"]]),
+        ]
+        built = build_field_order(natural + ["discount"], sections, ["taxes"])
+        self.assertEqual(built[built.index("items") + 1], "taxes")
+        names = {ESSENTIALS_TAB, MORE_DETAILS_TAB, "nc_ess_party_section", "nc_ess_party_col1", "nc_ess_items_section",
+                 "nc_ess_bill_summary_section", "nc_ess_bill_summary_col1"}
+        saved = build_field_order(natural + ["discount"], sections)
+        updated = update_field_order(saved, natural + ["discount"], names, extras=["taxes"])
+        self.assertEqual(updated[updated.index("items") + 1], "taxes")
+        self.assertEqual(updated[updated.index("nc_ess_bill_summary_col1") + 1 :][:2], ["total", "grand_total"])
+
+    def test_a_field_taken_off_the_settings_is_not_kept(self):
+        saved = build_field_order(self.NATURAL, self.V1, ["project"])
+        self.assertNotIn("project", tab_of(rebuild_field_order(saved, self.NATURAL, self.V2, removed=["project"])))
+
+
+class TestShowWhen(unittest.TestCase):
     def test_without_a_condition(self):
-        self.assertEqual(form_layout.hide_when_zero(None, "vat_amount"), "eval:flt(doc.vat_amount)")
+        self.assertEqual(form_layout.show_when(None, "vat_amount"), "eval:flt(doc.vat_amount)")
 
     def test_keeps_an_eval_condition(self):
         self.assertEqual(
-            form_layout.hide_when_zero("eval: !doc.disable_rounded_total", "rounded_total"),
+            form_layout.show_when("eval: !doc.disable_rounded_total", "rounded_total"),
             "eval:(!doc.disable_rounded_total) && flt(doc.rounded_total)",
         )
 
     def test_turns_a_fieldname_condition_into_eval(self):
         self.assertEqual(
-            form_layout.hide_when_zero("apply_customer_tds", "customer_tds_amount"),
+            form_layout.show_when("apply_customer_tds", "customer_tds_amount"),
             "eval:(doc.apply_customer_tds) && flt(doc.customer_tds_amount)",
         )
+
+    def test_custom_condition_replaces_the_zero_check(self):
+        self.assertEqual(
+            form_layout.show_when(None, "grand_total", "flt(doc.grand_total) != flt(doc.summary_grand_total)"),
+            "eval:flt(doc.grand_total) != flt(doc.summary_grand_total)",
+        )
+
+
+def bill_lines(doctype):
+    """The figures column of a doctype's Bill Summary, in order."""
+    return next(columns[1] for key, _label, _dep, columns in form_layout.ESSENTIALS[doctype] if key == "bill_summary")
+
+
+class TestBillSummary(unittest.TestCase):
+    def test_bill_summary_follows_the_items_table(self):
+        for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order"):
+            keys = [key for key, _label, _dep, _columns in form_layout.ESSENTIALS[doctype]]
+            with self.subTest(doctype=doctype):
+                self.assertEqual(keys[keys.index("items") + 1], "bill_summary")
+                self.assertEqual(keys[-1], "bill_summary")
+
+    def test_invoice_lines_read_like_a_nepal_bill(self):
+        self.assertEqual(
+            bill_lines("Sales Invoice"),
+            ["total", "excise_amount", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount",
+             "summary_grand_total", "grand_total", "rounded_total"],
+        )
+        self.assertEqual(bill_lines("Purchase Invoice"), bill_lines("Sales Invoice"))
+        self.assertNotIn("excise_amount", bill_lines("Sales Order"))
+        self.assertEqual(
+            bill_lines("Purchase Order"), ["total", "discount_amount", "total_taxes_and_charges", "grand_total", "rounded_total"]
+        )
+
+    def test_only_licensed_excise_and_a_differing_grand_total_are_shown(self):
+        conditions = form_layout.SHOW_WHEN["Sales Invoice"]
+        self.assertIn("!(doc.items || []).some((d) => flt(d.excise_amount))", conditions["excise_amount"])
+        self.assertEqual(conditions["grand_total"], "flt(doc.grand_total) != flt(doc.summary_grand_total)")
+        self.assertIsNone(conditions["vat_amount"])
+
+    def test_section_keys_are_unique(self):
+        for doctype, sections in form_layout.ESSENTIALS.items():
+            keys = [key for key, _label, _dep, _columns in sections]
+            with self.subTest(doctype=doctype):
+                self.assertEqual(len(keys), len(set(keys)))
+
+    def test_every_shown_when_field_is_in_its_layout(self):
+        for doctype, fields in form_layout.SHOW_WHEN.items():
+            spec = {f for _k, _l, _d, columns in form_layout.ESSENTIALS[doctype] for column in columns for f in column}
+            with self.subTest(doctype=doctype):
+                self.assertLessEqual(set(fields), spec)
 
 
 class TestPickRequiredFields(unittest.TestCase):

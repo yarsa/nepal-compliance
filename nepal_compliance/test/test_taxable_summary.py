@@ -93,6 +93,34 @@ class TestTaxableSummaryCalculation(unittest.TestCase):
         self.assertFalse(check["has_vat_mismatch"])
         self.assertTrue(check["vat_on_added_taxes"])
 
+    @patch("nepal_compliance.excise._company_excise_config")
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_licensed_excise_row_fills_the_excise_amount(self, configured, excise_config):
+        configured.return_value = {"ACME": {"sales": "VAT Payable"}}
+        for excise_account, separately, expected in (("Excise", True, 4568.07), ("Excise", False, 12.5)):
+            excise_config.return_value = (excise_account, separately)
+            invoice = frappe._dict(
+                doctype="Sales Invoice",
+                company="ACME",
+                grand_total=108400.30,
+                excise_amount=12.5,
+                items=[frappe._dict(item_code="Beer", net_amount=91361.40, is_nontaxable_item=0)],
+                taxes=[
+                    frappe._dict(account_head="Excise", charge_type="On Net Total", tax_amount_after_discount_amount=4568.07),
+                    frappe._dict(
+                        account_head="VAT Payable",
+                        charge_type="On Previous Row Total",
+                        tax_amount_after_discount_amount=12470.83,
+                        item_wise_tax_detail={"Beer": [13, 12470.83]},
+                    ),
+                ],
+            )
+            utils.set_taxable_amounts(invoice, None)
+            with self.subTest(record_separately=separately):
+                # folded excise was set by excise.py and is left as it is
+                self.assertEqual(invoice.excise_amount, expected)
+                self.assertEqual(invoice.taxable_amount, 95929.46)
+
     @patch("nepal_compliance.utils.get_configured_vat_accounts")
     def test_on_net_total_vat_does_not_include_added_taxes(self, configured):
         configured.return_value = {

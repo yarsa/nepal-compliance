@@ -625,6 +625,15 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     doc.taxable_amount = taxable_amount
     doc.non_taxable_amount = non_taxable_amount
     doc.vat_amount = vat_amount
+    if doc.doctype in ("Sales Invoice", "Purchase Invoice"):
+        from nepal_compliance.excise import _company_excise_config
+
+        excise_account, record_separately = _company_excise_config(doc.company)
+        if excise_account and record_separately:
+            # a licensed company keeps excise as a tax row; folded excise is set by excise.py
+            doc.excise_amount = sum(
+                tax_row_amount(tax) for tax in doc.get("taxes") or [] if tax.account_head == excise_account
+            )
     if vat_account:
         # Freeze the item-wise VAT alongside the summary. The IRD registers prefer
         # this stored map over a live recompute, so writing it here keeps the

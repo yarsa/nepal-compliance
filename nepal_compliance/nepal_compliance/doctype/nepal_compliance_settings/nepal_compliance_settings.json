@@ -27,6 +27,7 @@
   "form_layout_tab",
   "use_nepal_essentials_tab",
   "essentials_extra_fields",
+  "essentials_layout_version",
   "purchase_tab",
   "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
@@ -187,6 +188,15 @@
    "fieldtype": "Table",
    "label": "Extra Fields in Nepal Essentials",
    "options": "Nepal Essentials Field"
+  },
+  {
+   "default": "0",
+   "description": "Version of the built-in Nepal Essentials layout this site was last built from.",
+   "fieldname": "essentials_layout_version",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Nepal Essentials Layout Version",
+   "read_only": 1
   },
   {
    "fieldname": "purchase_tab",
@@ -351,7 +361,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 13:37:17.000000",
+ "modified": "2026-10-04 13:46:33.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",
