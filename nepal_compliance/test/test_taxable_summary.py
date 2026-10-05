@@ -273,6 +273,27 @@ class TestBillDiscount(unittest.TestCase):
         self.assertAlmostEqual(bill.bill_subtotal, 1450)
 
 
+
+class TestBillTotalRounding(unittest.TestCase):
+    def test_bill_total_follows_the_rounded_total(self):
+        # 1,628.32 + 13% VAT = 1,840.0016; ERPNext's Rounded Total and the amount in words are 1,840
+        order = frappe._dict(doctype="Sales Order", currency="NPR", grand_total=1840.0016, rounded_total=1840, disable_rounded_total=0)
+        utils.set_bill_total(order)
+        self.assertEqual(order.summary_grand_total, 1840)
+
+    def test_bill_total_stays_exact_with_rounding_disabled(self):
+        # ERPNext leaves Rounded Total at 0 when rounding is disabled
+        order = frappe._dict(doctype="Sales Order", currency="NPR", grand_total=1840.0016, rounded_total=0, disable_rounded_total=1)
+        utils.set_bill_total(order)
+        self.assertEqual(order.summary_grand_total, 1840.0016)
+
+    @patch("nepal_compliance.utils.get_tds_amount", return_value=15.01)
+    def test_purchase_bill_is_rounded_before_withholding(self, _tds):
+        # bill 1,130.38 less 15.01 TDS: ERPNext rounds the 1,115.37 it pays, the bill rounds to 1,130
+        invoice = frappe._dict(doctype="Purchase Invoice", currency="NPR", grand_total=1115.37, rounded_total=1115, disable_rounded_total=0)
+        utils.set_bill_total(invoice)
+        self.assertEqual(invoice.summary_grand_total, 1130)
+
 class TestSelectableTaxableSummary(unittest.TestCase):
     def test_refresh_endpoints_are_post_only(self):
         allowed = frappe.allowed_http_methods_for_whitelisted_func

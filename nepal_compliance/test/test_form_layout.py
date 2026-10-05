@@ -262,7 +262,11 @@ class TestBillSummary(unittest.TestCase):
     def test_only_licensed_excise_and_a_differing_grand_total_are_shown(self):
         conditions = form_layout.SHOW_WHEN["Sales Invoice"]
         self.assertIn("!(doc.items || []).some((d) => flt(d.excise_amount))", conditions["excise_amount"])
-        self.assertEqual(conditions["grand_total"], "flt(doc.grand_total) != flt(doc.summary_grand_total)")
+        # shown for TDS withheld on a purchase, not for the rounding a rounded bill carries
+        self.assertEqual(
+            conditions["grand_total"],
+            "Math.abs(flt(doc.grand_total) + flt(doc.rounding_adjustment) - flt(doc.summary_grand_total)) >= 0.01",
+        )
         self.assertIsNone(conditions["vat_amount"])
 
     def test_section_keys_are_unique(self):

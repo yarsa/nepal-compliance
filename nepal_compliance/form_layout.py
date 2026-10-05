@@ -137,7 +137,8 @@ ESSENTIALS = {
 # read-only figures shown only when the condition holds, by default while they are not 0
 _SHOWN_WHEN_SET = dict.fromkeys(["taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total"])
 # ERPNext's Grand Total differs from the Bill Total by TDS withheld on a purchase
-_GRAND_TOTAL = {"grand_total": "flt(doc.grand_total) != flt(doc.summary_grand_total)"}
+# rounding moves the Bill Total off the Grand Total too, so that difference is taken out first
+_GRAND_TOTAL = {"grand_total": "Math.abs(flt(doc.grand_total) + flt(doc.rounding_adjustment) - flt(doc.summary_grand_total)) >= 0.01"}
 # folded excise sits on the item rows and inside Subtotal, so only licensed excise gets a line
 _EXCISE = {"excise_amount": "flt(doc.excise_amount) && !(doc.items || []).some((d) => flt(d.excise_amount))"}
 SHOW_WHEN = {
@@ -161,7 +162,7 @@ LABELS = {
 _RETIRED = {"total": {"label": "Subtotal"}, "rounded_total": {"depends_on": None}}
 RETIRED = {doctype: _RETIRED for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order")}
 # raised whenever ESSENTIALS changes, so a site built from an older layout is rebuilt at migrate
-LAYOUT_VERSION = 4
+LAYOUT_VERSION = 5
 
 
 def section_fieldname(key, column=0):

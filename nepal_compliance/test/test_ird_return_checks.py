@@ -78,6 +78,22 @@ class TestIrdReturnChecks(unittest.TestCase):
         self.assertTrue(any("Rate differs" in text for text in differences))
         self.assertTrue(any("Summary Grand Total" in text for text in differences))
 
+    def test_rounded_bill_total_is_proportional_within_its_rounding(self):
+        compare = lambda: ird_return_checks._compare_pair(
+            "Sales Invoice",
+            self.note,
+            self.source,
+            {"SINV-1": [self.source_item], "CN-1": [self.note_item]},
+            "sales_invoice_item",
+            {("SINV-1", "SOURCE-ROW"): 130, ("CN-1", "RETURN-ROW"): -52},
+        )
+        # the exact sum is 452; a Bill Total 0.40 off it is allowed when the note rounded by 0.40...
+        self.note.summary_grand_total, self.note.rounding_adjustment = -452.4, 0.4
+        self.assertEqual(compare(), [])
+        # ...but not a gap larger than the note's own rounding
+        self.note.summary_grand_total = -453
+        self.assertTrue(any("Summary Grand Total" in text for text in compare()))
+
     def test_unlinked_item_is_reported(self):
         self.note_item.sales_invoice_item = None
 
