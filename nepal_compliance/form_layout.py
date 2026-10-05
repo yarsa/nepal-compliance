@@ -115,6 +115,21 @@ ESSENTIALS = {
     ],
 }
 
+# read-only amounts hidden while they are 0
+HIDE_WHEN_ZERO = {
+    "Sales Invoice": ["taxable_amount", "excise_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
+    "Purchase Invoice": ["taxable_amount", "excise_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
+    "Sales Order": ["taxable_amount", "non_taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"],
+    "Purchase Order": ["rounded_total"],
+    "Payment Entry": ["customer_tds_amount", "unallocated_amount", "difference_amount"],
+}
+
+# a Nepal bill shows the discount before VAT, so VAT is worked out on the discounted amount
+DEFAULTS = {
+    doctype: {"apply_discount_on": "Net Total"}
+    for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order")
+}
+
 
 def section_fieldname(key, column=0):
     return f"nc_ess_{key}_section" if not column else f"nc_ess_{key}_col{column}"
@@ -191,3 +206,53 @@ def build_field_order(natural, sections, extras=()):
             order += column
     order.append(MORE_DETAILS_TAB)
     return order + [f for f in natural if f not in placed]
+
+
+def update_field_order(saved, natural, layout_names, extras=(), removed=()):
+    """Rebuild from the saved order, keeping whatever a user moved in or out with Customize Form.
+
+    A field missing from ``saved`` is new since it was written, from an ERPNext update or a
+    new custom field, and goes to More Details after the nearest field before it in
+    ``natural`` that is there too. Extra fields from the settings are moved into Nepal
+    Essentials, and ``removed`` ones (taken off the settings list) are moved back out.
+    """
+    current = set(natural) | set(layout_names)
+    order = [f for f in saved if f in current]
+
+    def in_tab(fieldname):
+        return order.index(fieldname) < order.index(MORE_DETAILS_TAB)
+
+    def place(fieldname, inside):
+        earlier = natural[: natural.index(fieldname)] if fieldname in natural else []
+        before = next(
+            (f for f in reversed(earlier) if f in order and in_tab(f) == inside and f not in layout_names), None
+        )
+        if before:
+            order.insert(order.index(before) + 1, fieldname)
+        elif inside:
+            first = order[1] if len(order) > 1 and order[1] in layout_names and order[1].endswith("_section") else ESSENTIALS_TAB
+            order.insert(order.index(first) + 1, fieldname)
+        else:
+            order.insert(order.index(MORE_DETAILS_TAB) + 1, fieldname)
+
+    for fieldname in natural:
+        if fieldname not in order:
+            place(fieldname, inside=False)
+    for fieldname in removed:
+        if fieldname in order and in_tab(fieldname) and fieldname not in extras:
+            order.remove(fieldname)
+            place(fieldname, inside=False)
+    for fieldname in sorted({f for f in extras if f in natural}, key=natural.index):
+        if not in_tab(fieldname):
+            order.remove(fieldname)
+            place(fieldname, inside=True)
+    return order
+
+
+def hide_when_zero(depends_on, fieldname):
+    """Add 'and the amount is not 0' to a field's own depends_on."""
+    condition = f"flt(doc.{fieldname})"
+    if not depends_on:
+        return f"eval:{condition}"
+    expression = depends_on[5:].strip() if depends_on.startswith("eval:") else f"doc.{depends_on.strip()}"
+    return f"eval:({expression}) && {condition}"
