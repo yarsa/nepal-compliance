@@ -3,6 +3,7 @@ from datetime import date, datetime
 import re, threading
 
 from nepal_compliance.nepali_date_utils.nepali_date import (
+    bs_calendar_range,
     format_bs,
     format_bs_datetime,
 )
@@ -45,8 +46,29 @@ def get_bs_date_format():
     except Exception:
         return "YYYY-MM-DD"
 
+def _in_bs_calendar(value):
+    """Whether the bundled BS calendar covers this date, so converting it cannot fail.
+
+    A date past the calendar (e.g. ERPNext's 2099-12-31 Item End of Life) stays in AD.
+    Checking first matters: a failed conversion raises through frappe.throw, which
+    queues its message for the user even when the error is caught.
+    """
+    if isinstance(value, datetime):
+        day = value.date()
+    elif isinstance(value, date):
+        day = value
+    elif isinstance(value, str) and (DATE_REGEX.match(value) or DATETIME_REGEX.match(value)):
+        try:
+            day = date.fromisoformat(value[:10])
+        except ValueError:
+            return False
+    else:
+        return True
+    first, last = bs_calendar_range()
+    return first <= day <= last
+
 def _convert_to_bs_if_date(value):
-    if not value or not is_bs_enabled():
+    if not value or not is_bs_enabled() or not _in_bs_calendar(value):
         return value
 
     fmt = get_bs_date_format()
@@ -104,6 +126,9 @@ def apply_runtime_patches():
 
             if not value:
                 return value
+
+            if not _in_bs_calendar(value):
+                return _orig_formatdate(value, format)
 
             try:
                 if format:

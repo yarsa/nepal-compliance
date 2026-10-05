@@ -207,6 +207,13 @@ def ad_to_bs(ad: Union[str, date, datetime]):
     return {"year": y, "month": m, "day": d}
 
 
+def bs_calendar_range():
+    """First and last AD dates the bundled BS calendar covers."""
+    _ensure_loaded()
+    days = sum(sum(months) for months in _bs_months.values())
+    return BASE_AD, BASE_AD + timedelta(days=days - 1)
+
+
 def bs_to_ad(year: int, month: int, day: int) -> date:
     """Convert a BS year/month/day to an AD date."""
     _ensure_loaded()
@@ -270,4 +277,4 @@ def format_bs_datetime(ad_dt, fmt="YYYY-MM-DD HH:mm:SS"):
         "SS": f"{dt.second:02d}",
     })
 
-__all__ = ["ad_to_bs", "bs_to_ad", "days_in_bs_month", "format_bs", "format_bs_datetime"]
+__all__ = ["ad_to_bs", "bs_calendar_range", "bs_to_ad", "days_in_bs_month", "format_bs", "format_bs_datetime"]
