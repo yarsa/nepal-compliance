@@ -41,6 +41,11 @@ frappe.ui.form.on("Nepal Compliance Settings", {
 		frm.add_custom_button(__("Create Tax Templates"), () => {
 			open_tax_template_prompt(frm);
 		});
+		if (frm.doc.use_nepal_essentials_tab) {
+			frm.add_custom_button(__("Check Required Fields"), () => {
+				open_required_fields_prompt(frm);
+			});
+		}
 	},
 });
 
@@ -978,4 +983,52 @@ function show_tds_base_apply_result(result) {
 			]
 		),
 	});
+}
+
+// Lists the fields this site made required that are not in Nepal Essentials; the ticked
+// ones become Extra Fields rows. Mandatory dimensions start ticked: submit fails without them.
+async function open_required_fields_prompt(frm) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Save the settings before checking required fields."));
+		return;
+	}
+	const { message } = await frappe.call({ method: "nepal_compliance.form_layout.get_required_fields" });
+	const fields = message || [];
+	if (!fields.length) {
+		frappe.msgprint(__("Every field your organization made required is already in Nepal Essentials."));
+		return;
+	}
+	const doctypes = [...new Set(fields.map((field) => field.doctype))];
+	const dialog = new frappe.ui.Dialog({
+		title: __("Required Fields not in Nepal Essentials"),
+		fields: doctypes.map((doctype) => ({
+			fieldname: frappe.scrub(doctype),
+			fieldtype: "MultiCheck",
+			label: __(doctype),
+			columns: 1,
+			options: fields
+				.filter((field) => field.doctype === doctype)
+				.map((field) => ({
+					label: `${field.label} <span class="text-muted">(${field.reason})</span>`,
+					value: field.fieldname,
+					checked: field.dimension ? 1 : 0,
+				})),
+		})),
+		primary_action_label: __("Add to Nepal Essentials"),
+		primary_action(values) {
+			let added = 0;
+			for (const doctype of doctypes) {
+				for (const fieldname of values[frappe.scrub(doctype)] || []) {
+					frm.add_child("essentials_extra_fields", { document_type: doctype, fieldname });
+					added++;
+				}
+			}
+			dialog.hide();
+			if (added) {
+				frm.refresh_field("essentials_extra_fields");
+				frm.save();
+			}
+		},
+	});
+	dialog.show();
 }

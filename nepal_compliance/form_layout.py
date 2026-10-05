@@ -307,6 +307,27 @@ def pick_required_fields(reasons, candidates, in_tab, meta_fields):
     ]
 
 
+@frappe.whitelist()
+def get_required_fields() -> list:
+    """Return the fields this site made required that are not in Nepal Essentials, for the settings form.
+
+    ERPNext's own required fields are left out: it fills them itself (series, currency,
+    price list, party account, exchange rates).
+    """
+    frappe.has_permission("Nepal Compliance Settings", "write", throw=True)
+    settings = frappe.get_single("Nepal Compliance Settings")
+    extras = {}
+    for row in settings.get("essentials_extra_fields") or []:
+        extras.setdefault(row.document_type, []).append(row.fieldname)
+
+    dimensions = _mandatory_dimensions()
+    return [
+        dict(field, doctype=doctype, dimension=field["fieldname"] in dimensions)
+        for doctype in ESSENTIALS
+        for field in _required_fields(doctype, dimensions, _tab_fields(doctype, extras.get(doctype, [])))
+    ]
+
+
 def _mandatory_dimensions():
     """Fieldnames of the enabled accounting dimensions that are mandatory for some company."""
     mandatory = frappe.get_all(
@@ -435,6 +456,14 @@ def _saved_order(doctype):
     )
     order = frappe.parse_json(value) if value else None
     return order if isinstance(order, list) else None
+
+
+def _tab_fields(doctype, extras):
+    """The fields in a doctype's Nepal Essentials tab now, or the ones it will get once built."""
+    saved = _saved_order(doctype)
+    if saved and ESSENTIALS_TAB in saved and MORE_DETAILS_TAB in saved:
+        return set(saved[saved.index(ESSENTIALS_TAB) : saved.index(MORE_DETAILS_TAB)])
+    return {f for _key, _label, _depends_on, columns in ESSENTIALS[doctype] for column in columns for f in column} | set(extras)
 
 
 def _has_property(doctype, fieldname, prop):
