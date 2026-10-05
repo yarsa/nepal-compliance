@@ -272,7 +272,7 @@ function open_date_prompt() {
 				fieldtype: "HTML",
 				options: `<p class="text-muted">
 					${__(
-						"Only submitted Sales and Purchase Invoices in this range will be scanned. VAT calculation mismatches are warnings; VAT recorded in invoice tax rows is retained."
+						"Only submitted Sales Invoices, Purchase Invoices and Sales Orders in this range will be scanned (Sales Orders by their order date). Each change is tagged with its cause. VAT calculation mismatches are warnings; VAT recorded in tax rows is retained."
 					)}
 				</p>`,
 			},
@@ -451,7 +451,7 @@ function show_preview_dialog(preview, values) {
 			<li>${__("Posting date range")}: <b>${frappe.utils.escape_html(preview.from_date)}</b> – <b>${frappe.utils.escape_html(preview.to_date)}</b></li>
 			<li>${__("Consider Is Non-Taxable Item")}: <b>${preview.consider_is_non_taxable_item ? __("Yes") : __("No")}</b></li>
 			<li>${__("Scanned")}: <b>${preview.scanned}</b></li>
-			<li>${__("Would change")}: <b>${preview.changed}</b> (${__("Sales")}: ${preview.sales_changed}, ${__("Purchase")}: ${preview.purchase_changed})</li>
+			<li>${__("Would change")}: <b>${preview.changed}</b> (${__("Sales")}: ${preview.sales_changed}, ${__("Purchase")}: ${preview.purchase_changed}, ${__("Sales Order")}: ${preview.sales_order_changed || 0})</li>
 			<li>${__("Calculation warnings")}: <b>${preview.calculation_warnings || 0}</b></li>
 			<li>${__("Unchanged")}: <b>${preview.unchanged}</b></li>
 			<li>${__("Skipped (no VAT account configured)")}: <b>${preview.skipped}</b></li>
@@ -468,6 +468,7 @@ function show_preview_dialog(preview, values) {
 					<option value="Sales Return">${__("Sales Return")}</option>
 					<option value="Purchase Invoice">${__("Purchase Invoice")}</option>
 					<option value="Purchase Return">${__("Purchase Return")}</option>
+					<option value="Sales Order">${__("Sales Order")}</option>
 				</select>
 				<button type="button" class="btn btn-xs btn-default select-type">${__("Select Type")}</button>
 				<button type="button" class="btn btn-xs btn-default unselect-type">${__("Unselect Type")}</button>
@@ -485,13 +486,16 @@ function show_preview_dialog(preview, values) {
 						<tr>
 							<th style="width: 32px;"></th>
 							<th>${__("Type")}</th>
-							<th>${__("Invoice")}</th>
-							<th>${__("Posting Date")}</th>
+							<th>${__("Document")}</th>
+							<th>${__("Date")}</th>
 							<th>${__("Company")}</th>
 							<th>${__("Taxable")}</th>
 							<th>${__("Non-Taxable")}</th>
 							<th>${__("VAT")}</th>
 							<th>${__("Bill Total")}</th>
+							<th>${__("Subtotal")}</th>
+							<th>${__("Discount")}</th>
+							<th>${__("Tags")}</th>
 							<th>${__("Calculation Check")}</th>
 						</tr>
 					</thead>
@@ -564,6 +568,9 @@ function show_preview_dialog(preview, values) {
 			<td class="text-right">${fmt(row.old_non_taxable_amount)} → ${fmt(row.new_non_taxable_amount)}</td>
 			<td class="text-right">${fmt(row.old_vat_amount)} → ${fmt(row.new_vat_amount)}</td>
 			<td class="text-right">${fmt(row.old_summary_grand_total)} → ${fmt(row.new_summary_grand_total)}</td>
+			<td class="text-right">${fmt(row.old_bill_subtotal)} → ${fmt(row.new_bill_subtotal)}</td>
+			<td class="text-right">${fmt(row.old_taxable_discount)} → ${fmt(row.new_taxable_discount)}</td>
+			<td>${(row.tags || []).map((tag) => `<span class="indicator-pill gray no-indicator-dot">${frappe.utils.escape_html(__(tag))}</span>`).join(" ")}</td>
 			<td>${calculation}${note}</td>`;
 	};
 

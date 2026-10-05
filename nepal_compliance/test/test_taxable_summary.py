@@ -347,6 +347,7 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertEqual(data[1][1], "YTPI-1")
         self.assertEqual(data[1][13], "Includes added taxes")
         self.assertEqual(data[1][17], "OK")
+        self.assertEqual(data[0][-1], "Tags")
 
     @patch("nepal_compliance.taxable_summary.frappe.get_doc")
     @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
@@ -462,6 +463,84 @@ class TestSelectableTaxableSummary(unittest.TestCase):
         self.assertTrue(
             taxable_summary._figures_changed(old, new, disable_rounded_total=0)
         )
+
+VAT_ACCOUNTS = {"ACME": {"sales": "VAT Payable"}}
+STORED = frappe._dict(taxable_amount=1000, non_taxable_amount=0, vat_amount=130, summary_grand_total=1130, bill_subtotal=1000, taxable_discount=0)
+
+
+@patch.object(taxable_summary, "get_configured_vat_accounts", return_value=VAT_ACCOUNTS)
+class TestClassify(unittest.TestCase):
+    def tags(self, stored=None, check=None, **recomputed):
+        row = frappe._dict(STORED, **(stored or {}))
+        doc = frappe._dict(STORED, doctype="Sales Invoice", company="ACME", items=[], taxes=[], total_taxes_and_charges=130)
+        doc.update(recomputed)
+        return taxable_summary._classify(row, doc, check)
+
+    def test_each_cause_gets_its_tag(self, _vat):
+        inclusive = [frappe._dict(account_head="VAT Payable", included_in_print_rate=1)]
+        cases = {
+            "VAT Accounting Error": self.tags(check={"has_vat_mismatch": True}),
+            "Bill Summary Missing": self.tags(stored={"taxable_amount": 0, "vat_amount": None, "bill_subtotal": 0}),
+            "Negative Discount": self.tags(stored={"taxable_discount": -141.59, "bill_subtotal": 858.41}),
+            "Price Gap as Discount": self.tags(
+                stored={"taxable_discount": 681.42}, ignore_pricing_rule=1, items=[frappe._dict(discount_amount=340.71)]
+            ),
+            "Discount VAT Removed Twice": self.tags(stored={"taxable_discount": 78.32}, taxes=inclusive, discount_amount=100, taxable_discount=88.50),
+            "Taxable Split Changed": self.tags(taxable_amount=900, non_taxable_amount=100),
+            "Bill Summary Corrected": self.tags(summary_grand_total=1140),
+        }
+        for tag, tags in cases.items():
+            with self.subTest(tag=tag):
+                self.assertEqual(tags, [tag])
+
+    def test_a_document_can_get_several_tags_and_unchanged_gets_none(self, _vat):
+        self.assertEqual(
+            self.tags(stored={"taxable_discount": -141.59}, check={"has_vat_mismatch": True}, taxable_amount=900, non_taxable_amount=100),
+            ["VAT Accounting Error", "Negative Discount", "Taxable Split Changed"],
+        )
+        self.assertEqual(self.tags(), [])
+
+
+@patch("nepal_compliance.taxable_summary.frappe.db.commit")
+@patch("nepal_compliance.taxable_summary.frappe.has_permission", return_value=True)
+@patch.object(taxable_summary, "get_configured_vat_accounts", return_value=VAT_ACCOUNTS)
+@patch("nepal_compliance.utils.get_configured_vat_accounts", return_value=VAT_ACCOUNTS)
+class TestSalesOrderRecompute(unittest.TestCase):
+    @patch("nepal_compliance.taxable_summary.frappe.get_all", return_value=[])
+    def test_sales_orders_are_read_by_order_date(self, get_all, *_mocks):
+        list(taxable_summary._iter_invoice_rows("2023-11-01", "2026-09-30"))
+        order = next(c.kwargs for c in get_all.call_args_list if c.args[0] == "Sales Order")
+        self.assertIn("transaction_date", order["filters"])
+        self.assertIn("transaction_date as posting_date", order["fields"])
+        self.assertNotIn("is_return", order["fields"])
+
+    @patch("nepal_compliance.taxable_summary.frappe.db.set_value")
+    @patch("nepal_compliance.taxable_summary.frappe.get_doc")
+    @patch("nepal_compliance.taxable_summary._iter_invoice_rows")
+    def test_an_order_without_a_summary_is_previewed_and_applied(self, iter_rows, get_doc, set_value, *_mocks):
+        # stored before the summary fields existed: taxes, but nothing in the summary
+        row = frappe._dict(name="SO-1", company="ACME", posting_date="2025-01-01", taxable_amount=0, vat_amount=0)
+        order = frappe._dict(
+            doctype="Sales Order", company="ACME", total_taxes_and_charges=130, grand_total=1130, add_tag=Mock(), add_comment=Mock(),
+            items=[frappe._dict(item_code="A", qty=1, net_amount=1000)],
+            taxes=[frappe._dict(account_head="VAT Payable", rate=13, tax_amount_after_discount_amount=130, item_wise_tax_detail={"A": [13, 130]})],
+        )
+        get_doc.return_value = order
+        iter_rows.side_effect = lambda *_args: iter([("Sales Order", row)])
+
+        preview = taxable_summary._scan_changes("2025-01-01", "2025-01-31")
+        change = preview["changes"][0]
+        self.assertEqual(preview["sales_order_changed"], 1)
+        self.assertEqual((change["document_type"], change["tags"]), ("Sales Order", ["Bill Summary Missing"]))
+        self.assertEqual((change["old_taxable_amount"], change["new_taxable_amount"], change["new_bill_subtotal"]), (0, 1000, 1000))
+
+        result = taxable_summary._run_apply("2025-01-01", "2025-01-31", [{"doctype": "Sales Order", "name": "SO-1"}])
+        self.assertEqual(result["updated"], 1)
+        written = set_value.call_args.args[2]
+        self.assertEqual((written["taxable_amount"], written["bill_subtotal"], written["taxable_discount"]), (1000, 1000, 0))
+        order.add_tag.assert_called_once_with("Bill Summary Missing")
+        self.assertIn("Tags: Bill Summary Missing", order.add_comment.call_args.args[1])
+
 
 class TestLegacyIrdReportCalculation(unittest.TestCase):
     @patch("nepal_compliance.utils.frappe.get_cached_doc")
