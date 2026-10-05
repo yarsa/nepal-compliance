@@ -81,3 +81,32 @@ class TestDefaultPrintFormat(unittest.TestCase):
 
         make.assert_not_called()
         delete.assert_not_called()
+
+
+class TestPrintRows(unittest.TestCase):
+    def _validate(self, company_rows=(), seal_rows=(), doc_type="Sales Invoice"):
+        settings = frappe._dict(company_print_formats=list(company_rows), print_seals=list(seal_rows))
+        db = SimpleNamespace(get_value=lambda *args, **kwargs: doc_type)
+        with patch.object(settings_module.frappe, "db", db), \
+             patch.object(settings_module.frappe, "throw", side_effect=ValueError):
+            Settings._validate_print_rows(settings)
+
+    def test_one_print_format_per_company(self):
+        rows = [frappe._dict(idx=1, company="Yarsa", print_format="A"), frappe._dict(idx=2, company="Yarsa", print_format="B")]
+        with self.assertRaises(ValueError):
+            self._validate(company_rows=rows)
+
+    def test_only_sales_invoice_print_formats(self):
+        with self.assertRaises(ValueError):
+            self._validate(company_rows=[frappe._dict(idx=1, company="Yarsa", print_format="PO Format")], doc_type="Purchase Order")
+
+    def test_one_seal_row_per_format_and_company(self):
+        rows = [frappe._dict(idx=1, print_format="A", company=None), frappe._dict(idx=2, print_format="A", company="")]
+        with self.assertRaises(ValueError):
+            self._validate(seal_rows=rows)
+
+    def test_same_format_for_two_companies_is_allowed(self):
+        self._validate(
+            company_rows=[frappe._dict(idx=1, company="Yarsa", print_format="A"), frappe._dict(idx=2, company="Other", print_format="A")],
+            seal_rows=[frappe._dict(idx=1, print_format="A", company=None), frappe._dict(idx=2, print_format="A", company="Yarsa")],
+        )

@@ -61,6 +61,29 @@ class TestGetPrintSeal(unittest.TestCase):
         self.assertIsNone(seal.signature)
 
 
+class TestCompanyRows(unittest.TestCase):
+    def test_company_row_wins_over_the_row_for_every_company(self):
+        shared = frappe._dict(company=None, stamp_height=20)
+        own = frappe._dict(company="Yarsa", stamp_height=30)
+        self.assertIs(print_seal.pick_seal_row([shared, own], "Yarsa"), own)
+        self.assertIs(print_seal.pick_seal_row([shared, own], "Other"), shared)
+
+    def test_another_company_row_never_applies(self):
+        self.assertIsNone(print_seal.pick_seal_row([frappe._dict(company="Yarsa")], "Other"))
+
+    def test_invoice_uses_its_company_stamp_size(self):
+        rows = [frappe._dict(company=None, show_stamp=1, stamp_height=20), frappe._dict(company="Yarsa", show_stamp=1, stamp_height=30)]
+        with patch.object(print_seal.frappe, "has_permission", return_value=True), \
+             patch.object(print_seal.frappe, "get_all", return_value=rows), \
+             patch.object(print_seal.frappe, "db", _db(company_stamp="/private/files/s.png")), \
+             patch.object(print_seal, "_image_data_uri", side_effect=lambda url: f"data:{url}"):
+            seal = print_seal.get_print_seal(_invoice(), "VAT Invoice - Standard")
+        self.assertTrue(seal.stamp_style.startswith("height: 30.0mm;"))
+
+    def test_no_company_means_no_company_print_format(self):
+        self.assertIsNone(print_seal.get_sales_invoice_print_format(None))
+
+
 class TestSecureFiles(unittest.TestCase):
     def test_company_stamp_is_made_private_and_attached_to_settings(self):
         file = MagicMock(is_private=0, file_url="/files/stamp.png")

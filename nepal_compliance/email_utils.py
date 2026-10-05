@@ -2,7 +2,9 @@ import frappe
 from frappe import _
 from typing import Optional
 
-@frappe.whitelist()
+from nepal_compliance.print_seal import get_sales_invoice_print_format
+
+@frappe.whitelist(methods=["POST"])
 def send_invoice_email(docname: str, doctype: str, auto_send: bool = False) -> None:
     auto_send = frappe.utils.cint(auto_send)
     doc = frappe.get_doc(doctype, docname)
@@ -40,7 +42,7 @@ def send_invoice_email(docname: str, doctype: str, auto_send: bool = False) -> N
             """
         elif doctype == "Sales Invoice":
             recipient_email = frappe.db.get_value("Customer", doc.customer, "customer_email_address")
-            print_format = frappe.db.get_value("Property Setter", 
+            print_format = get_sales_invoice_print_format(doc.company) or frappe.db.get_value("Property Setter", 
                                                {"property": "default_print_format", "doc_type": doctype}, 
                                                "value") or "Sales Invoice Nepal Compliance"
             subject = f"Sales Invoice {doc.name} Approved - {doc.company}"
