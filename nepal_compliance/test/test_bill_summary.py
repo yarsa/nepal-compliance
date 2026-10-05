@@ -52,6 +52,35 @@ class TestLiveBillSummary(unittest.TestCase):
         self.assertIsNone(utils.get_bill_summary({"doctype": "Sales Invoice"}))
         clear_messages.assert_called_once_with()
 
+    @patch("nepal_compliance.excise._company_excise_config", return_value=(None, False))
+    @patch("nepal_compliance.utils.get_configured_vat_accounts", return_value={"ACME": {"sales": "VAT Payable"}})
+    @patch("nepal_compliance.utils.frappe.get_doc")
+    def test_live_summary_shows_no_discount_for_a_rate_above_the_price_list(self, get_doc, _vat, _excise, _perm):
+        # the real summary runs here: ERPNext's discount_amount is -141.59 for a rate above
+        # the price list, which used to show as Subtotal 2,017.70 and Discount -141.59
+        doc = unsaved_invoice()
+        doc.update(
+            company="ACME",
+            ignore_pricing_rule=1,
+            items=[frappe._dict(item_code="A", qty=1, price_list_rate=2017.70, rate=2159.29, discount_amount=-141.59, net_amount=2159.29)],
+            taxes=[
+                frappe._dict(
+                    account_head="VAT Payable",
+                    rate=13,
+                    tax_amount_after_discount_amount=280.71,
+                    item_wise_tax_detail={"A": [13, 280.71]},
+                )
+            ],
+            grand_total=2440,
+        )
+        get_doc.return_value = doc
+
+        result = utils.get_bill_summary({"doctype": "Sales Invoice"})
+
+        self.assertAlmostEqual(result["taxable_discount"], 0)
+        self.assertAlmostEqual(result["bill_subtotal"], 2159.29)
+        self.assertAlmostEqual(result["bill_subtotal"] - result["taxable_discount"], result["taxable_amount"] + result["non_taxable_amount"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -620,11 +620,15 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
             non_taxable_amount += amt
             continue
         # as printed on the bill: a non-taxable item keeps its discount inside its own amount,
-        # a taxable one shows its item and invoice discount on the Discount line, before VAT
-        item_discount = flt(item.get("discount_amount")) * flt(item.get("qty")) + flt(
-            item.get("distributed_discount_amount")
-        )
-        taxable_discount += item_discount / vat_divisor
+        # a taxable one shows its item and invoice discount on the Discount line, before VAT.
+        # The invoice-level discount comes off the net amount, which ERPNext keeps excluding VAT.
+        taxable_discount += flt(item.get("distributed_discount_amount"))
+        # An item-row discount is in rate terms, which include VAT on a tax-inclusive template.
+        # ERPNext writes discount_amount = price_list_rate - rate on every save, so with Ignore
+        # Pricing Rule a typed rate shows as a price gap, not a discount, and a rate above the
+        # price list is never a negative discount.
+        if not doc.get("ignore_pricing_rule"):
+            taxable_discount += max(flt(item.get("discount_amount")), 0) * flt(item.get("qty")) / vat_divisor
         if include_added_taxes:
             # VAT was charged on net + prior rows (duty/excise). Use VAT ÷ rate
             # so expected VAT is 13% of that same base.

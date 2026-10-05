@@ -197,6 +197,82 @@ class TestTaxableSummaryCalculation(unittest.TestCase):
         self.assertFalse(utils.vat_charged_on_added_taxes(invoice))
 
 
+
+def _bill(items, inclusive=False, ignore_pricing_rule=0, discount_amount=0):
+    """A one-tax-row Sales Invoice; VAT is 13% of the taxable items' net amount."""
+    vat = round(sum(i.net_amount for i in items if not i.get("is_nontaxable_item")) * 0.13, 2)
+    return frappe._dict(
+        doctype="Sales Invoice",
+        company="ACME",
+        ignore_pricing_rule=ignore_pricing_rule,
+        discount_amount=discount_amount,
+        grand_total=sum(i.net_amount for i in items) + vat,
+        items=items,
+        taxes=[
+            frappe._dict(
+                account_head="VAT Payable",
+                rate=13,
+                included_in_print_rate=int(inclusive),
+                tax_amount_after_discount_amount=vat,
+                item_wise_tax_detail={i.item_code: [13, round(i.net_amount * 0.13, 2)] for i in items if not i.get("is_nontaxable_item")},
+            )
+        ],
+    )
+
+
+@patch("nepal_compliance.excise._company_excise_config", return_value=(None, False))
+@patch("nepal_compliance.utils.get_configured_vat_accounts", return_value={"ACME": {"sales": "VAT Payable"}})
+class TestBillDiscount(unittest.TestCase):
+    def summarise(self, bill):
+        utils.set_taxable_amounts(bill, None)
+        # the printed bill always reads Subtotal - Discount = Taxable + Non-Taxable
+        self.assertAlmostEqual(bill.bill_subtotal - bill.taxable_discount, bill.taxable_amount + bill.non_taxable_amount)
+        return bill
+
+    def test_rate_above_the_price_list_is_not_a_negative_discount(self, *_mocks):
+        # ERPNext stores discount_amount = price_list_rate - rate = -141.59 here
+        for ignore_pricing_rule in (1, 0):
+            with self.subTest(ignore_pricing_rule=ignore_pricing_rule):
+                item = frappe._dict(item_code="A", qty=1, price_list_rate=2017.70, rate=2159.29, discount_amount=-141.59, net_amount=2159.29)
+                bill = self.summarise(_bill([item], ignore_pricing_rule=ignore_pricing_rule))
+                self.assertAlmostEqual(bill.taxable_discount, 0)
+                self.assertAlmostEqual(bill.bill_subtotal, 2159.29)
+
+    def test_typed_rate_below_the_price_list_is_not_a_discount(self, *_mocks):
+        item = frappe._dict(item_code="A", qty=2, price_list_rate=2500, rate=2159.29, discount_amount=340.71, net_amount=4318.58)
+        bill = self.summarise(_bill([item], ignore_pricing_rule=1))
+        self.assertAlmostEqual(bill.taxable_discount, 0)
+        self.assertAlmostEqual(bill.bill_subtotal, 4318.58)
+
+    def test_real_item_discount_is_counted_and_vat_removed_only_when_inclusive(self, *_mocks):
+        # 100 off each of 2 units, with Ignore Pricing Rule off
+        exclusive = self.summarise(_bill([frappe._dict(item_code="A", qty=2, discount_amount=100, net_amount=1800)]))
+        self.assertAlmostEqual(exclusive.taxable_discount, 200)
+        self.assertAlmostEqual(exclusive.bill_subtotal, 2000)
+        inclusive = self.summarise(
+            _bill([frappe._dict(item_code="A", qty=2, discount_amount=113, net_amount=1800)], inclusive=True)
+        )
+        self.assertAlmostEqual(inclusive.taxable_discount, 200)
+        self.assertAlmostEqual(inclusive.bill_subtotal, 2000)
+
+    def test_additional_discount_on_an_inclusive_template_is_not_divided_again(self, *_mocks):
+        # 2,480 including VAT less an Additional Discount of 100: ERPNext spreads 88.50 off the
+        # VAT-exclusive net amount, so the bill reads 2,194.69 less 88.50 (not 2,184.51 less 78.31)
+        item = frappe._dict(item_code="A", qty=1, rate=2194.69, discount_amount=0, distributed_discount_amount=88.50, net_amount=2106.19)
+        bill = self.summarise(_bill([item], inclusive=True, discount_amount=100))
+        self.assertAlmostEqual(bill.taxable_discount, 88.50)
+        self.assertAlmostEqual(bill.bill_subtotal, 2194.69)
+
+    def test_exclusive_template_with_both_discounts_is_unchanged(self, *_mocks):
+        items = [
+            frappe._dict(item_code="Taxable", qty=1, discount_amount=100, distributed_discount_amount=90, net_amount=810),
+            frappe._dict(item_code="Exempt", qty=1, distributed_discount_amount=50, net_amount=450, is_nontaxable_item=1),
+        ]
+        bill = self.summarise(_bill(items, discount_amount=140))
+        self.assertAlmostEqual(bill.taxable_discount, 190)
+        self.assertAlmostEqual(bill.bill_subtotal, 1450)
+
+
 class TestSelectableTaxableSummary(unittest.TestCase):
     def test_refresh_endpoints_are_post_only(self):
         allowed = frappe.allowed_http_methods_for_whitelisted_func
