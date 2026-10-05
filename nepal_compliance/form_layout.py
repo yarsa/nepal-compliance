@@ -8,11 +8,14 @@ adds lands in More Details, never in Nepal Essentials.
 """
 
 import frappe
+from frappe import _
 from frappe.custom.doctype.property_setter.property_setter import delete_property_setter, make_property_setter
 from frappe.utils import cint
 
 ESSENTIALS_TAB = "nc_essentials_tab"
 MORE_DETAILS_TAB = "nc_more_details_tab"
+BREAK_TYPES = ("Tab Break", "Section Break", "Column Break")
+NOT_ADDABLE = BREAK_TYPES + ("HTML", "Fold", "Heading")
 
 # (key, label, depends_on, columns). A column is a list of fieldnames; fields missing from
 # a site's doctype are skipped. Payment Entry sections copy the depends_on of ERPNext's own.
@@ -260,6 +263,74 @@ def hide_when_zero(depends_on, fieldname):
         return f"eval:{condition}"
     expression = depends_on[5:].strip() if depends_on.startswith("eval:") else f"doc.{depends_on.strip()}"
     return f"eval:({expression}) && {condition}"
+
+
+def get_extra_field_candidates(doctype):
+    """Return {fieldname: label} of the fields a site may add to Nepal Essentials."""
+    if doctype not in ESSENTIALS:
+        return {}
+    taken = {f for _key, _label, _depends_on, columns in ESSENTIALS[doctype] for column in columns for f in column}
+    taken |= {f["fieldname"] for f in layout_fields(doctype)}
+    return {
+        df.fieldname: _(df.label or df.fieldname)
+        for df in frappe.get_meta(doctype).fields
+        if df.fieldname not in taken and df.fieldtype not in NOT_ADDABLE and not df.hidden
+    }
+
+
+@frappe.whitelist()
+def get_extra_field_options(doctype: str) -> list:
+    """Return the fields a site may add to Nepal Essentials, required ones first, for the settings form."""
+    frappe.has_permission("Nepal Compliance Settings", "write", throw=True)
+    required = {f["fieldname"]: f["reason"] for f in _required_fields(doctype, _mandatory_dimensions(), set())}
+    options = [
+        {"value": f, "label": f"{label} ({f})", "description": _("Required: {0}").format(required[f]) if f in required else None}
+        for f, label in get_extra_field_candidates(doctype).items()
+    ]
+    return sorted(options, key=lambda option: (option["value"] not in required, option["label"]))
+
+
+def pick_required_fields(reasons, candidates, in_tab, meta_fields):
+    """Keep the required fields a user must enter that are not in Nepal Essentials yet.
+
+    ``reasons`` maps a fieldname to why it is required, ``candidates`` is
+    get_extra_field_candidates() and ``meta_fields`` maps a fieldname to its docfield.
+    A read-only field or one with a default is filled without the user.
+    """
+    return [
+        {"fieldname": fieldname, "label": candidates[fieldname], "reason": reason}
+        for fieldname, reason in reasons.items()
+        if fieldname in candidates
+        and fieldname not in in_tab
+        and not meta_fields[fieldname].read_only
+        and not meta_fields[fieldname].default
+    ]
+
+
+def _mandatory_dimensions():
+    """Fieldnames of the enabled accounting dimensions that are mandatory for some company."""
+    mandatory = frappe.get_all(
+        "Accounting Dimension Detail",
+        filters={"parenttype": "Accounting Dimension"},
+        or_filters={"mandatory_for_bs": 1, "mandatory_for_pl": 1},
+        pluck="parent",
+    )
+    if not mandatory:
+        return []
+    return frappe.get_all("Accounting Dimension", filters={"name": ["in", mandatory], "disabled": 0}, pluck="fieldname")
+
+
+def _required_fields(doctype, dimensions, in_tab):
+    """The fields this site made required on ``doctype`` that a user must enter, outside ``in_tab``."""
+    reasons = dict.fromkeys(dimensions, _("Mandatory accounting dimension"))
+    for fieldname in frappe.get_all("Custom Field", filters={"dt": doctype, "reqd": 1}, pluck="fieldname"):
+        reasons.setdefault(fieldname, _("Required custom field"))
+    for fieldname in frappe.get_all(
+        "Property Setter", filters={"doc_type": doctype, "property": "reqd", "value": "1"}, pluck="field_name"
+    ):
+        reasons.setdefault(fieldname, _("Required in Customize Form"))
+    meta_fields = {df.fieldname: df for df in frappe.get_meta(doctype).fields}
+    return pick_required_fields(reasons, get_extra_field_candidates(doctype), in_tab, meta_fields)
 
 
 def apply_form_layout(settings=None, removed=None):

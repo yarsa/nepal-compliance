@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "creation": "2026-09-29 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "fieldname",
+  "field_label"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "\nSales Invoice\nPurchase Invoice\nSales Order\nPurchase Order\nPayment Entry",
+   "reqd": 1
+  },
+  {
+   "description": "Type to search. Fields your organization made required are listed first.",
+   "fieldname": "fieldname",
+   "fieldtype": "Autocomplete",
+   "in_list_view": 1,
+   "label": "Field",
+   "reqd": 1
+  },
+  {
+   "fieldname": "field_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-29 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Nepal Compliance",
+ "name": "Nepal Essentials Field",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
