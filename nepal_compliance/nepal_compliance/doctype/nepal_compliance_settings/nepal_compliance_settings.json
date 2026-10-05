@@ -24,6 +24,8 @@
   "customer_tds_section",
   "customer_tds_rate",
   "max_short_payment_write_off",
+  "form_layout_tab",
+  "use_nepal_essentials_tab",
   "purchase_tab",
   "require_supplier_bill_date",
   "require_purchase_invoice_attachment",
@@ -164,6 +166,18 @@
    "fieldname": "max_short_payment_write_off",
    "fieldtype": "Currency",
    "label": "Maximum Short Payment Write Off"
+  },
+  {
+   "fieldname": "form_layout_tab",
+   "fieldtype": "Tab Break",
+   "label": "Form Layout"
+  },
+  {
+   "default": "0",
+   "description": "Opens Sales and Purchase Invoices, Sales and Purchase Orders and Payment Entries on a Nepal Essentials tab holding only the fields needed to fill them in. Every other field moves to a More Details tab. Untick to restore ERPNext's layout.",
+   "fieldname": "use_nepal_essentials_tab",
+   "fieldtype": "Check",
+   "label": "Use Nepal Essentials Tab"
   },
   {
    "fieldname": "purchase_tab",
@@ -328,7 +342,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 09:26:29.000000",
+ "modified": "2026-10-04 13:36:17.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Settings",

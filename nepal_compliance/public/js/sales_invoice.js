@@ -162,12 +162,14 @@ function open_bs_popover(frm, field, ad_field) {
     });
 }
 
-// Hand bill support: the Manual Invoice No field is only shown when the invoice's
-// company allows it, and the attachment is flagged visually while being enforced
-// server-side at submit, so drafts stay saveable without it.
+// Hand bill support: Manual Invoice No and the hand bill attachment are only shown when
+// the invoice's company allows manual numbers (an existing attachment stays visible). The
+// attachment is flagged visually while being enforced server-side at submit, so drafts
+// stay saveable without it.
 async function apply_manual_invoice_settings(frm) {
     if (!frm.doc.company) {
         frm.toggle_display("manual_invoice_no", false);
+        frm.toggle_display("attach_sales_invoice", !!frm.doc.attach_sales_invoice);
         return;
     }
     const response = await frappe.call({
@@ -182,6 +184,7 @@ async function apply_manual_invoice_settings(frm) {
         frm.set_value("manual_invoice_no", null);
     }
     frm.toggle_display("manual_invoice_no", allowed);
+    frm.toggle_display("attach_sales_invoice", allowed || !!frm.doc.attach_sales_invoice);
     frm.get_field("attach_sales_invoice")
         ?.$wrapper.find(".control-label")
         .toggleClass("reqd", !!cint(requirements.attachment));

@@ -118,6 +118,7 @@ jinja = {
 # Installation
 # ------------
 after_install = "nepal_compliance.install.install"
+after_migrate = ["nepal_compliance.form_layout.apply_form_layout"]
 after_sync = ["nepal_compliance.custom_code.payroll.salary_structure.create_salary_structures",
               "nepal_compliance.custom_code.leave_type.leave_type.setup_default_leave_types"]
 
