@@ -22,9 +22,10 @@ NOT_ADDABLE = BREAK_TYPES + ("HTML", "Fold", "Heading")
 # a site's doctype are skipped. Payment Entry sections copy the depends_on of ERPNext's own.
 _ITEMS = ("items", None, None, [["items"]])
 # laid out like a Nepal bill: the figures in the order they are printed, the inputs beside them
-_BILL_INPUTS = ["additional_discount_percentage", "in_words", "disable_rounded_total"]
+_BILL_INPUTS = ["additional_discount_percentage", "discount_amount", "in_words", "disable_rounded_total"]
 _BILL_TOTALS = ["summary_grand_total", "grand_total", "rounded_total"]
-_BILL = (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "excise_amount", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS])
+# Subtotal and Discount are the printed bill's: only a taxable item's discount is shown as Discount
+_BILL = (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS])
 
 ESSENTIALS = {
     "Sales Invoice": [
@@ -62,7 +63,7 @@ ESSENTIALS = {
             [["customer", "customer_name", "company"], ["transaction_date", "delivery_date"]],
         ),
         _ITEMS,
-        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS]),
+        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["bill_subtotal", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount"] + _BILL_TOTALS]),
     ],
     "Purchase Order": [
         (
@@ -72,7 +73,7 @@ ESSENTIALS = {
             [["supplier", "supplier_name", "company"], ["transaction_date", "schedule_date", "is_pan_or_abbreviated_bill"]],
         ),
         _ITEMS,
-        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "discount_amount", "total_taxes_and_charges", "grand_total", "rounded_total"]]),
+        (BILL_SUMMARY, "Bill Summary", None, [_BILL_INPUTS, ["total", "total_taxes_and_charges", "grand_total", "rounded_total"]]),
     ],
     "Payment Entry": [
         ("payment", "Payment", None, [["payment_type", "mode_of_payment"], ["posting_date", "company"]]),
@@ -113,7 +114,7 @@ ESSENTIALS = {
 }
 
 # read-only figures shown only when the condition holds, by default while they are not 0
-_SHOWN_WHEN_SET = dict.fromkeys(["non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"])
+_SHOWN_WHEN_SET = dict.fromkeys(["taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount", "summary_grand_total", "rounded_total"])
 # ERPNext's Grand Total differs from the Bill Total by TDS withheld on a purchase
 _GRAND_TOTAL = {"grand_total": "flt(doc.grand_total) != flt(doc.summary_grand_total)"}
 # folded excise sits on the item rows and inside Subtotal, so only licensed excise gets a line
@@ -131,11 +132,11 @@ _BILL_DOCTYPES = ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase 
 DEFAULTS = {doctype: {"apply_discount_on": "Net Total"} for doctype in _BILL_DOCTYPES}
 # the wording of a Nepal bill; the VAT line is labelled with its rate by bill_summary.js
 LABELS = {
-    doctype: {"total": "Subtotal", "discount_amount": "Discount", "additional_discount_percentage": "Discount %"}
+    doctype: {"discount_amount": "Discount Amount", "additional_discount_percentage": "Discount %"}
     for doctype in _BILL_DOCTYPES
 }
 # raised whenever ESSENTIALS changes, so a site built from an older layout is rebuilt at migrate
-LAYOUT_VERSION = 2
+LAYOUT_VERSION = 3
 
 
 def section_fieldname(key, column=0):

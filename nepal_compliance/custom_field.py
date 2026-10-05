@@ -136,7 +136,9 @@ def create_custom_fields(quiet=False):
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "bill_subtotal", "label": "Subtotal", "fieldtype": "Currency", "insert_after": "item_vat_detail", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_discount", "label": "Discount", "fieldtype": "Currency", "insert_after": "bill_subtotal", "read_only": 1, "allow_on_submit": 1, "description": "Discount on taxable items, as printed on the bill. A non-taxable item's discount stays in its own amount."}
         ],
         "Sales Order":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "transaction_date", "allow_on_submit": 1},
@@ -146,7 +148,9 @@ def create_custom_fields(quiet=False):
             {"fieldname": "taxable_summary_col_break", "fieldtype": "Column Break", "insert_after": "non_taxable_amount"},
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Order Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
-            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1}
+            {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1},
+            {"fieldname": "bill_subtotal", "label": "Subtotal", "fieldtype": "Currency", "insert_after": "item_vat_detail", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_discount", "label": "Discount", "fieldtype": "Currency", "insert_after": "bill_subtotal", "read_only": 1, "allow_on_submit": 1, "description": "Discount on taxable items, as printed on the bill. A non-taxable item's discount stays in its own amount."}
         ],
         "Sales Order Item": [
             {"fieldname": "is_nontaxable_item", "label": "Is Non-Taxable Item", "fieldtype": "Check", "insert_after": "is_free_item", "fetch_from": "item_code.is_nontaxable_item", "read_only": 1},
@@ -176,7 +180,9 @@ def create_custom_fields(quiet=False):
             {"fieldname": "vat_amount", "label": "VAT Amount", "fieldtype": "Currency", "insert_after": "taxable_summary_col_break", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "summary_grand_total", "label": "Bill Total", "fieldtype": "Currency", "insert_after": "vat_amount", "read_only": 1, "allow_on_submit": 1},
             {"fieldname": "item_vat_detail", "label": "Item VAT Detail", "fieldtype": "Long Text", "insert_after": "summary_grand_total", "hidden": 1, "read_only": 1, "allow_on_submit": 1, "no_copy": 1},
-            {"fieldname": "receive_without_tds", "label": "Receive Without TDS", "fieldtype": "Check", "insert_after": "item_vat_detail", "allow_on_submit": 1, "no_copy": 1, "description": "Tick when the customer pays this bill in full although 'Deduct TDS on Receipt' is enabled on the Customer."}
+            {"fieldname": "receive_without_tds", "label": "Receive Without TDS", "fieldtype": "Check", "insert_after": "item_vat_detail", "allow_on_submit": 1, "no_copy": 1, "description": "Tick when the customer pays this bill in full although 'Deduct TDS on Receipt' is enabled on the Customer."},
+            {"fieldname": "bill_subtotal", "label": "Subtotal", "fieldtype": "Currency", "insert_after": "receive_without_tds", "read_only": 1, "allow_on_submit": 1},
+            {"fieldname": "taxable_discount", "label": "Discount", "fieldtype": "Currency", "insert_after": "bill_subtotal", "read_only": 1, "allow_on_submit": 1, "description": "Discount on taxable items, as printed on the bill. A non-taxable item's discount stays in its own amount."}
         ],
         "Delivery Note":[
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1}

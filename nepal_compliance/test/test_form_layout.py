@@ -206,14 +206,18 @@ class TestBillSummary(unittest.TestCase):
     def test_invoice_lines_read_like_a_nepal_bill(self):
         self.assertEqual(
             bill_lines("Sales Invoice"),
-            ["total", "excise_amount", "discount_amount", "non_taxable_amount", "taxable_amount", "vat_amount",
+            ["bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount",
              "summary_grand_total", "grand_total", "rounded_total"],
         )
         self.assertEqual(bill_lines("Purchase Invoice"), bill_lines("Sales Invoice"))
         self.assertNotIn("excise_amount", bill_lines("Sales Order"))
         self.assertEqual(
-            bill_lines("Purchase Order"), ["total", "discount_amount", "total_taxes_and_charges", "grand_total", "rounded_total"]
+            bill_lines("Purchase Order"), ["total", "total_taxes_and_charges", "grand_total", "rounded_total"]
         )
+        # ERPNext's own discount is an input beside the figures, never one of the bill's lines
+        for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order"):
+            with self.subTest(doctype=doctype):
+                self.assertNotIn("discount_amount", bill_lines(doctype))
 
     def test_only_licensed_excise_and_a_differing_grand_total_are_shown(self):
         conditions = form_layout.SHOW_WHEN["Sales Invoice"]

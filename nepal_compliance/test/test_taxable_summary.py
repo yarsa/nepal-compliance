@@ -121,6 +121,63 @@ class TestTaxableSummaryCalculation(unittest.TestCase):
                 self.assertEqual(invoice.excise_amount, expected)
                 self.assertEqual(invoice.taxable_amount, 95929.46)
 
+    @patch("nepal_compliance.excise._company_excise_config", return_value=(None, False))
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_discount_shows_only_the_taxable_items_share(self, configured, _excise_config):
+        configured.return_value = {"ACME": {"sales": "VAT Payable"}}
+        invoice = frappe._dict(
+            doctype="Sales Invoice",
+            company="ACME",
+            grand_total=1365.30,
+            items=[
+                # 1000 less 100 item discount and 90 of the invoice discount
+                frappe._dict(item_code="Taxable", qty=1, discount_amount=100, distributed_discount_amount=90, net_amount=810),
+                # 500 less 50 of the invoice discount, kept inside its own amount
+                frappe._dict(
+                    item_code="Exempt", qty=1, distributed_discount_amount=50, net_amount=450, is_nontaxable_item=1
+                ),
+            ],
+            taxes=[
+                frappe._dict(
+                    account_head="VAT Payable",
+                    rate=13,
+                    tax_amount_after_discount_amount=105.30,
+                    item_wise_tax_detail={"Taxable": [13, 105.30]},
+                )
+            ],
+        )
+
+        utils.set_taxable_amounts(invoice, None)
+
+        self.assertEqual(invoice.taxable_discount, 190)
+        self.assertEqual(invoice.bill_subtotal, 1450)
+        self.assertEqual((invoice.taxable_amount, invoice.non_taxable_amount), (810, 450))
+
+    @patch("nepal_compliance.excise._company_excise_config", return_value=(None, False))
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_discount_on_a_vat_inclusive_rate_is_shown_without_vat(self, configured, _excise_config):
+        configured.return_value = {"ACME": {"sales": "VAT Payable"}}
+        invoice = frappe._dict(
+            doctype="Sales Invoice",
+            company="ACME",
+            grand_total=1017,
+            items=[frappe._dict(item_code="Taxable", qty=2, discount_amount=56.5, net_amount=900)],
+            taxes=[
+                frappe._dict(
+                    account_head="VAT Payable",
+                    rate=13,
+                    included_in_print_rate=1,
+                    tax_amount_after_discount_amount=117,
+                    item_wise_tax_detail={"Taxable": [13, 117]},
+                )
+            ],
+        )
+
+        utils.set_taxable_amounts(invoice, None)
+
+        self.assertAlmostEqual(invoice.taxable_discount, 100)
+        self.assertAlmostEqual(invoice.bill_subtotal, 1000)
+
     @patch("nepal_compliance.utils.get_configured_vat_accounts")
     def test_on_net_total_vat_does_not_include_added_taxes(self, configured):
         configured.return_value = {
