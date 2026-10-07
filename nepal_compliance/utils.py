@@ -1,5 +1,5 @@
+import ast
 import json
-import re
 
 import frappe
 from frappe import _
@@ -10,14 +10,42 @@ from typing import Union
 
 REPORT_QUERY_BATCH_SIZE = 500
 
-# A tax formula is arithmetic over taxable_salary, so it only needs digits, the
-# usual operators, comparisons, parentheses, commas and the names used in the
-# evaluation context. Anything else is rejected. safe_eval already blocks code
-# execution, but it does not stop an expression from hanging or exhausting
-# memory, so the length limit, the character allow list and the check on the
-# power operator keep inputs like 9**9**9 or [0]*10**9 out.
-MAX_TAX_FORMULA_LENGTH = 500
-ALLOWED_TAX_FORMULA = re.compile(r"^[A-Za-z0-9_.,+\-*/()<>=!%\s]+$")
+# A tax formula is arithmetic over taxable_salary: numbers, + - * / // %,
+# comparisons, and/or/not, and conditional expressions such as
+# "a if taxable_salary <= 1000000 else b", which is how the default income tax
+# slab formula is written. safe_eval already blocks code execution, but it does
+# not stop an expression from hanging or exhausting memory, for example
+# 9**9**9, 1 << 10**10 or (0,) * 10**9. The parsed formula is checked against
+# this allow list before it is evaluated, so those never reach safe_eval. The
+# length limit is only a sanity bound and sits well above the default formula.
+MAX_TAX_FORMULA_LENGTH = 5000
+ALLOWED_TAX_FORMULA_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
+    ast.Name, ast.Load, ast.Constant,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod,
+    ast.UAdd, ast.USub, ast.Not, ast.And, ast.Or,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+)
+
+
+def validate_tax_formula(formula):
+    if not isinstance(formula, str) or not formula.strip():
+        frappe.throw(_("Tax formula is missing."))
+
+    if len(formula) > MAX_TAX_FORMULA_LENGTH:
+        frappe.throw(_("Tax formula is too long. Keep it under {0} characters.").format(MAX_TAX_FORMULA_LENGTH))
+
+    try:
+        tree = ast.parse(formula.strip(), mode="eval")
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        frappe.throw(_("Tax formula is not a valid expression."))
+
+    for node in ast.walk(tree):
+        allowed = isinstance(node, ALLOWED_TAX_FORMULA_NODES)
+        if isinstance(node, ast.Constant) and type(node.value) not in (int, float, bool):
+            allowed = False
+        if not allowed:
+            frappe.throw(_("Tax formula contains an operation that is not allowed."))
 
 def prevent_invoice_deletion(doc, method):
     if (doc.docstatus == 1):
@@ -183,14 +211,7 @@ def get_sales_invoice_requirements(company: str | None = None) -> dict:
 
 @frappe.whitelist()
 def evaluate_tax_formula(formula: str, taxable_salary: Union[str, float]) -> float:
-    if not isinstance(formula, str) or not formula.strip():
-        frappe.throw(_("Tax formula is missing."))
-
-    if len(formula) > MAX_TAX_FORMULA_LENGTH:
-        frappe.throw(_("Tax formula is too long. Keep it under {0} characters.").format(MAX_TAX_FORMULA_LENGTH))
-
-    if "**" in formula or not ALLOWED_TAX_FORMULA.match(formula):
-        frappe.throw(_("Tax formula contains characters or operators that are not allowed."))
+    validate_tax_formula(formula)
 
     try:
         taxable_salary = flt(taxable_salary)
