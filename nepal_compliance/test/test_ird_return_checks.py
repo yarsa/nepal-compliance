@@ -62,6 +62,36 @@ class TestIrdReturnChecks(unittest.TestCase):
 
         self.assertEqual(differences, [])
 
+    def test_renamed_tax_template_with_same_vat_matches(self):
+        # a credit note made after the legacy template was renamed to the side-specific one
+        self.note_item.item_tax_template = "Nepal Tax (Sales - 13%)"
+
+        differences = ird_return_checks._compare_pair(
+            "Sales Invoice",
+            self.note,
+            self.source,
+            {"SINV-1": [self.source_item], "CN-1": [self.note_item]},
+            "sales_invoice_item",
+            {("SINV-1", "SOURCE-ROW"): 130, ("CN-1", "RETURN-ROW"): -52},
+        )
+
+        self.assertEqual(differences, [])
+
+    def test_renamed_tax_template_with_different_vat_is_reported(self):
+        self.note_item.item_tax_template = "Nepal Tax (Sales - 13%)"
+
+        differences = ird_return_checks._compare_pair(
+            "Sales Invoice",
+            self.note,
+            self.source,
+            {"SINV-1": [self.source_item], "CN-1": [self.note_item]},
+            "sales_invoice_item",
+            {("SINV-1", "SOURCE-ROW"): 130, ("CN-1", "RETURN-ROW"): 0},
+        )
+
+        self.assertTrue(any("VAT treatment differs" in text for text in differences))
+        self.assertFalse(any("Item Tax Template" in text for text in differences))
+
     def test_rate_and_proportional_total_mismatch_are_reported(self):
         self.note_item.rate = 110
         self.note.summary_grand_total = -500
