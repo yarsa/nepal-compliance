@@ -142,7 +142,7 @@ def _compare_pair(doctype, note, source, items, source_field, item_vat, vat_conf
         if not source_row:
             differences.append(_("Item {0} is not linked to the original row").format(row.item_code))
             continue
-        for field in ("item_code", "uom", "item_tax_template"):
+        for field in ("item_code", "uom"):
             if row.get(field) != source_row.get(field):
                 differences.append(
                     _("{0} differs for item {1}").format(
