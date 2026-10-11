@@ -44,10 +44,12 @@ function open_invoice_download(listview) {
 			const fields = INVOICE_COPY_FIELDS[copies];
 			const rows = await frappe.db.get_list("Sales Invoice", {
 				filters: { name: ["in", names] },
-				fields: ["name", ...fields],
+				fields: ["name", "is_return", ...fields],
 				limit: names.length,
 			});
-			const missing = rows.filter((row) => fields.some((field) => !row[field])).map((row) => row.name);
+			// A credit note has only a Tax Invoice copy, so it never misses an Invoice copy.
+			const needed = (row) => (row.is_return ? fields.filter((field) => field !== "invoice_attachment") : fields);
+			const missing = rows.filter((row) => needed(row).some((field) => !row[field])).map((row) => row.name);
 			const download = () => {
 				dialog.hide();
 				open_url_post("/api/method/nepal_compliance.invoice_download.download_attached_invoices", {

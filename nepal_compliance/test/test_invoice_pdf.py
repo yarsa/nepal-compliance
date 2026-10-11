@@ -60,10 +60,11 @@ class TestAttachInvoicePdf(unittest.TestCase):
              patch.object(frappe, "get_doc", side_effect=new_file), \
              patch.object(frappe, "bold", side_effect=str), \
              patch.object(frappe, "log_error"), \
-             patch.object(frappe, "msgprint"), \
+             patch.object(frappe, "msgprint") as msgprint, \
              patch.object(invoice_pdf, "DocTags") as tags:
             invoice_pdf.attach_invoice_pdf(doc, "on_change")
-        return SimpleNamespace(doc=doc, db=db, files=files, get_print=get_print, tags=tags.return_value)
+        return SimpleNamespace(doc=doc, db=db, files=files, get_print=get_print, tags=tags.return_value,
+                               msgprint=msgprint)
 
     def assertTagged(self, run):
         run.doc.db_set.assert_not_called()
@@ -101,6 +102,39 @@ class TestAttachInvoicePdf(unittest.TestCase):
         self.assertEqual(run.files, [])
         self.assertTagged(run)
 
+    def test_unsplittable_pdf_message_does_not_name_the_format_in_use_as_the_fix(self):
+        run = self._attach(rendered=_pdf(["INVOICE", "COPY OF ORIGINAL 1"]))
+
+        self.assertNotIn("Use VAT Invoice - Standard", run.msgprint.call_args.args[0])
+        self.assertIn("printed before it was submitted", run.msgprint.call_args.args[0])
+
+    def test_vat_credit_note_gets_the_whole_pdf_as_its_tax_invoice(self):
+        pdf = _pdf(["CREDIT NOTE", "Against: SINV-1"])
+        run = self._attach(rendered=pdf, is_return=1)
+
+        (only,) = run.files
+        self.assertEqual(
+            (only["attached_to_field"], only["file_name"], only["content"]),
+            ("tax_invoice_attachment", "SINV-082-083-0001-credit-note.pdf", pdf),
+        )
+        run.doc.db_set.assert_called_once_with(
+            {"tax_invoice_attachment": "/private/files/SINV-082-083-0001-credit-note.pdf"}, update_modified=False
+        )
+        run.tags.add.assert_not_called()
+
+    def test_vat_credit_note_skips_only_when_its_tax_invoice_is_attached(self):
+        run = self._attach(rendered=_pdf(["CREDIT NOTE"]), is_return=1, invoice_attachment="/private/files/x.pdf")
+        self.assertEqual(len(run.files), 1)
+
+        self._attach(is_return=1, tax_invoice_attachment="/private/files/x.pdf").get_print.assert_not_called()
+
+    def test_other_company_credit_note_gets_the_whole_pdf(self):
+        pdf = _pdf(["CREDIT NOTE"])
+        run = self._attach(vat_registered=0, rendered=pdf, is_return=1)
+
+        (only,) = run.files
+        self.assertEqual((only["attached_to_field"], only["content"]), ("attach_sales_invoice", pdf))
+
     def test_failures_tag_without_blocking_the_submission(self):
         run = self._attach(render_error=RuntimeError("wkhtmltopdf failed"))
         self.assertTagged(run)
@@ -136,6 +170,18 @@ class TestClearNotAttachedTag(unittest.TestCase):
             invoice_pdf.clear_not_attached_tag(doc)
 
         tags.return_value.remove.assert_called_once_with("SINV-1", "Invoice PDF Not Attached")
+
+    def test_credit_note_attachments_also_remove_the_tag(self):
+        # a VAT credit note fills Tax Invoice only; any other company's fills Attach Sales Invoice
+        for field in ("tax_invoice_attachment", "attach_sales_invoice"):
+            doc = MagicMock(doctype="Sales Invoice")
+            doc.name = "SINV-1"
+            doc.get.side_effect = {field: "/private/files/x.pdf"}.get
+            with patch.object(invoice_pdf, "DocTags") as tags:
+                tags.return_value.get_tags.return_value = ",Invoice PDF Not Attached"
+                invoice_pdf.clear_not_attached_tag(doc)
+
+            tags.return_value.remove.assert_called_once_with("SINV-1", "Invoice PDF Not Attached")
 
 
 class TestSplitTaxInvoice(unittest.TestCase):

@@ -20,6 +20,8 @@ SETTINGS = "Nepal Compliance Settings"
 NOT_ATTACHED_TAG = "Invoice PDF Not Attached"
 VAT_FIELDS = (("tax_invoice_attachment", "tax-invoice"), ("invoice_attachment", "invoice"))
 PAN_FIELDS = (("attach_sales_invoice", None),)
+# VAT Invoice - Standard prints a return as one CREDIT NOTE copy, which is not split.
+CREDIT_NOTE_FIELDS = (("tax_invoice_attachment", "credit-note"),)
 
 
 def attach_invoice_pdf(doc, method=None):
@@ -40,23 +42,28 @@ def attach_invoice_pdf(doc, method=None):
     if not cint(row.get("attach_invoice_pdf_on_submit")):
         return
     vat_registered = cint(row.get("vat_registered"))
-    fields = VAT_FIELDS if vat_registered else PAN_FIELDS
+    if not vat_registered:
+        fields = PAN_FIELDS
+    else:
+        fields = CREDIT_NOTE_FIELDS if cint(doc.get("is_return")) else VAT_FIELDS
     if any(doc.get(field) for field, _suffix in fields):
         return
 
     print_format = row.print_format
     try:
         pdf = frappe.get_print(doc.doctype, doc.name, print_format, as_pdf=True)
-        parts = split_tax_invoice(pdf) if vat_registered else [pdf]
+        parts = split_tax_invoice(pdf) if fields is VAT_FIELDS else [pdf]
     except Exception:
         _not_attached(doc, _("Its PDF could not be made in print format {0}.").format(frappe.bold(print_format)))
         return
     if not parts:
         _not_attached(
             doc,
-            _("Print format {0} does not print a TAX INVOICE followed by an INVOICE copy. Use VAT Invoice - Standard.").format(
-                frappe.bold(print_format)
-            ),
+            _(
+                "Its PDF in print format {0} has no TAX INVOICE page followed by an INVOICE page. This happens when "
+                "the invoice was printed before it was submitted, so only a copy was printed, or when the format "
+                "prints a single copy. Attach the copies by hand."
+            ).format(frappe.bold(print_format)),
             with_traceback=False,
         )
         return
