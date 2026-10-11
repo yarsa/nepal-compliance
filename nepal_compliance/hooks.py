@@ -112,6 +112,7 @@ jinja = {
                 "nepal_compliance.nepali_date_utils.nepali_date.format_bs_datetime",
                 "nepal_compliance.nepali_date_utils.utils.bs_date",
                 "nepal_compliance.print_seal.get_print_seal",
+                "nepal_compliance.utils.vat_free_item_keys",
                 ]
 }
 

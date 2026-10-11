@@ -640,5 +640,24 @@ class TestLegacyIrdReportCalculation(unittest.TestCase):
         self.assertEqual(row["tax_amount"], 0)
 
 
+
+class TestVatFreeItemKeys(unittest.TestCase):
+    def test_items_without_vat_in_the_stored_map_are_vat_free(self):
+        invoice = frappe._dict(
+            item_vat_detail='{"Taxable": [13, 130], "Exempt": [0, 0], "Legacy": 26}',
+            items=[
+                frappe._dict(item_code="Taxable"),
+                frappe._dict(item_code="Exempt"),
+                frappe._dict(item_code="Legacy"),  # bare amount, as written before rates were stored
+                frappe._dict(item_code=None, item_name="Not In Map"),
+            ],
+        )
+
+        self.assertEqual(utils.vat_free_item_keys(invoice), ["Exempt", "Not In Map"])
+
+    def test_no_stored_map_marks_nothing(self):
+        self.assertEqual(utils.vat_free_item_keys(frappe._dict(items=[frappe._dict(item_code="A")])), [])
+
+
 if __name__ == "__main__":
     unittest.main()

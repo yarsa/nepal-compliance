@@ -676,6 +676,19 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     }
 
 
+def vat_free_item_keys(doc):
+    """Jinja: keys (item code, else name) of doc's items that carry no VAT in its stored item_vat_detail.
+
+    set_taxable_amounts counts these items as non-taxable, so the VAT invoice prints
+    them the same way. Empty when the map was never stored.
+    """
+    if not doc.get("item_vat_detail"):
+        return []
+    item_vat = frappe.parse_json(doc.item_vat_detail) or {}
+    keys = {item.get("item_code") or item.get("item_name") for item in doc.get("items") or []}
+    return sorted(key for key in keys if not flt(parse_item_vat_entry(item_vat.get(key))[1]))
+
+
 BILL_SUMMARY_FIELDS = (
     "bill_subtotal", "excise_amount", "taxable_discount", "non_taxable_amount", "taxable_amount", "vat_amount",
     "summary_grand_total",
