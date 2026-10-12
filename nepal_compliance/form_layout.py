@@ -59,11 +59,16 @@ ESSENTIALS = {
             None,
             [
                 ["supplier", "supplier_name", "vat_number"],
-                ["company", "is_pan_or_abbreviated_bill"],
+                ["company"],
                 ["posting_date", "posting_time", "set_posting_time", "due_date"],
             ],
         ),
-        ("bill", "Supplier Invoice", None, [["bill_no", "attach_purchase_invoice"], ["bill_date", "apply_tds"]]),
+        (
+            "bill",
+            "Supplier Invoice",
+            None,
+            [["bill_no", "attach_purchase_invoice"], ["bill_date", "is_pan_or_abbreviated_bill", "apply_tds"]],
+        ),
         (
             "return",
             "Debit Note",
@@ -162,7 +167,7 @@ LABELS = {
 _RETIRED = {"total": {"label": "Subtotal"}, "rounded_total": {"depends_on": None}}
 RETIRED = {doctype: _RETIRED for doctype in ("Sales Invoice", "Purchase Invoice", "Sales Order")}
 # raised whenever ESSENTIALS changes, so a site built from an older layout is rebuilt at migrate
-LAYOUT_VERSION = 5
+LAYOUT_VERSION = 6
 
 
 def section_fieldname(key, column=0):

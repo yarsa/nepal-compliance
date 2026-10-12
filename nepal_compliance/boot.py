@@ -1,5 +1,7 @@
 import frappe
 
+from nepal_compliance.utils import get_configured_vat_accounts
+
 def get_boot_info(bootinfo):
     if frappe.session.user == "Guest":
         return
@@ -22,6 +24,8 @@ def get_boot_info(bootinfo):
             "sales_invoice_print_formats": {
                 row.company: row.print_format for row in settings.get("company_print_formats") or []
             },
+            # each company's VAT ledgers, so a form labels its VAT line with that tax row's rate
+            "vat_accounts": get_configured_vat_accounts(),
         }
     except Exception:
         frappe.log_error(
@@ -32,4 +36,5 @@ def get_boot_info(bootinfo):
         bootinfo["nepal_compliance"] = {
             "date_format": "YYYY-MM-DD",
             "sales_invoice_print_formats": {},
+            "vat_accounts": {},
         }
