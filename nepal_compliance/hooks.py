@@ -76,7 +76,7 @@ doctype_js = {
 doctype_list_js = {
     "Salary Component": "public/js/custom_button.js",
     "Leave Allocation": "public/js/utils.js",
-    "Sales Invoice" : "public/js/bulk_update_nepali_date.js"
+    "Sales Invoice" : ["public/js/bulk_update_nepali_date.js", "public/js/sales_invoice_list.js"]
 }
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -229,6 +229,9 @@ doc_events = {
             "nepal_compliance.utils.set_signed_by",
         ],
         "on_submit": "nepal_compliance.cbms_api.post_sales_invoice_or_return_to_cbms",
+        # on_change runs after every app's on_submit
+        "on_change": "nepal_compliance.invoice_pdf.attach_invoice_pdf",
+        "on_update_after_submit": "nepal_compliance.invoice_pdf.clear_not_attached_tag",
         "validate": [
             "nepal_compliance.ird_country.set_invoice_party_country",
             "nepal_compliance.qr_code.create_qr_code",

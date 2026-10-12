@@ -161,6 +161,8 @@ def create_custom_fields(quiet=False):
             {"fieldname": "attach_sales_invoice", "label": "Attach Sales Invoice", "fieldtype": "Attach", "insert_after": "manual_invoice_no", "allow_on_submit": 1, "no_copy": 1},
             {"fieldname": "signed_by", "label": "Signed By", "fieldtype": "Link", "options": "User", "insert_after": "attach_sales_invoice", "read_only": 1, "no_copy": 1, "print_hide": 1,
             "description": "The user who submitted this invoice. Their signature is printed on it."},
+            {"fieldname": "tax_invoice_attachment", "label": "Tax Invoice", "fieldtype": "Attach", "insert_after": "signed_by", "depends_on": "eval:doc.docstatus > 0", "allow_on_submit": 1, "no_copy": 1, "print_hide": 1, "description": "Customer copy: give this to the customer."},
+            {"fieldname": "invoice_attachment", "label": "Invoice", "fieldtype": "Attach", "insert_after": "tax_invoice_attachment", "depends_on": "eval:doc.docstatus > 0", "allow_on_submit": 1, "no_copy": 1, "print_hide": 1, "description": "Company copy: keep this with the company."},
             {"fieldname": "nepali_date", "label": "Nepali Date", "fieldtype": "Data", "insert_after": "posting_date", "allow_on_submit": 1},
             {"fieldname": "ird_party_country", "label": "IRD Party Country", "fieldtype": "Link", "options": "Country", "insert_after": "customer_address", "hidden": 1, "read_only": 1},
             {"fieldname": "vat_number", "label": "Customer VAT/PAN", "fieldtype": "Data", "insert_after": "customer", "in_list_view": 1, "allow_on_submit": 1},
