@@ -7,11 +7,13 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
-  "print_format"
+  "print_format",
+  "vat_registered",
+  "attach_invoice_pdf_on_submit"
  ],
  "fields": [
   {
-   "columns": 4,
+   "columns": 3,
    "fieldname": "company",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -20,19 +22,37 @@
    "reqd": 1
   },
   {
-   "columns": 6,
+   "columns": 5,
    "fieldname": "print_format",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Print Format",
    "options": "Print Format",
    "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "description": "Untick for a PAN-only company. With Attach Invoice PDF on Submit, a VAT-registered company gets a Tax Invoice and an Invoice; any other company gets the whole PDF in Attach Sales Invoice.",
+   "fieldname": "vat_registered",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "VAT Registered"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "description": "On submit, save a PDF of the company's Sales Invoices in this print format. If VAT Registered is ticked, the TAX INVOICE copy goes to Tax Invoice and the INVOICE copy to Invoice, so use a format that prints both, such as VAT Invoice - Standard. Otherwise the whole PDF goes to Attach Sales Invoice.",
+   "fieldname": "attach_invoice_pdf_on_submit",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Attach Invoice PDF on Submit"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-04 18:32:40.000000",
+ "modified": "2026-10-08 08:55:59.000000",
  "modified_by": "Administrator",
  "module": "Nepal Compliance",
  "name": "Nepal Compliance Company Print Format",
