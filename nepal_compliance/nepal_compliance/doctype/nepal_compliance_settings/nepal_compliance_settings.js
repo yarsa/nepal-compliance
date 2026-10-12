@@ -104,11 +104,6 @@ function open_tax_template_prompt(frm) {
 	const rows = (frm.doc.vat_accounts || []).filter(
 		(row) => row.company && (row.sales_vat_account || row.purchase_vat_account)
 	);
-	const companies = rows.map((row) => row.company);
-	if (!companies.length) {
-		frappe.msgprint(__("Set the VAT accounts for a company in the VAT Accounts table first."));
-		return;
-	}
 	// Declared first: the company onchange can fire while the dialog is built.
 	let dialog;
 	dialog = new frappe.ui.Dialog({
@@ -116,12 +111,12 @@ function open_tax_template_prompt(frm) {
 		fields: [
 			{
 				fieldname: "company",
-				fieldtype: "Select",
+				fieldtype: "Link",
+				options: "Company",
 				label: __("Company"),
-				options: companies,
-				default: companies[0],
+				default: rows[0]?.company || frappe.defaults.get_user_default("Company"),
 				reqd: 1,
-				onchange: () => dialog && toggle_excise_variants(dialog, rows),
+				onchange: () => dialog && show_company_state(dialog, rows),
 			},
 			...TAX_TEMPLATE_VARIANTS.map(([fieldname, label]) => ({
 				fieldname,
@@ -159,10 +154,24 @@ function open_tax_template_prompt(frm) {
 		},
 	});
 	dialog.show();
-	toggle_excise_variants(dialog, rows);
-	$(`<button type="button" class="btn btn-xs btn-default ml-2" title="${__("Why is my company missing?")}">?</button>`)
+	show_company_state(dialog, rows);
+	$(`<button type="button" class="btn btn-xs btn-default ml-2" title="${__("Which companies can have templates?")}">?</button>`)
 		.appendTo(dialog.fields_dict.company.$wrapper.find(".control-label"))
 		.on("click", show_tax_template_company_help);
+}
+
+// Every company is listed, but templates post VAT to the company's VAT accounts, so a
+// company without them says how to add them and cannot be submitted.
+function show_company_state(dialog, rows) {
+	const company = dialog.get_value("company");
+	const ready = !company || rows.some((r) => r.company === company);
+	const missing = __(
+		"No VAT account is set for {0}. Add it in the VAT Accounts table and save the settings first.",
+		[frappe.utils.escape_html(company)]
+	);
+	dialog.set_df_property("company", "description", ready ? "" : missing);
+	dialog.get_primary_btn().prop("disabled", !ready);
+	toggle_excise_variants(dialog, rows);
 }
 
 // Excise is optional. Without an excise licence (blank Excise Duty Account, or
@@ -189,12 +198,12 @@ function toggle_excise_variants(dialog, rows) {
 
 function show_tax_template_company_help() {
 	frappe.msgprint({
-		title: __("Which companies are listed?"),
+		title: __("Which companies can have templates?"),
 		message: `
 			<p>${__(
-				"Only companies that have a VAT account set in the VAT Accounts table of these settings are listed here. Templates cannot be made without one, because every template posts VAT to that account."
+				"Every company is listed, but templates can be made only for a company with a VAT account set in the VAT Accounts table of these settings, because every template posts VAT to that account."
 			)}</p>
-			<p><b>${__("To add a company")}</b></p>
+			<p><b>${__("To set up a company")}</b></p>
 			<ol>
 				<li>${__("Close this window and go to the VAT Accounts table.")}</li>
 				<li>${__("Add a row for the company, or open its row, and set the Sales VAT Account, the Purchase VAT Account, or both.")}</li>

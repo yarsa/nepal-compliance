@@ -12,6 +12,7 @@ FILES = {
     "/private/files/1-invoice.pdf": _pdf(["INVOICE 1"]),
     "/private/files/2-tax-invoice.pdf": _pdf(["TAX INVOICE 2"]),
     "/private/files/2-hand-bill.jpg": b"not a pdf",
+    "/private/files/3-credit-note.pdf": _pdf(["CREDIT NOTE 3"]),
 }
 INVOICES = [
     frappe._dict(name="SINV-1", tax_invoice_attachment="/private/files/1-tax-invoice.pdf",
@@ -42,6 +43,17 @@ class TestDownloadAttachedInvoices(unittest.TestCase):
         self.assertEqual((response.filename, response.type), ("sales-invoices-both.pdf", "download"))
         # read through get_list, so only invoices the user may read are included
         self.assertEqual(get_list.call_args.kwargs["filters"], {"name": ["in", ["SINV-1", "SINV-2"]]})
+
+    def test_vat_credit_note_comes_with_tax_invoice_and_both_only(self):
+        credit_note = frappe._dict(name="SINV-3", is_return=1, tax_invoice_attachment="/private/files/3-credit-note.pdf",
+                                   invoice_attachment=None)
+        for copies, expected in (
+            ("tax_invoice", ["TAX INVOICE 1", "TAX INVOICE 2", "CREDIT NOTE 3"]),
+            ("both", ["TAX INVOICE 1", "TAX INVOICE 2", "CREDIT NOTE 3", "INVOICE 1"]),
+            ("invoice", ["INVOICE 1"]),
+        ):
+            response, _get_list = self._download(copies, INVOICES + [credit_note])
+            self.assertEqual([text.strip() for text in _texts(response.filecontent)], expected, copies)
 
     def test_one_copy_only(self):
         response, _get_list = self._download("invoice")
