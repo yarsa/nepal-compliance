@@ -216,6 +216,11 @@ class TestHeaderSections(unittest.TestCase):
             with self.subTest(doctype=doctype):
                 self.assertEqual(section(doctype, "party")[3][2][:3], ["posting_date", "posting_time", "set_posting_time"])
 
+    def test_pan_bill_is_asked_with_the_supplier_invoice(self):
+        fields = lambda key: [f for column in section("Purchase Invoice", key)[3] for f in column]
+        self.assertIn("is_pan_or_abbreviated_bill", fields("bill"))
+        self.assertNotIn("is_pan_or_abbreviated_bill", fields("party"))
+
     def test_return_fields_show_only_on_a_credit_or_debit_note(self):
         for doctype, depends_on in (
             ("Sales Invoice", "eval:doc.is_return || doc.is_debit_note"),
