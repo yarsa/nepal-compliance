@@ -28,3 +28,4 @@ nepal_compliance.patches.add_short_payment_write_off_fields
 nepal_compliance.patches.add_invoice_stamp_signature_fields
 nepal_compliance.patches.add_bill_discount_fields
 nepal_compliance.patches.add_invoice_attachment_fields
+nepal_compliance.patches.retire_vat_invoice_bulk_format
