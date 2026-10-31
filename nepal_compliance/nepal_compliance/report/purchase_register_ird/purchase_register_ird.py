@@ -259,7 +259,10 @@ def get_data(filters, bucket="all"):
 
     for inv in invoices:
         supplier_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
-        is_import = is_foreign_country(supplier_country)
+        # a pragyapan patra bill is an import even when booked to a Nepal customs office supplier
+        is_import = is_foreign_country(supplier_country) or bool(
+            (inv.customs_declaration_number or "").strip()
+        )
 
         pan = inv.invoice_pan or inv.supplier_tax_id
 
