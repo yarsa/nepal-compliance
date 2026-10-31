@@ -247,6 +247,24 @@ def invoice_link_fields(doctype: str, name: str | None) -> dict:
 	return {"invoice_name": name, "invoice_doctype": doctype}
 
 
+def ird_purchase_exclusion_condition(alias: str = "pi") -> str:
+	"""SQL that drops Purchase Invoices ticked "Exclude from IRD Register".
+
+	A foreign supplier's commercial invoice is booked for stock and accounts, but
+	its import value reaches IRD through the customs declaration's invoice. A
+	return against a ticked invoice is dropped with it. Returns "" while the
+	column is missing, so a site that has not migrated keeps its output.
+	"""
+	if not frappe.db.has_column("Purchase Invoice", "exclude_from_ird_register"):
+		return ""
+	return (
+		f"{alias}.exclude_from_ird_register = 0 AND NOT EXISTS ("
+		"SELECT 1 FROM `tabPurchase Invoice` ird_excluded"
+		f" WHERE ird_excluded.name = {alias}.return_against"
+		" AND ird_excluded.exclude_from_ird_register = 1)"
+	)
+
+
 def _cstr_strip(value) -> str:
 	"""Return a stripped string, treating None as empty."""
 	if value is None:
