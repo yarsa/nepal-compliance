@@ -16,6 +16,7 @@ from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
+    ird_purchase_exclusion_condition,
     is_prior_fy_bill,
     resolve_ird_fiscal_year_start,
 )
@@ -173,6 +174,8 @@ def get_data(filters, bucket="all"):
     legacy = use_legacy_ird_report_calculation()
     conditions = ["pi.docstatus = 1 and pi.is_return = 0"]
     values = {}
+    if exclusion := ird_purchase_exclusion_condition("pi"):
+        conditions.append(exclusion)
 
     if filters.get("company"):
         conditions.append("pi.company = %(company)s")

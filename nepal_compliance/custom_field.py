@@ -121,6 +121,7 @@ def create_custom_fields(quiet=False):
             {"fieldname": "qr_code", "label": "QR Code", "fieldtype": "Attach", "insert_after": "customer_vat_number", "hidden": 1, "allow_on_submit": 1},
             {"fieldname": "reason", "label": "Reason For Return", "fieldtype": "Data", "insert_after": "customer_vat_number", "depends_on": "eval:doc.is_return == 1", "mandatory_depends_on": "eval:doc.is_return == 1"},
             {"fieldname": "customs_declaration_number", "label": "Customs Declaration Number", "fieldtype": "Data", "insert_after": "bill_no", "no_copy": 1},
+            {"fieldname": "exclude_from_ird_register", "label": "Exclude from IRD Register", "fieldtype": "Check", "default": "0", "insert_after": "customs_declaration_number", "allow_on_submit": 1, "no_copy": 0, "description": "Foreign supplier invoice (CI) whose import value is reported through the Pragyapan Patra"},
             {
                 "fieldname": "is_pan_or_abbreviated_bill",
                 "label": "Is PAN/Abbreviated Bill",
