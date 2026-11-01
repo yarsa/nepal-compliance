@@ -265,6 +265,17 @@ def ird_purchase_exclusion_condition(alias: str = "pi") -> str:
 	)
 
 
+def pragyapan_import_message(rows) -> str | None:
+	"""Warn that Nepal-supplier bills with a pragyapan patra number are reported as imports."""
+	count = sum(1 for row in rows if row.get("pragyapan_import"))
+	if not count:
+		return None
+	message = _(
+		"{0} invoice(s) from a Nepal supplier have a Customs Declaration Number (Pragyapan Patra), so they are shown as imports."
+	).format(count)
+	return f'<div class="indicator orange"><span>{message}</span></div>'
+
+
 def _cstr_strip(value) -> str:
 	"""Return a stripped string, treating None as empty."""
 	if value is None:

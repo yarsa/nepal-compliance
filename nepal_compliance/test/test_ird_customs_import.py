@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import frappe
 
+from nepal_compliance.ird_filters import pragyapan_import_message
 from nepal_compliance.nepal_compliance.report.purchase_register_ird import (
     purchase_register_ird,
 )
@@ -11,7 +12,7 @@ from nepal_compliance.nepal_compliance.report.purchase_return_register_ird impor
 )
 
 
-def nepal_supplier_invoice(customs_declaration_number, sign=1):
+def nepal_supplier_invoice(customs_declaration_number, sign=1, country="Nepal"):
     return frappe._dict(
         invoice="PINV-1",
         bill_no="SUP-1",
@@ -30,15 +31,15 @@ def nepal_supplier_invoice(customs_declaration_number, sign=1):
         company="ACME",
         stored_taxable_amount=sign * 1000,
         stored_item_vat_detail=None,
-        stored_party_country="Nepal",
-        address_country="Nepal",
+        stored_party_country=country,
+        address_country=country,
         supplier_tax_id="123456789",
         is_pan_or_abbreviated_bill=0,
     )
 
 
-def register_row(report, customs_declaration_number, sign=1):
-    """Run *report*.get_data over one Nepal-supplier invoice with Rs 1,000 + 13% VAT."""
+def register_row(report, customs_declaration_number, sign=1, country="Nepal"):
+    """Run *report*.get_data over one supplier invoice with Rs 1,000 + 13% VAT."""
     item = frappe._dict(
         parent="PINV-1", item_code="Item", net_amount=sign * 1000, asset_category=None, is_nontaxable_item=0
     )
@@ -49,7 +50,7 @@ def register_row(report, customs_declaration_number, sign=1):
     ), patch.object(report, "invoice_ird_total", return_value=sign * 1130), patch.object(
         report.frappe, "get_all", return_value=[item]
     ), patch.object(
-        report.frappe.db, "sql", return_value=[nepal_supplier_invoice(customs_declaration_number, sign)]
+        report.frappe.db, "sql", return_value=[nepal_supplier_invoice(customs_declaration_number, sign, country)]
     ):
         if report is purchase_register_ird:
             with patch.object(report, "resolve_ird_fiscal_year_start", return_value=None):
@@ -66,6 +67,7 @@ class TestIrdCustomsImport(unittest.TestCase):
                 self.assertEqual(row["taxable_import_non_capital_tax"], 130)
                 self.assertEqual(row["taxable_amount"], 0)
                 self.assertEqual(row["customs_declaration_number"], "PP-2083-001")
+                self.assertEqual(row["pragyapan_import"], 1)
 
     def test_nepal_supplier_without_pragyapan_stays_domestic(self):
         for report, sign in ((purchase_register_ird, 1), (purchase_return_register_ird, -1)):
@@ -74,6 +76,17 @@ class TestIrdCustomsImport(unittest.TestCase):
                 self.assertEqual(row["taxable_import_non_capital_amount"], 0)
                 self.assertEqual(abs(row["taxable_amount"]), 1000)
                 self.assertEqual(row["customs_declaration_number"], "")
+                self.assertEqual(row["pragyapan_import"], 0)
+
+    def test_foreign_supplier_import_is_not_flagged(self):
+        row = register_row(purchase_register_ird, "PP-2083-001", country="India")
+        self.assertEqual(row["taxable_import_non_capital_amount"], 1000)
+        self.assertEqual(row["pragyapan_import"], 0)
+
+    def test_message_counts_nepal_supplier_pragyapan_bills(self):
+        rows = [{"pragyapan_import": 1}, {"pragyapan_import": 0}, {"pragyapan_import": 1}]
+        self.assertIn("2 invoice(s)", pragyapan_import_message(rows))
+        self.assertIsNone(pragyapan_import_message([{"pragyapan_import": 0}]))
 
 
 if __name__ == "__main__":
