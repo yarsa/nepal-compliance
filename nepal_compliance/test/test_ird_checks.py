@@ -93,6 +93,21 @@ class TestIrdChecks(unittest.TestCase):
 
         self.assertEqual(errors[0]["code"], "missing_tax_id")
 
+    def test_pragyapan_bill_needs_no_supplier_tax_id(self):
+        self.settings.enable_purchase_vat_tax_id_check = 1
+        context = frappe._dict(
+            doctype="Purchase Invoice",
+            check_vat_amount=130,
+            tax_id="",
+            ird_party_country="Nepal",
+            customs_declaration_number="PP-2083-001",
+        )
+        party = frappe._dict(supplier_type="Company", supplier_group="Local", tax_id="")
+
+        self.assertEqual(
+            ird_checks.check_party_tax_id(context, party, self.settings), []
+        )
+
     def test_vat_and_total_mismatches_are_separate_errors(self):
         context = frappe._dict(
             taxable_amount=1000,

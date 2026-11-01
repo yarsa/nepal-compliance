@@ -4,6 +4,8 @@
 import frappe
 from frappe import _
 
+from nepal_compliance.ird_filters import ird_purchase_exclusion_condition
+
 def execute(filters=None):
     columns = [
         _("Invoice No") + ":Text:200",
@@ -26,6 +28,8 @@ def execute(filters=None):
 
     conditions = "si.docstatus = 1"
     purchase_conditions = "pi.docstatus = 1"
+    if exclusion := ird_purchase_exclusion_condition("pi"):
+        purchase_conditions += f" AND {exclusion}"
 
     from_nepali_date = filters.get("from_nepali_date")
     to_nepali_date = filters.get("to_nepali_date")

@@ -16,6 +16,8 @@ from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
+    ird_purchase_exclusion_condition,
+    pragyapan_import_message,
 )
 from nepal_compliance.utils import (
     allocate_legacy_ird_tax,
@@ -37,7 +39,7 @@ def execute(filters=None):
     columns = check_columns(get_columns())
     data = decorate_rows(get_data(filters), "Purchase Invoice", filters)
     summary = [check_summary(data)]
-    return columns, filter_summary_rows(data, filters), None, None, summary
+    return columns, filter_summary_rows(data, filters), pragyapan_import_message(data), None, summary
 
 def get_columns():
     """Column definitions for the IRD Purchase Return Register."""
@@ -66,6 +68,8 @@ def get_data(filters):
     legacy = use_legacy_ird_report_calculation()
     conditions = ["pi.docstatus = 1 and pi.is_return = 1"]
     values = {}
+    if exclusion := ird_purchase_exclusion_condition("pi"):
+        conditions.append(exclusion)
 
     if filters.get("company"):
         conditions.append("pi.company = %(company)s")
@@ -137,7 +141,10 @@ def get_data(filters):
 
     for inv in invoices:
         supplier_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
-        is_import = is_foreign_country(supplier_country)
+        is_foreign = is_foreign_country(supplier_country)
+        # a pragyapan patra bill is an import even when booked to a Nepal customs office supplier
+        pragyapan_import = not is_foreign and bool((inv.customs_declaration_number or "").strip())
+        is_import = is_foreign or pragyapan_import
 
         pan = inv.invoice_pan or inv.supplier_tax_id
 
@@ -191,6 +198,7 @@ def get_data(filters):
             "invoice": inv.bill_no if inv.bill_no else inv.invoice,
             **invoice_link_fields("Purchase Invoice", inv.invoice),
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
+            "pragyapan_import": int(pragyapan_import),
             "supplier_name": inv.supplier_name,
             "pan": pan,
             "reason": inv.reason or "",

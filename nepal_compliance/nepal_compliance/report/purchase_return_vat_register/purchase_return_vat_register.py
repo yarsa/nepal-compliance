@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 
+from nepal_compliance.ird_filters import ird_purchase_exclusion_condition
+
 def execute(filters=None):
     
     columns = [
@@ -117,6 +119,8 @@ def execute(filters=None):
     """
     conditions = []
     values = []
+    if exclusion := ird_purchase_exclusion_condition("pi"):
+        conditions.append(exclusion)
 
     if filters.get("company"):
         conditions.append("pi.company = %s")

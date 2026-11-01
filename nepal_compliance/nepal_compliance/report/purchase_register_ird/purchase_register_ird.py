@@ -16,7 +16,9 @@ from nepal_compliance.ird_country import is_foreign_country, resolve_ird_country
 from nepal_compliance.ird_filters import (
     apply_ird_posting_date_filters,
     invoice_link_fields,
+    ird_purchase_exclusion_condition,
     is_prior_fy_bill,
+    pragyapan_import_message,
     resolve_ird_fiscal_year_start,
 )
 from nepal_compliance.nepali_date_utils.nepali_date import ad_to_bs
@@ -138,7 +140,7 @@ def execute(filters=None):
     prior_fy_count = sum(1 for r in data if r.get("is_prior_fy"))
     summary = get_purchase_register_summary(data, prior_fy_count=prior_fy_count)
     summary.append(check_summary(data))
-    return columns, filter_summary_rows(data, filters), None, None, summary
+    return columns, filter_summary_rows(data, filters), pragyapan_import_message(data), None, summary
 
 
 def get_columns():
@@ -173,6 +175,8 @@ def get_data(filters, bucket="all"):
     legacy = use_legacy_ird_report_calculation()
     conditions = ["pi.docstatus = 1 and pi.is_return = 0"]
     values = {}
+    if exclusion := ird_purchase_exclusion_condition("pi"):
+        conditions.append(exclusion)
 
     if filters.get("company"):
         conditions.append("pi.company = %(company)s")
@@ -256,7 +260,10 @@ def get_data(filters, bucket="all"):
 
     for inv in invoices:
         supplier_country = resolve_ird_country(inv.stored_party_country, inv.address_country)
-        is_import = is_foreign_country(supplier_country)
+        is_foreign = is_foreign_country(supplier_country)
+        # a pragyapan patra bill is an import even when booked to a Nepal customs office supplier
+        pragyapan_import = not is_foreign and bool((inv.customs_declaration_number or "").strip())
+        is_import = is_foreign or pragyapan_import
 
         pan = inv.invoice_pan or inv.supplier_tax_id
 
@@ -310,6 +317,7 @@ def get_data(filters, bucket="all"):
             **invoice_link_fields("Purchase Invoice", inv.invoice),
             "bill_date": inv.bill_date,
             "customs_declaration_number": inv.customs_declaration_number if is_import else "",
+            "pragyapan_import": int(pragyapan_import),
             "supplier_name": inv.supplier_name,
             "pan": pan,
             "total": (flt(inv.rounded_total) or flt(inv.grand_total)) if legacy else invoice_ird_total(inv),
