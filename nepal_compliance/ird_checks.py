@@ -84,6 +84,9 @@ def check_party_tax_id(context, party, settings):
         return []
 
     is_sales = context.get("doctype") == "Sales Invoice"
+    if not is_sales and str(context.get("customs_declaration_number") or "").strip():
+        # a pragyapan patra bill is an import; the foreign supplier has no Nepal PAN
+        return []
     vat = (
         context.get("check_vat_amount")
         if context.get("check_vat_amount") is not None
@@ -414,7 +417,9 @@ def _invoice_contexts(doctype, names, settings=None):
     attachment_fields = set()
     if doctype == "Purchase Invoice":
         attachment_fields = _accepted_purchase_attachment_fields(settings or {})
-        fields.extend(["is_pan_or_abbreviated_bill", *sorted(attachment_fields)])
+        fields.extend(
+            ["is_pan_or_abbreviated_bill", "customs_declaration_number", *sorted(attachment_fields)]
+        )
     rows = _get_all_in_batches(
         doctype,
         names,
