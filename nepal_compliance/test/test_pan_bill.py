@@ -149,6 +149,56 @@ class TestPanBill(unittest.TestCase):
         self.assertEqual(base, 1000)
         self.assertIsNone(reason)
 
+    @patch("nepal_compliance.utils.set_taxable_amounts")
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_pan_bill_tds_skips_items_without_apply_tds(self, configured, set_summary):
+        configured.return_value = {"ACME": {"purchase": "VAT Receivable"}}
+        set_summary.side_effect = lambda doc, _method: doc.update(
+            {"summary_grand_total": 1000}
+        )
+        invoice = frappe._dict(
+            doctype="Purchase Invoice",
+            company="ACME",
+            is_pan_or_abbreviated_bill=1,
+            items=[
+                frappe._dict(item_code="Service", net_amount=600, apply_tds=1),
+                frappe._dict(item_code="Goods", net_amount=400, apply_tds=0),
+            ],
+        )
+
+        base, _reason = utils.get_purchase_taxable_tds_base(invoice)
+
+        self.assertEqual(base, 600)
+
+    @patch("nepal_compliance.utils.get_tds_amount", return_value=0)
+    @patch("nepal_compliance.excise._company_excise_config", return_value=(None, False))
+    @patch("nepal_compliance.utils.get_configured_vat_accounts")
+    def test_tds_base_skips_items_without_apply_tds(self, configured, _excise, _tds):
+        configured.return_value = {"ACME": {"purchase": "VAT Receivable"}}
+        invoice = frappe._dict(
+            doctype="Purchase Invoice",
+            company="ACME",
+            grand_total=1695,
+            items=[
+                frappe._dict(item_code="Service", net_amount=1000, apply_tds=1),
+                frappe._dict(item_code="Goods", net_amount=500, apply_tds=0),
+            ],
+            taxes=[
+                frappe._dict(
+                    account_head="VAT Receivable",
+                    rate=13,
+                    tax_amount_after_discount_amount=195,
+                    item_wise_tax_detail={"Service": [13, 130], "Goods": [13, 65]},
+                )
+            ],
+        )
+
+        base, reason = utils.get_purchase_taxable_tds_base(invoice)
+
+        self.assertEqual(invoice.taxable_amount, 1500)
+        self.assertEqual(base, 1000)
+        self.assertIsNone(reason)
+
     @patch("nepal_compliance.utils.frappe.get_all", return_value=["VAT Exempt (Sales) - ACME"])
     @patch("nepal_compliance.utils.frappe.get_doc")
     def test_exempt_template_accepts_side(self, get_doc, get_all):
