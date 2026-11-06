@@ -637,7 +637,7 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
     row_vat = distribute_item_vat(items, item_vat)
     include_added_taxes = vat_charged_on_added_taxes(doc, vat_account)
 
-    taxable_amount = non_taxable_amount = taxable_discount = 0.0
+    taxable_amount = non_taxable_amount = taxable_discount = tds_taxable_amount = 0.0
     force_all_non_taxable = bool(
         doc.get("is_pan_or_abbreviated_bill")
         or (
@@ -673,11 +673,17 @@ def set_taxable_amounts(doc, method, consider_is_non_taxable_item=False):
         if include_added_taxes:
             # VAT was charged on net + prior rows (duty/excise). Use VAT ÷ rate
             # so expected VAT is 13% of that same base.
-            taxable_amount += item_taxable_amount(item, item_row_vat, item_vat)
+            item_taxable = item_taxable_amount(item, item_row_vat, item_vat)
         else:
-            taxable_amount += amt
+            item_taxable = amt
+        taxable_amount += item_taxable
+        if item_applies_tds(item):
+            tds_taxable_amount += item_taxable
 
     doc.taxable_amount = taxable_amount
+    if doc.doctype == "Purchase Invoice":
+        # TDS base for the rows with Apply TDS ticked; not a stored field.
+        doc.tds_taxable_amount = tds_taxable_amount
     doc.non_taxable_amount = non_taxable_amount
     doc.vat_amount = vat_amount
     doc.taxable_discount = taxable_discount
@@ -1184,7 +1190,13 @@ def get_purchase_taxable_tds_base(doc, throw_on_unavailable=True):
     vat_account = accounts.get("purchase")
     if doc.get("is_pan_or_abbreviated_bill"):
         set_taxable_amounts(doc, None)
-        return flt(doc.get("summary_grand_total")), None
+        # A PAN bill has no taxable split, so the rows with Apply TDS ticked
+        # take their net-amount share of the Bill Total.
+        items = doc.get("items") or []
+        net_total = sum(flt(item.get("net_amount")) for item in items)
+        tds_net = sum(flt(item.get("net_amount")) for item in items if item_applies_tds(item))
+        share = tds_net / net_total if net_total else 1
+        return flt(doc.get("summary_grand_total")) * share, None
 
     reason = None
     if not vat_account:
@@ -1215,7 +1227,13 @@ def get_purchase_taxable_tds_base(doc, throw_on_unavailable=True):
         if throw_on_unavailable:
             frappe.throw(reason, title=_("TDS Taxable Base Unavailable"))
         return None, reason
+    if doc.get("tds_taxable_amount") is not None:
+        return flt(doc.tds_taxable_amount), None
     return flt(doc.taxable_amount), None
+
+def item_applies_tds(item):
+    """Purchase Invoice Item 'Apply TDS'; a row without the field counts as ticked."""
+    return item.get("apply_tds") is None or bool(cint(item.get("apply_tds")))
 
 def apply_taxable_amount_as_tds_base(doc):
     """Point ERPNext withholding at taxable_amount when the category asks for it.
