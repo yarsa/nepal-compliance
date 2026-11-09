@@ -409,6 +409,14 @@ def create_custom_fields(quiet=False):
     created_fields = [] 
 
     for doctype_name, fields in custom_fields.items():
+        # Upstream apps remove DocTypes over time (e.g. hrms dropped "Upload Attendance"
+        # in v16.16.0). A Custom Field on a missing DocType fails Link validation and
+        # aborts the whole install, so skip those DocTypes instead.
+        if not frappe.db.exists("DocType", doctype_name):
+            frappe.logger("nepal_compliance").info(
+                f"Skipping custom fields for missing DocType {doctype_name!r}"
+            )
+            continue
         for field in fields:
             existing_name = frappe.db.exists(
                 "Custom Field", {"dt": doctype_name, "fieldname": field["fieldname"]}
